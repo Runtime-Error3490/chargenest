@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { bookingService } from '../services/bookingService';
 import { useAuthStore } from '../store/authStore';
 import Card from '../components/ui/Card';
@@ -11,14 +11,14 @@ export default function BookingConfirmPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
-  const paypalRef = useRef(null);
+  const [searchParams] = useSearchParams();
+  const authorizing = useRef(false);
   
   const [booking, setBooking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
-  const [paypalLoaded, setPaypalLoaded] = useState(false);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -47,93 +47,27 @@ export default function BookingConfirmPage() {
     }
   }, [id]);
 
-  // Load PayPal SDK
+  // PayPal sends the buyer back here after approval (?token=<order id>). Finish the authorization.
   useEffect(() => {
-    if (!booking || booking.status !== 'pending') return;
+    if (!booking || booking.status !== 'pending' || !searchParams.get('token')) return;
+    if (authorizing.current) return;
+    authorizing.current = true;
 
-    const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
-    if (!clientId) {
-      setPaymentError('PayPal is not configured');
-      return;
-    }
-
-    // Check if already loaded
-    if (window.paypal) {
-      setPaypalLoaded(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=INR&intent=capture`;
-    script.async = true;
-    script.onload = () => setPaypalLoaded(true);
-    script.onerror = () => setPaymentError('Failed to load PayPal');
-    document.body.appendChild(script);
-
-    return () => {
-      // Cleanup if needed
+    const authorize = async () => {
+      try {
+        setPaymentLoading(true);
+        setPaymentError(null);
+        await bookingService.authorizeBooking(id);
+        navigate(`/bookings/${id}`, { state: { paymentSuccess: true } });
+      } catch (err) {
+        setPaymentError(err.message || 'Payment failed');
+        authorizing.current = false;
+      } finally {
+        setPaymentLoading(false);
+      }
     };
-  }, [booking]);
-
-  // Render PayPal buttons
-  useEffect(() => {
-    if (!paypalLoaded || !booking || !paypalRef.current) return;
-    if (booking.status !== 'pending') return;
-
-    // Clear any existing buttons
-    paypalRef.current.innerHTML = '';
-
-    window.paypal.Buttons({
-      style: {
-        layout: 'vertical',
-        color: 'gold',
-        shape: 'rect',
-        label: 'pay',
-      },
-      createOrder: async () => {
-        try {
-          setPaymentLoading(true);
-          setPaymentError(null);
-          
-          const response = await bookingService.createPaymentOrder(id);
-          return response.data.orderId;
-        } catch (err) {
-          setPaymentError(err.message || 'Failed to create payment');
-          throw err;
-        } finally {
-          setPaymentLoading(false);
-        }
-      },
-      onApprove: async (data) => {
-        try {
-          setPaymentLoading(true);
-          setPaymentError(null);
-          
-          await bookingService.capturePayment(id, data.orderID);
-          
-          // Refresh booking to get updated status
-          const response = await bookingService.getBookingById(id);
-          setBooking(response.data);
-          
-          // Navigate to success
-          navigate(`/bookings/${id}`, { 
-            state: { paymentSuccess: true } 
-          });
-        } catch (err) {
-          setPaymentError(err.message || 'Payment failed');
-        } finally {
-          setPaymentLoading(false);
-        }
-      },
-      onError: (err) => {
-        console.error('PayPal error:', err);
-        setPaymentError('Payment failed. Please try again.');
-      },
-      onCancel: () => {
-        setPaymentError('Payment was cancelled');
-      },
-    }).render(paypalRef.current);
-  }, [paypalLoaded, booking, id, navigate]);
+    authorize();
+  }, [booking, id, navigate, searchParams]);
 
   const formatDateTime = (dateString) => {
     return new Date(dateString).toLocaleString('en-IN', {
@@ -177,13 +111,13 @@ export default function BookingConfirmPage() {
         <div className="max-w-2xl mx-auto px-4">
           <Card className="text-center py-12">
             <div className="text-6xl mb-4">
-              {booking.status === 'confirmed' ? '✅' : '⏳'}
+              {['confirmed', 'authorized'].includes(booking.status) ? '✅' : '⏳'}
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {booking.status === 'confirmed' ? 'Booking Confirmed!' : 'Booking Status'}
+              {['confirmed', 'authorized'].includes(booking.status) ? 'Booking Confirmed!' : 'Booking Status'}
             </h2>
             <p className="text-gray-600 mb-6">
-              {booking.status === 'confirmed' 
+              {['confirmed', 'authorized'].includes(booking.status) 
                 ? 'Your charging session has been booked successfully.'
                 : `Your booking is ${booking.status}.`
               }
@@ -289,15 +223,11 @@ export default function BookingConfirmPage() {
               </div>
             </div>
 
-            {/* PayPal Buttons */}
-            <div className="mb-4">
-              {paymentLoading && (
-                <div className="flex justify-center py-4">
-                  <Loading />
-                </div>
-              )}
-              <div ref={paypalRef} className={paymentLoading ? 'opacity-50 pointer-events-none' : ''} />
-            </div>
+            {paymentLoading && (
+              <div className="flex justify-center py-4 mb-4">
+                <Loading />
+              </div>
+            )}
 
             {paymentError && (
               <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm mb-4">
@@ -310,7 +240,7 @@ export default function BookingConfirmPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              <span>Secure payment powered by PayPal</span>
+              <span>Payments are handled by PayPal (sandbox)</span>
             </div>
 
             {/* Alternative: Cancel */}

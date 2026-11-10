@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useAuthStore } from './store/authStore';
 import Layout, { FullScreenLayout } from './components/layout/Layout';
 
@@ -15,12 +14,14 @@ import BookingsPage from './pages/BookingsPage';
 import BookingDetailPage from './pages/BookingDetailPage';
 import ChatPage from './pages/ChatPage';
 import AgentSettingsPage from './pages/AgentSettingsPage';
+import WalletPage from './pages/WalletPage';
 import DashboardPage from './pages/DashboardPage';
 import HostDashboardPage from './pages/HostDashboardPage';
 import CreateChargerPage from './pages/CreateChargerPage';
 import HostChargersPage from './pages/HostChargersPage';
 import HostBookingsPage from './pages/HostBookingsPage';
 import TeamPage from './pages/TeamPage';
+import LegalPage from './pages/LegalPage';
 import NotFoundPage from './pages/NotFoundPage';
 import BecomeHostPage from './pages/BecomeHostPage';
 
@@ -53,13 +54,6 @@ function ProtectedRoute({ children, roles = [] }) {
   return children;
 }
 
-// PayPal options
-const paypalOptions = {
-  'client-id': import.meta.env.VITE_PAYPAL_CLIENT_ID || 'test',
-  currency: 'INR',
-  intent: 'capture',
-};
-
 function App() {
   const { initAuth } = useAuthStore();
 
@@ -68,7 +62,7 @@ function App() {
   }, [initAuth]);
 
   return (
-    <PayPalScriptProvider options={paypalOptions}>
+    <>
       <Routes>
         {/* Public routes with Layout */}
         <Route path="/" element={<Layout><HomePage /></Layout>} />
@@ -77,6 +71,9 @@ function App() {
         <Route path="/search" element={<FullScreenLayout><SearchPage /></FullScreenLayout>} />
         <Route path="/chargers/:id" element={<Layout><ChargerDetailPage /></Layout>} />
         <Route path="/team" element={<Layout><TeamPage /></Layout>} />
+        <Route path="/terms" element={<Layout><LegalPage doc="terms" /></Layout>} />
+        <Route path="/privacy" element={<Layout><LegalPage doc="privacy" /></Layout>} />
+        <Route path="/host-policy" element={<Layout><LegalPage doc="host-policy" /></Layout>} />
 
         {/* Protected routes - any authenticated user */}
         <Route path="/dashboard" element={
@@ -107,6 +104,13 @@ function App() {
           </ProtectedRoute>
         } />
         
+        {/* Wallet (PayPal top-up, deposit, invoices) */}
+        <Route path="/wallet" element={
+          <ProtectedRoute>
+            <Layout><WalletPage /></Layout>
+          </ProtectedRoute>
+        } />
+
         {/* Agent settings */}
         <Route path="/settings/agent" element={
           <ProtectedRoute>
@@ -206,7 +210,7 @@ function App() {
         {/* 404 */}
         <Route path="*" element={<Layout><NotFoundPage /></Layout>} />
       </Routes>
-    </PayPalScriptProvider>
+    </>
   );
 }
 

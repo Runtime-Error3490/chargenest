@@ -1,0 +1,14 @@
+# Keep secrets, local installs and build output out of the image
+**/node_modules
+**/.env
+**/.env.*
+!**/.env.example
+frontend/dist
+backend/uploads
+**/*.log
+.git
+.gitignore
+.DS_Store
+docs
+database
+*.md

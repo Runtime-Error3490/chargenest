@@ -81,8 +81,8 @@ cd ev-charging-marketplace
 
 **Backend** (`backend/.env`):
 ```env
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/evcharge
+# Database (matches docker-compose.yml)
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/ev_charging_marketplace
 
 # Auth
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars
@@ -93,38 +93,69 @@ TOTP_ENCRYPTION_KEY=your-totp-encryption-key-32-chars
 PAYPAL_CLIENT_ID=your-sandbox-client-id
 PAYPAL_CLIENT_SECRET=your-sandbox-client-secret
 PAYPAL_MODE=sandbox
+PAYPAL_WEBHOOK_ID=your-webhook-id
 
-# AI
+# Wallet: balance needed before booking or listing, and the part of it kept as a damage deposit
+WALLET_MIN_BALANCE=500
+WALLET_DEPOSIT=250
+
+# AI provider: openrouter | openai | ollama | mock (mock needs no key)
+AI_PROVIDER=mock
 OPENROUTER_API_KEY=your-openrouter-api-key
 OPENROUTER_MODEL=openai/gpt-3.5-turbo
 
+# Know Your Agent: encrypts agent signing keys at rest
+KYA_KEY_SECRET=a-long-random-value
+
 # App
 NODE_ENV=development
-PORT=3001
+PORT=4000
 FRONTEND_URL=http://localhost:5173
 PLATFORM_FEE_PERCENT=7
 ```
 
 **Frontend** (`frontend/.env`):
 ```env
-VITE_API_URL=http://localhost:3001/api
-VITE_PAYPAL_CLIENT_ID=your-sandbox-client-id
+VITE_API_URL=http://localhost:4000/api
 ```
 
 ### 3. Set up database
 ```bash
 cd backend
 npm install
-npx prisma migrate dev
-npx prisma db seed
+npx prisma migrate deploy
+npm run db:seed
 ```
+The seed funds the demo wallets above the minimum balance, so booking works straight away.
 
 ### 4. Start the servers
 
-**Option A: Use the setup script (recommended)**
+**Option A: Use the run script (recommended)**
 ```bash
-./setup.sh
+./start.sh        # starts Postgres in Docker, then runs: ./run.sh all
+./run.sh all      # install, env files, migrate, seed, start (Postgres already running)
+./run.sh test     # backend tests
 ```
+`./run.sh` creates `backend/.env` with `AI_PROVIDER=mock` so the app starts without keys.
+Without PayPal credentials the backend runs PayPal in **mock mode**: top-ups, booking holds,
+invoices and disputes are simulated with dummy PayPal ids and accept the amounts you enter, and the
+wallet page shows a "mock mode" notice. Add sandbox `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`
+to `backend/.env` to use the real PayPal sandbox. `PAYPAL_MOCK=true` forces mock mode, `false`
+forces it off. Mock mode is never active when `NODE_ENV=production`.
+In mock mode a wallet that has never been used gets a one-time demo credit (`WALLET_MOCK_CREDIT`,
+default 1000, `0` turns it off), so the wallet page has data to show.
+
+**Run with the real PayPal sandbox**
+1. Create a REST app at developer.paypal.com (Sandbox) and copy its client ID and secret.
+2. Put them in `backend/.env`: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`, `PAYPAL_MODE=sandbox`,
+   `PAYPAL_API_URL=https://api-m.sandbox.paypal.com`. Add `PAYPAL_WEBHOOK_ID` if you use webhooks.
+3. Restart the backend. The wallet page no longer shows the "mock mode" notice.
+4. Pay with a sandbox buyer account. Set the minimum balance with `WALLET_MIN_BALANCE`.
+
+**Switch the AI provider** (no code change): set `AI_PROVIDER` to `openrouter`, `openai`, `ollama`
+or `mock`, and optionally `AI_MODEL`. For OpenRouter, set `OPENROUTER_API_KEY`.
+
+`./setup.sh` is an alternative that uses its own database name (`evcharge`).
 
 **Option B: Manual start**
 ```bash
@@ -159,13 +190,15 @@ Navigate to `http://localhost:5173`
 ## 🔄 Payment Flow
 
 ```
-1. Driver books → PayPal Order created (intent=AUTHORIZE)
-2. Driver approves → Funds held (not charged)
+1. Sign up → add the minimum balance (500) with PayPal. 250 stays as a damage deposit, the rest is spendable
+2. Driver books → the booking amount is held from the wallet balance
 3. Session starts → Both parties confirm
-4. Session ends → Actual amount captured
-5. Platform takes 7% → Host receives payout
-6. Dispute? → AI analyzes → Refund if needed
+4. Session ends → Held funds are released to the host's wallet (minus 7% fee)
+5. Damage? → Host sends a PayPal invoice, or a PayPal dispute is raised
+6. Cash out → Host withdraws to PayPal. "Close wallet" returns the deposit too
 ```
+
+All money sits in one PayPal sandbox business account (the demo escrow). The wallet is a ledger on top of it. Full design, limits and the Commerce Platform note: [docs/DECISIONS.md](docs/DECISIONS.md#payment-architecture-nov-10-2026).
 
 ---
 
@@ -234,6 +267,11 @@ ev-charging-marketplace/
 - `POST /api/chargers` — Create listing (host)
 - `GET /api/chargers/:id` — Get details
 
+### Wallet and invoices
+- `GET /api/payments/wallet` — Balance, held funds, deposit status
+- `POST /api/payments/wallet/topup` — Create PayPal order (then `/topup/capture`)
+- `GET /api/payments/invoices`, `POST /api/payments/invoices` — PayPal invoices
+
 ### Bookings
 - `POST /api/bookings` — Create booking
 - `POST /api/bookings/:id/cancel` — Cancel
@@ -244,6 +282,9 @@ ev-charging-marketplace/
 
 ### Agent
 - `POST /api/agent/chat` — Chat with concierge
+- `GET /api/agent/identity` — KYA identity card
+- `GET/PUT /api/agent/settings` — Autonomy level and per-action permissions
+- `GET /api/agent/approvals`, `POST /api/agent/approvals/:id/respond` — Confirm or deny agent actions
 - `POST /api/agent/mandates` — Create mandate
 - `DELETE /api/agent/mandates/:id` — Revoke mandate
 
@@ -273,7 +314,6 @@ ev-charging-marketplace/
 
 - [ ] Hardware metering integration (smart plugs)
 - [ ] Percentage-based charging ("charge to 80%")
-- [ ] UPI payments (India-specific)
 - [ ] Native mobile apps
 - [ ] Society/apartment approval workflows
 - [ ] External agent access via MCP server

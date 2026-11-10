@@ -212,6 +212,77 @@ User logs in
 
 ---
 
+## Payment Architecture (Nov 10, 2026)
+
+**Decision:** one PayPal sandbox business account acts as the demo escrow. The wallet in our database is a ledger of who owns what part of that account. PayPal is touched only when money enters or leaves.
+
+```
+Driver --PayPal Orders--> Escrow account (our business app) --PayPal Payouts--> Host PayPal email
+            top-up                 |                                cash out
+                                   v
+                         Wallet ledger (database)
+   top-up -> hold at booking -> release to host (minus fee) -> cancel returns hold
+```
+
+| Step | What happens | PayPal call |
+|------|--------------|-------------|
+| Top-up | Driver approves a PayPal order. Capture adds the amount to the wallet. | Orders create, capture |
+| Deposit | The first 500 is required. 250 of it stays locked. | none |
+| Book | Booking total (price plus 7% fee) moves from spendable to held. | none |
+| Charging done | Held amount leaves the driver. Host wallet gets it minus the fee share. | none |
+| Cancel | Held amount returns to the driver, minus any cancellation fee. | none |
+| Host cash out | Spendable balance is paid to the host PayPal email. | Payouts |
+| Close wallet | Whole balance, deposit included, is paid out. Blocked while a booking, dispute or unpaid invoice is open. | Payouts |
+| Damage | Host sends an invoice. Paid invoice credits the host (minus fee). | Invoicing |
+| Dispute | Raised and answered through PayPal. A refund moves money back in the ledger. | Disputes |
+
+**Config:** `PLATFORM_FEE_PERCENT` (7), `WALLET_MIN_BALANCE` (500), `WALLET_DEPOSIT` (250), `DEFAULT_CURRENCY`.
+
+**Sandbox setup that works (checked Nov 10, 2026):** a sandbox Business account with country United States, and a REST app on it. An India business account fails with `PAYOUT_NOT_AVAILABLE` for Payouts and `NOT_AUTHORIZED` for partner referrals. Use `DEFAULT_CURRENCY=USD` with it. With no keys, mock mode simulates every call.
+
+**Limits (demo only, not for real money):**
+- Holding user funds in one account needs a payments licence in real life.
+- The ledger can drift from the real PayPal balance (fees, failed payouts). A balance check is not built yet.
+- Held money is ledger-only. It is not a PayPal authorization.
+- Damage is not taken from the deposit. It is a PayPal invoice.
+
+**Considered and not built: PayPal Commerce Platform.** Driver pays the host directly and PayPal keeps our fee, with no pooled account. The sandbox supports it: a partner-referral call returned a sign-up link. It has no wallet or deposit, needs a sign-up link per host and a large payment rewrite. Next step for real money: add it as a second way to pay, starting with a "Connect PayPal" button for hosts.
+
+---
+
+## Session Success and Host Payout (Nov 10, 2026)
+
+**One question decides every payout: did the session succeed?** `evaluateSession()` in `session.service.js` answers it. Both ways of proving a session end in `settleWalletSession()`, so money moves the same way.
+
+| Proof source | Who vouches | Today |
+|--------------|-------------|-------|
+| `manual` | Driver and host tap start and end | Default, unchanged |
+| `device` | Charger hardware sends signed events | Mock now, ESP32 later |
+
+**Success (device):** the device unlocked, the session ran at least `MIN_SESSION_MINUTES`, and if a meter reported energy it was at least `MIN_ENERGY_KWH`. The driver pays for the share of booked time used. The unused part of the hold returns to the driver. The host gets the amount minus the platform fee.
+
+**Failed (full refund, booking cancelled):**
+
+| Reason | When |
+|--------|------|
+| `no_unlock` | Booked time passed (plus `DEVICE_GRACE_MINUTES`) and the device never unlocked. Covers a station that is offline or broken. |
+| `too_short` | Ran less than `MIN_SESSION_MINUTES` |
+| `meter_anomaly` | Long enough session but about zero energy |
+
+An unknown device id or a bad signature never reaches a booking, so a fake station cannot take payment.
+
+**Payout delay:** with `PAYOUT_DELAY_HOURS` above 0 the driver's hold is cleared at the end but the host is credited later. A dispute before then freezes it (booking status `disputed`). A refund on a dispute shrinks the pending amount instead of debiting the host wallet. Default 0 keeps the old behavior.
+
+**Device events** (`POST /api/device/events`, no login, HMAC-SHA256 signed with the device secret): `unlocked`, `meter`, `ended`. Each carries a counter that must rise, so a replay is rejected. The signature covers device id, booking id, type, counter, time and payload.
+
+**Mock device:** `POST /api/device/mock/simulate` (needs `DEVICE_MOCK=true`, never in production) sends signed events through the same handler. Scenarios: `success`, `short_session`, `bad_meter`, `fake_station`, `offline`, `no_unlock`. Real hardware replaces only the sender.
+
+**Background runner:** every `JOB_INTERVAL_SEC` it closes device bookings whose time is over and pays hosts whose delay has passed.
+
+**Not built yet:** QR code and unlock command to the device, host strikes for offline stations, email receipts, blocking a charger from going live until its device passes a test charge, device key rotation, MQTT and OCPP naming. Device sessions support wallet bookings only.
+
+---
+
 ## Open Items Resolved
 
 | Question | Resolution |

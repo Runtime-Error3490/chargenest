@@ -1,11 +1,39 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Zap, Menu, X, User, LogOut, MapPin, Calendar, 
   MessageSquare, Settings, Shield, LayoutDashboard,
-  Plus, ChevronDown
+  Plus, ChevronDown, Sun, Moon, Wallet
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
+
+// Light/dark switch. index.html applies the saved theme before first paint;
+// this keeps <html class="dark"> and localStorage('theme') in sync.
+function ThemeToggle() {
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add('theme-transition');
+    root.classList.toggle('dark', isDark);
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    const t = setTimeout(() => root.classList.remove('theme-transition'), 250);
+    return () => clearTimeout(t);
+  }, [isDark]);
+
+  return (
+    <button
+      type="button"
+      onClick={() => setIsDark(d => !d)}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-pressed={isDark}
+      title={isDark ? 'Light mode' : 'Dark mode'}
+      className="p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+    >
+      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+    </button>
+  );
+}
 
 export function Navbar() {
   const navigate = useNavigate();
@@ -153,6 +181,7 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             {isAuthenticated ? (
               <div className="relative">
                 <button
@@ -262,6 +291,15 @@ export function Navbar() {
                           <Plus className="w-4 h-4" />
                           Add Charger
                         </Link>
+
+                        <Link 
+                          to="/wallet" 
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <Wallet className="w-4 h-4" />
+                          Wallet
+                        </Link>
                       </>
                     ) : (
                       /* Driver or mixed role (driver+host) menu items */
@@ -285,6 +323,15 @@ export function Navbar() {
                             >
                               <Calendar className="w-4 h-4" />
                               My Bookings
+                            </Link>
+
+                            <Link 
+                              to="/wallet" 
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <Wallet className="w-4 h-4" />
+                              Wallet
                             </Link>
 
                             <Link 

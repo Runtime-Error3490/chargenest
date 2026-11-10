@@ -1,5 +1,6 @@
 import { prisma } from '../utils/prisma.js';
 import { config } from '../config/index.js';
+import { walletService } from './wallet.service.js';
 import { NotFoundError, ForbiddenError, ValidationError } from '../utils/errors.js';
 
 /**
@@ -43,6 +44,30 @@ function calculateSuggestedPrice(kwTier, city = 'Bengaluru') {
   const marginMultiplier = kw <= 11 ? 1.5 : (kw <= 22 ? 1.8 : 2.0);
   
   return Math.round(costPerHour * marginMultiplier);
+}
+
+// Longest and shortest booking a driver can ask for, in minutes (multiples of RATE_STEP_MIN)
+export const RATE_MIN_DURATION = 15;
+export const RATE_MAX_DURATION = 480;
+export const RATE_STEP_MIN = 15;
+
+/**
+ * The host's hourly rate: the price of their 1 hour package (the one price they enter when listing).
+ * Chargers with only other packages use the cheapest rate per hour among them.
+ */
+export function hourlyRateOf(packages = []) {
+  const active = packages.filter((p) => p.isActive !== false);
+  const hour = active.find((p) => p.durationMin === 60);
+  if (hour) return Number(hour.price);
+  if (active.length === 0) return null;
+  return Math.min(...active.map((p) => (Number(p.price) * 60) / p.durationMin));
+}
+
+/**
+ * Price for any duration at the host's hourly rate, rounded to 2 decimals.
+ */
+export function priceForDuration(hourlyRate, durationMin) {
+  return Math.round(((hourlyRate * durationMin) / 60) * 100) / 100;
 }
 
 export const chargerService = {
@@ -243,6 +268,8 @@ export const chargerService = {
         avgRating: hostRatingStats._avg.rating || 0,
         totalReviews: hostRatingStats._count,
       },
+      // Every duration is priced from this one rate (see priceForDuration)
+      hourlyRate: hourlyRateOf(charger.packages),
       packages: charger.packages.map(p => ({
         id: p.id,
         name: p.name,
@@ -273,6 +300,9 @@ export const chargerService = {
    * Create a new charger listing
    */
   async createCharger(hostId, data) {
+    // The wallet minimum balance is the damage deposit; no deposit, no listing
+    await walletService.assertDepositMet(hostId, 'list a charger');
+
     const {
       name,
       description,

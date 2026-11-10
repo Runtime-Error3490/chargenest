@@ -2,6 +2,7 @@ import { prisma } from '../utils/prisma.js';
 import { config } from '../config/index.js';
 import { aiService } from './ai.service.js';
 import { paypalService } from './paypal.service.js';
+import { walletService } from './wallet.service.js';
 import { 
   NotFoundError, 
   ValidationError, 
@@ -18,6 +19,7 @@ export const disputeService = {
     reason,
     description,
     evidence,
+    raisedByAgentId = null,
   }) {
     // Get booking with related data
     const booking = await prisma.booking.findUnique({
@@ -74,6 +76,7 @@ export const disputeService = {
         reason,
         description,
         evidence,
+        raisedByAgentId,
         status: 'open',
       },
     });
@@ -234,7 +237,7 @@ export const disputeService = {
           include: {
             payment: true,
             charger: {
-              select: { host: { select: { paypalEmail: true } } },
+              select: { hostId: true, host: { select: { paypalEmail: true } } },
             },
           },
         },
@@ -245,11 +248,55 @@ export const disputeService = {
       throw new NotFoundError('Dispute');
     }
 
+    // A dispute that PayPal also knows about: tell PayPal we agree to the buyer's claim when we refund
+    if (dispute.paypalDisputeId && decision !== 'release_to_host') {
+      try {
+        await paypalService.acceptDisputeClaim(dispute.paypalDisputeId, adminNotes || 'Refund agreed by marketplace');
+      } catch (error) {
+        console.error('Could not accept PayPal dispute claim:', error.message);
+      }
+    }
+
+    // Host wins: tell the buyer through PayPal why the claim was not upheld
+    if (dispute.paypalDisputeId && decision === 'release_to_host') {
+      try {
+        await paypalService.sendDisputeMessage(dispute.paypalDisputeId, adminNotes || 'The claim was reviewed and not upheld');
+      } catch (error) {
+        console.error('Could not send PayPal dispute message:', error.message);
+      }
+    }
+
     const payment = dispute.booking.payment;
     const capturedAmount = payment?.capturedAmount ? parseFloat(payment.capturedAmount) : 0;
 
+    // Payout delay: the host may not have been credited yet, so there is nothing to take back from the wallet
+    const hostPending = !!(payment?.releaseAfter && !payment?.releasedAt);
+
     // Process refund if needed
-    if (decision !== 'release_to_host' && refundAmount > 0 && payment?.paypalCaptureId) {
+    if (decision !== 'release_to_host' && refundAmount > 0 && payment?.fundingSource === 'wallet') {
+      // Wallet-funded: the refund is a ledger move, no PayPal call needed
+      await prisma.$transaction(async (tx) => {
+        await walletService.refundAfterRelease(tx, {
+          driverId: dispute.booking.driverId,
+          hostId: dispute.booking.charger.hostId,
+          amount: refundAmount,
+          bookingId: dispute.bookingId,
+          hostPending,
+        });
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            // Host not credited yet: the pending earnings shrink by the host's share of the refund
+            ...(hostPending && {
+              hostPayoutAmount: Math.max(0, Math.round((parseFloat(payment.hostPayoutAmount || 0) - refundAmount * (1 - config.platform.feePercent / 100)) * 100) / 100),
+            }),
+            refundedAmount: refundAmount,
+            status: refundAmount >= capturedAmount ? 'refunded' : 'partially_refunded',
+            refundedAt: new Date(),
+          },
+        });
+      });
+    } else if (decision !== 'release_to_host' && refundAmount > 0 && payment?.paypalCaptureId) {
       await paypalService.refundCapture(
         payment.paypalCaptureId,
         refundAmount,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   BarChart3, TrendingUp, MapPin, Clock, Users, Zap,
   DollarSign, Calendar, ChevronDown
@@ -8,7 +8,12 @@ import { Card, CardBody, Button, Select } from '../../components/ui';
 import api from '../../services/api';
 
 export default function AdminAnalyticsPage() {
-  const [activeTab, setActiveTab] = useState('revenue');
+  // ?tab=geographic|usage deep-links (used by the admin dashboard)
+  const [searchParams] = useSearchParams();
+  const initialTab = ['revenue', 'geographic', 'usage'].includes(searchParams.get('tab'))
+    ? searchParams.get('tab')
+    : 'revenue';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [period, setPeriod] = useState('month');
   const [revenueData, setRevenueData] = useState(null);
   const [geoData, setGeoData] = useState(null);

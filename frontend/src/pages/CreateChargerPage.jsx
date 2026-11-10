@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -34,6 +34,27 @@ const CONNECTOR_TYPES = [
   { value: 'Wall', label: 'Wall Socket', description: 'Standard 15A socket' },
 ];
 
+// Must match backend createChargerSchema (charger.routes.js)
+const MIN_TITLE = 3;
+const MIN_ADDRESS = 10;
+
+// Which form step owns each backend field, to send the user back to fix it
+const FIELD_STEP = {
+  name: 1, description: 1, connectorType: 1, kwTier: 1, packages: 1,
+  address: 2, latitude: 2, longitude: 2, amenities: 2, photos: 2,
+};
+
+const MAX_PHOTOS = 5;
+const MAX_PHOTO_MB = 5;
+const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+
+// Backend power tiers (kW) -> enum value
+const KW_TIERS = [
+  [3.3, 'kW3_3'], [7.4, 'kW7_4'], [11, 'kW11'], [22, 'kW22'], [50, 'kW50'], [150, 'kW150'],
+];
+const toKwTier = (kw) =>
+  KW_TIERS.reduce((best, tier) => (Math.abs(tier[0] - kw) < Math.abs(best[0] - kw) ? tier : best))[1];
+
 const AMENITIES = [
   'WiFi', 'Restroom', 'Cafe', 'Parking', 'Security', 'Covered', 'Seating', 'Water'
 ];
@@ -55,6 +76,7 @@ export default function CreateChargerPage() {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [needsWallet, setNeedsWallet] = useState(false);
   const [step, setStep] = useState(1);
   
   // Form data
@@ -75,6 +97,12 @@ export default function CreateChargerPage() {
   // Map position state
   const [mapPosition, setMapPosition] = useState([12.9716, 77.5946]);
 
+  // Selected photos: [{ file, preview }]
+  const [photos, setPhotos] = useState([]);
+
+  // Release object URLs when the page unmounts
+  useEffect(() => () => photos.forEach(p => URL.revokeObjectURL(p.preview)), []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Redirect if not authenticated or not a host
   if (!isAuthenticated) {
     navigate('/login', { state: { from: '/host/chargers/new' } });
@@ -94,6 +122,41 @@ export default function CreateChargerPage() {
     }));
   };
 
+  const handlePhotoSelect = (e) => {
+    const picked = Array.from(e.target.files || []);
+    e.target.value = ''; // allow picking the same file again
+    const accepted = [];
+    let problem = null;
+
+    for (const file of picked) {
+      if (!PHOTO_TYPES.includes(file.type)) {
+        problem = 'Only JPG, PNG or WebP images are allowed';
+      } else if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
+        problem = `"${file.name}" is larger than ${MAX_PHOTO_MB} MB`;
+      } else if (photos.length + accepted.length >= MAX_PHOTOS) {
+        problem = `You can add up to ${MAX_PHOTOS} photos`;
+        break;
+      } else {
+        accepted.push({ file, preview: URL.createObjectURL(file) });
+      }
+    }
+
+    setError(problem);
+    if (accepted.length) setPhotos(prev => [...prev, ...accepted]);
+  };
+
+  const removePhoto = (index) => {
+    setPhotos(prev => {
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
+    setError(null);
+  };
+
+  const makeCover = (index) => {
+    setPhotos(prev => [prev[index], ...prev.filter((_, i) => i !== index)]);
+  };
+
   const handleMapClick = (position) => {
     setMapPosition(position);
     setFormData(prev => ({
@@ -103,16 +166,20 @@ export default function CreateChargerPage() {
     }));
   };
 
+  // Same rules as the backend's createChargerSchema, so problems show up on the step where they happen
   const validateStep = (currentStep) => {
     switch (currentStep) {
       case 1:
-        if (!formData.title.trim()) return 'Please enter a title';
+        if (formData.title.trim().length < MIN_TITLE) return `Charger title must be at least ${MIN_TITLE} characters`;
         if (!formData.connectorType) return 'Please select a connector type';
         if (!formData.powerKw || formData.powerKw <= 0) return 'Please enter power output';
+        if (formData.powerKw > 350) return 'Power output can be at most 350 kW';
         if (!formData.pricePerHour || formData.pricePerHour <= 0) return 'Please enter price per hour';
         break;
       case 2:
-        if (!formData.address.trim()) return 'Please enter an address';
+        if (formData.address.trim().length < MIN_ADDRESS) {
+          return `Please enter a full address (at least ${MIN_ADDRESS} characters), e.g. street, area and city`;
+        }
         break;
       default:
         break;
@@ -139,26 +206,38 @@ export default function CreateChargerPage() {
     try {
       setLoading(true);
       setError(null);
+      setNeedsWallet(false);
+
+      // Upload photos first; the first one becomes the cover image
+      const photoUrls = photos.length
+        ? await chargerService.uploadPhotos(photos.map(p => p.file))
+        : [];
 
       await chargerService.createCharger({
-        title: formData.title,
+        name: formData.title.trim(),
         description: formData.description,
         connectorType: formData.connectorType,
-        powerKw: parseFloat(formData.powerKw),
-        pricePerHour: parseFloat(formData.pricePerHour),
+        kwTier: toKwTier(parseFloat(formData.powerKw)),
         address: formData.address,
         latitude: formData.latitude,
         longitude: formData.longitude,
         amenities: formData.amenities,
-        instructions: formData.instructions,
-        images: formData.images,
+        photos: photoUrls,
+        packages: [
+          { name: '1 Hour', durationMin: 60, price: parseFloat(formData.pricePerHour) },
+        ],
       });
 
       navigate('/host/dashboard', { 
         state: { success: 'Charger created successfully!' } 
       });
     } catch (err) {
-      setError(err.message || 'Failed to create charger');
+      // api.js turns server errors into readable text; send the user to the step that needs fixing
+      const fieldStep = err.fieldErrors?.map(d => FIELD_STEP[d.field]).find(Boolean);
+      if (fieldStep) setStep(fieldStep);
+      if (err.apiCode === 'DEPOSIT_REQUIRED') setNeedsWallet(true);
+      setError(`Couldn't create your charger. ${err.message || 'Please try again.'}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setLoading(false);
     }
@@ -211,6 +290,11 @@ export default function CreateChargerPage() {
         {error && (
           <div className="p-5 bg-red-50 text-red-700 rounded-lg mb-6">
             {error}
+            {needsWallet && (
+              <button onClick={() => navigate('/wallet')} className="ml-2 font-medium underline">
+                Add money
+              </button>
+            )}
           </div>
         )}
 
@@ -324,10 +408,20 @@ export default function CreateChargerPage() {
                 <textarea
                   value={formData.address}
                   onChange={(e) => handleChange('address', e.target.value)}
-                  placeholder="Full address including landmark..."
+                  placeholder="e.g. 12, 5th Cross, Bellandur, Bengaluru 560103"
                   rows={2}
                   className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
                 />
+                {/* Live hint so the minimum length is clear before Continue */}
+                <p className={`text-xs mt-1 ${
+                  formData.address.trim().length > 0 && formData.address.trim().length < MIN_ADDRESS
+                    ? 'text-red-600'
+                    : 'text-gray-500'
+                }`}>
+                  Include street, area and city (at least {MIN_ADDRESS} characters)
+                  {formData.address.trim().length > 0 && formData.address.trim().length < MIN_ADDRESS &&
+                    ` · ${MIN_ADDRESS - formData.address.trim().length} more needed`}
+                </p>
               </div>
 
               <div>
@@ -373,6 +467,59 @@ export default function CreateChargerPage() {
                       {amenity}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Photos */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Photos <span className="text-gray-400 font-normal">({photos.length}/{MAX_PHOTOS})</span>
+                </label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Drivers see these when they view your charger. The first photo is the cover. JPG, PNG or WebP, up to {MAX_PHOTO_MB} MB each.
+                </p>
+
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                  {photos.map((photo, index) => (
+                    <div key={photo.preview} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                      <img src={photo.preview} alt={`Charger photo ${index + 1}`} className="w-full h-full object-cover" />
+                      {index === 0 ? (
+                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-green-600 text-white text-[10px] rounded">
+                          Cover
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => makeCover(index)}
+                          className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                        >
+                          Make cover
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removePhoto(index)}
+                        aria-label={`Remove photo ${index + 1}`}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white text-sm leading-none hover:bg-black/80"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+
+                  {photos.length < MAX_PHOTOS && (
+                    <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-green-500 hover:bg-green-50 flex flex-col items-center justify-center text-gray-500 cursor-pointer transition-colors focus-within:ring-2 focus-within:ring-green-500">
+                      <span className="text-2xl leading-none">+</span>
+                      <span className="text-xs mt-1">Add photo</span>
+                      <input
+                        type="file"
+                        accept={PHOTO_TYPES.join(',')}
+                        multiple
+                        onChange={handlePhotoSelect}
+                        className="sr-only"
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
             </div>
@@ -429,6 +576,17 @@ export default function CreateChargerPage() {
                   <p className="font-medium">{formData.address}</p>
                 </div>
 
+                {photos.length > 0 && (
+                  <div>
+                    <span className="text-gray-500 text-sm">Photos:</span>
+                    <div className="flex gap-2 mt-1">
+                      {photos.map((p, i) => (
+                        <img key={p.preview} src={p.preview} alt={`Photo ${i + 1}`} className="w-14 h-14 rounded object-cover border" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {formData.amenities.length > 0 && (
                   <div>
                     <span className="text-gray-500 text-sm">Amenities:</span>
@@ -477,11 +635,11 @@ export default function CreateChargerPage() {
               {/* Terms */}
               <div className="text-sm text-gray-600">
                 By listing your charger, you agree to our{' '}
-                <a href="/terms" className="text-green-600 hover:underline">
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="/host-policy" className="text-green-600 hover:underline">
+                <a href="/host-policy" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">
                   Host Policy
                 </a>.
               </div>

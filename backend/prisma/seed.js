@@ -3,6 +3,37 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+// Stock photos for EV chargers from Unsplash (free to use)
+const stockPhotos = {
+  homeCharger: [
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // EV charging at home
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // Electric car plugged in
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Home garage charger
+  ],
+  cafeCharger: [
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Public charging station
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // EV charging point
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Tesla supercharger style
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // EV charging
+  ],
+  apartmentCharger: [
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // EV plugged in
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Charging station
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Parking garage
+  ],
+  techParkCharger: [
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // Modern charging
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Commercial station
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Fast charger
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // EV charging
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // Car plugged in
+  ],
+  residentialCharger: [
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Home setup
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Residential charging
+  ],
+};
+
 async function main() {
   console.log('🌱 Seeding database...');
 
@@ -76,6 +107,32 @@ async function main() {
 
   console.log('✅ Created users');
 
+  // Demo wallets: the minimum balance is a damage deposit, so seeded users start above it.
+  // Only credits wallets that are still empty, so re-running the seed never adds money twice.
+  const demoWallets = [
+    { user: driver, amount: 5000 },
+    { user: host, amount: 1000 },
+    { user: dualUser, amount: 3000 },
+  ];
+  for (const { user, amount } of demoWallets) {
+    const credited = await prisma.user.updateMany({
+      where: { id: user.id, walletBalance: 0 },
+      data: { walletBalance: amount },
+    });
+    if (credited.count > 0) {
+      await prisma.walletTransaction.create({
+        data: {
+          userId: user.id,
+          type: 'topup',
+          amount,
+          balanceAfter: amount,
+          note: 'Demo seed credit (sandbox)',
+        },
+      });
+    }
+  }
+  console.log('✅ Funded demo wallets');
+
   // Create chargers in Bengaluru
   const chargers = [
     {
@@ -89,7 +146,7 @@ async function main() {
       connectorType: 'Type2',
       kwTier: 'kW7_4',
       amenities: ['parking', 'wifi', 'restroom'],
-      photos: [],
+      photos: stockPhotos.homeCharger,
       suggestedPrice: 140,
       packages: [
         { name: 'Quick Charge', durationMin: 30, price: 75 },
@@ -117,7 +174,7 @@ async function main() {
       connectorType: 'CCS2',
       kwTier: 'kW22',
       amenities: ['cafe', 'wifi', 'seating'],
-      photos: [],
+      photos: stockPhotos.cafeCharger,
       suggestedPrice: 280,
       packages: [
         { name: 'Quick Boost', durationMin: 30, price: 150 },
@@ -145,7 +202,7 @@ async function main() {
       connectorType: 'Type2',
       kwTier: 'kW11',
       amenities: ['parking', 'security'],
-      photos: [],
+      photos: stockPhotos.apartmentCharger,
       suggestedPrice: 180,
       packages: [
         { name: 'Quick Charge', durationMin: 30, price: 95 },
@@ -173,7 +230,7 @@ async function main() {
       connectorType: 'CCS2',
       kwTier: 'kW50',
       amenities: ['parking', 'security', 'food_court'],
-      photos: [],
+      photos: stockPhotos.techParkCharger,
       suggestedPrice: 400,
       packages: [
         { name: 'Quick Boost', durationMin: 30, price: 220 },
@@ -201,7 +258,7 @@ async function main() {
       connectorType: 'Type2',
       kwTier: 'kW3_3',
       amenities: ['parking', 'quiet'],
-      photos: [],
+      photos: stockPhotos.residentialCharger,
       suggestedPrice: 80,
       packages: [
         { name: 'Short', durationMin: 60, price: 80 },
@@ -408,6 +465,21 @@ async function main() {
 
     // Recreate if we don't have enough bookings OR if we're missing payments
     if (existingBookings < 8 || existingPayments < 5) {
+      // Give back the money held for the old upcoming bookings before they are deleted
+      const oldHolds = await prisma.booking.findMany({
+        where: { driverId: driver.id, status: 'authorized' },
+        select: { id: true, totalAmount: true },
+      });
+      for (const old of oldHolds) {
+        const hold = await prisma.walletTransaction.findFirst({ where: { bookingId: old.id, type: 'booking_hold' } });
+        if (!hold) continue;
+        await prisma.user.update({
+          where: { id: driver.id },
+          data: { walletHeld: { decrement: old.totalAmount }, walletBalance: { increment: old.totalAmount } },
+        });
+        await prisma.walletTransaction.updateMany({ where: { bookingId: old.id }, data: { bookingId: null } });
+      }
+
       // Delete existing bookings and payments to recreate them
       await prisma.payment.deleteMany({
         where: { booking: { driverId: driver.id } },
@@ -418,9 +490,38 @@ async function main() {
       
       for (const bookingData of mockBookings) {
         if (bookingData.chargerId && bookingData.packageId) {
+          // A confirmed booking is paid from the wallet, so its amount must really be held
+          const needsHold = bookingData.status === 'authorized';
+          if (needsHold) {
+            const total = Number(bookingData.totalAmount);
+            const held = await prisma.user.updateMany({
+              where: { id: driver.id, walletBalance: { gte: total + (parseFloat(process.env.WALLET_DEPOSIT || '250')) } },
+              data: { walletBalance: { decrement: total }, walletHeld: { increment: total } },
+            });
+            if (held.count === 0) {
+              console.warn(`⚠️  Skipped an upcoming booking of ${total}: the demo driver's wallet cannot hold it`);
+              continue;
+            }
+          }
+
           const booking = await prisma.booking.create({
             data: bookingData,
           });
+
+          if (needsHold) {
+            const { walletBalance } = await prisma.user.findUnique({ where: { id: driver.id }, select: { walletBalance: true } });
+            await prisma.walletTransaction.create({
+              data: {
+                userId: driver.id,
+                type: 'booking_hold',
+                amount: bookingData.totalAmount,
+                balanceAfter: walletBalance,
+                bookingId: booking.id,
+                note: 'Held for booking (demo seed)',
+              },
+            });
+            await prisma.session.create({ data: { bookingId: booking.id, status: 'awaiting_start' } });
+          }
           
           // Create payment records for completed and authorized bookings
           if (bookingData.status === 'completed') {

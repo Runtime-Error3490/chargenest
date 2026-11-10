@@ -43,6 +43,17 @@ export const chargerService = {
     };
   },
 
+  // Upload charger photos (max 5). Returns public URLs.
+  async uploadPhotos(files) {
+    const formData = new FormData();
+    files.forEach(file => formData.append('photos', file));
+    // Override the instance's JSON default so axios sends multipart with a boundary
+    const response = await api.post('/chargers/photos', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data.photos;
+  },
+
   // Update charger
   async updateCharger(id, data) {
     const response = await api.put(`/chargers/${id}`, data);

@@ -144,6 +144,8 @@ export const useAuthStore = create(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         user: state.user,
+        // Keep this so a full page load (like PayPal sending the user back) is not bounced to /login
+        isAuthenticated: state.isAuthenticated,
       }),
     }
   )

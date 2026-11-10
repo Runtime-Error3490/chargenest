@@ -1,4 +1,6 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -11,7 +13,7 @@ import { requestLogger } from './middleware/requestLogger.js';
 // Routes
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
-import chargerRoutes from './routes/charger.routes.js';
+import chargerRoutes, { UPLOAD_ROOT } from './routes/charger.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
 import sessionRoutes from './routes/session.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
@@ -19,18 +21,32 @@ import disputeRoutes from './routes/dispute.routes.js';
 import agentRoutes from './routes/agent.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import deviceRoutes from './routes/device.routes.js';
+import { startJobs } from './services/device.service.js';
 
 // Validate configuration
 validateConfig();
 
 const app = express();
 
+// Optional: serve the built frontend from this server (single-container deploy, e.g. Render).
+// Set FRONTEND_DIST to the Vite build folder. Unset = API only (local dev behaviour).
+const FRONTEND_DIST = process.env.FRONTEND_DIST ? path.resolve(process.env.FRONTEND_DIST) : null;
+const serveFrontend = !!FRONTEND_DIST && fs.existsSync(path.join(FRONTEND_DIST, 'index.html'));
+
+// Behind a proxy (Render, etc.): trust X-Forwarded-* so req.protocol is https
+// (photo URLs) and rate limiting sees the real client IP.
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', Number(process.env.TRUST_PROXY) || 1);
+}
+
 // ===========================================
 // MIDDLEWARE
 // ===========================================
 
-// Security headers
-app.use(helmet());
+// Security headers. The SPA loads PayPal, map tiles and fonts from other origins,
+// so helmet's default CSP is turned off only when this server also serves the frontend.
+app.use(helmet(serveFrontend ? { contentSecurityPolicy: false } : undefined));
 
 // CORS
 app.use(cors({
@@ -79,6 +95,12 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Uploaded photos (public). Allow the frontend origin to embed them despite helmet's same-origin policy.
+app.use('/uploads', (req, res, next) => {
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(UPLOAD_ROOT, { maxAge: '7d', index: false }));
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -90,6 +112,16 @@ app.use('/api/disputes', disputeRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/device', deviceRoutes);
+
+// Frontend (only when FRONTEND_DIST is set): static files, then index.html for client-side routes.
+// /api and /uploads misses still fall through to the JSON 404 below.
+if (serveFrontend) {
+  app.use(express.static(FRONTEND_DIST, { index: false, maxAge: '1h' }));
+  app.get(/^\/(?!api\/|uploads\/).*/, (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
+  });
+}
 
 // 404 handler
 app.use(notFoundHandler);
@@ -108,6 +140,8 @@ async function startServer() {
     // Test database connection
     await prisma.$connect();
     console.log('✅ Database connected');
+
+    startJobs();
 
     app.listen(PORT, () => {
       console.log(`

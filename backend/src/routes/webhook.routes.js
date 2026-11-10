@@ -2,6 +2,8 @@ import { Router } from 'express';
 
 import { prisma } from '../utils/prisma.js';
 import { paypalService } from '../services/paypal.service.js';
+import { invoiceService } from '../services/invoice.service.js';
+import { disputeService } from '../services/dispute.service.js';
 import { config } from '../config/index.js';
 
 const router = Router();
@@ -59,6 +61,15 @@ router.post('/paypal', async (req, res) => {
         await handleRefundCompleted(resource);
         break;
 
+      case 'INVOICING.INVOICE.PAID':
+        // Damage invoice paid: credit the host wallet
+        await handleInvoicePaid(resource);
+        break;
+
+      case 'CUSTOMER.DISPUTE.CREATED':
+        await handleDisputeCreated(resource);
+        break;
+
       default:
         console.log(`Unhandled webhook event: ${eventType}`);
     }
@@ -69,6 +80,48 @@ router.post('/paypal', async (req, res) => {
     res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
+
+/**
+ * Handle invoice paid event
+ */
+async function handleInvoicePaid(resource) {
+  const paypalInvoiceId = resource.invoice?.id || resource.id;
+  if (!paypalInvoiceId) return;
+
+  const known = await prisma.invoice.findUnique({ where: { paypalInvoiceId } });
+  if (known) {
+    await invoiceService.markPaid(paypalInvoiceId);
+  }
+}
+
+/**
+ * Handle a buyer opening a PayPal dispute on a captured booking payment:
+ * link it to our own dispute record and start the AI review.
+ */
+async function handleDisputeCreated(resource) {
+  const captureId = resource.disputed_transactions?.[0]?.seller_transaction_id;
+  if (!captureId) return;
+
+  const payment = await prisma.payment.findFirst({
+    where: { paypalCaptureId: captureId },
+    include: { booking: { include: { dispute: true } } },
+  });
+  if (!payment || payment.booking.dispute) return;
+
+  const dispute = await prisma.dispute.create({
+    data: {
+      bookingId: payment.bookingId,
+      raisedById: payment.booking.driverId,
+      raisedByRole: 'driver',
+      reason: resource.reason || 'paypal_dispute',
+      description: `Dispute opened with PayPal (${resource.dispute_id})`,
+      paypalDisputeId: resource.dispute_id,
+      status: 'open',
+    },
+  });
+  await prisma.booking.update({ where: { id: payment.bookingId }, data: { status: 'disputed' } });
+  await disputeService.analyzeDispute(dispute.id);
+}
 
 /**
  * Handle authorization created event

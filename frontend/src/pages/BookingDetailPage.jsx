@@ -43,6 +43,15 @@ const STATUS_CONFIG = {
   disputed: { label: 'Disputed', variant: 'warning', color: 'orange' },
 };
 
+const DEVICE_SCENARIOS = [
+  { value: 'success', label: 'Success: unlock, charge, end' },
+  { value: 'short_session', label: 'Too short: ends after 1 minute' },
+  { value: 'bad_meter', label: 'Meter fault: zero energy' },
+  { value: 'offline', label: 'Station offline: nothing arrives' },
+  { value: 'no_unlock', label: 'Never unlocked' },
+  { value: 'fake_station', label: 'Fake station: unknown device' },
+];
+
 export default function BookingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -53,11 +62,14 @@ export default function BookingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [scenario, setScenario] = useState('success');
+  const [simResult, setSimResult] = useState(null);
   
   // Modals
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
   
   // Form states
   const [disputeReason, setDisputeReason] = useState('');
@@ -160,6 +172,20 @@ export default function BookingDetailPage() {
     }
   };
 
+  const handleSimulate = async () => {
+    try {
+      setActionLoading(true);
+      setError(null);
+      setSimResult(await bookingService.simulateDevice(id, scenario));
+      const response = await bookingService.getBookingById(id);
+      setBooking(response.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleEndSession = async () => {
     try {
       setActionLoading(true);
@@ -200,6 +226,7 @@ export default function BookingDetailPage() {
   const handleReview = async () => {
     try {
       setActionLoading(true);
+      setReviewError(null);
       await bookingService.submitReview(id, {
         rating: reviewRating,
         comment: reviewComment,
@@ -207,8 +234,10 @@ export default function BookingDetailPage() {
       const response = await bookingService.getBookingById(id);
       setBooking(response.data);
       setShowReviewModal(false);
+      setReviewComment('');
     } catch (err) {
-      setError(err.message || 'Failed to submit review');
+      // Keep the error in the modal; the page-level error replaces the whole page
+      setReviewError(err.message);
     } finally {
       setActionLoading(false);
     }
@@ -242,7 +271,11 @@ export default function BookingDetailPage() {
   const canStartSession = booking.status === 'confirmed' && !timeUntilStart;
   const canEndSession = booking.status === 'active';
   const canDispute = ['completed', 'active'].includes(booking.status);
-  const canReview = booking.status === 'completed' && !booking.review;
+  // Backend decides: completed booking, right role for this side, not yet reviewed
+  const canReview = !!booking.canReview;
+  const reviewsDriver = booking.reviewTarget === 'driver';
+  const reviewLabel = reviewsDriver ? 'Rate the Driver' : 'Rate this Charger';
+  const hasAnyReview = booking.reviews?.charger || booking.reviews?.driver;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -280,12 +313,12 @@ export default function BookingDetailPage() {
           </Badge>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Info */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             {/* Charger Info */}
             {booking.charger && (
-              <Card className="p-6">
+              <Card className="p-8">
                 <div className="flex gap-4">
                   <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                     {booking.charger.photos?.[0] ? (
@@ -295,9 +328,7 @@ export default function BookingDetailPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl">
-                        ⚡
-                      </div>
+                      <img src="/charger-placeholder.svg" alt="" className="w-full h-full object-cover" />
                     )}
                   </div>
                   <div className="flex-1">
@@ -311,6 +342,7 @@ export default function BookingDetailPage() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="self-start whitespace-nowrap !px-3 !py-1 text-xs"
                     onClick={() => navigate(`/chargers/${booking.charger.id}`)}
                   >
                     View Charger
@@ -320,7 +352,7 @@ export default function BookingDetailPage() {
             )}
 
             {/* Time Slot */}
-            <Card className="p-6">
+            <Card className="p-8">
               <h3 className="font-semibold text-gray-900 mb-4">Booking Time</h3>
               <div className="grid grid-cols-2 gap-6">
                 <div>
@@ -348,7 +380,7 @@ export default function BookingDetailPage() {
 
             {/* Location Map */}
             {booking.charger && (
-              <Card className="p-6">
+              <Card className="p-8">
                 <h3 className="font-semibold text-gray-900 mb-4">Location</h3>
                 <div className="h-48 rounded-lg overflow-hidden">
                   <MapContainer
@@ -388,7 +420,7 @@ export default function BookingDetailPage() {
 
             {/* Instructions */}
             {booking.charger?.instructions && (
-              <Card className="p-6">
+              <Card className="p-8">
                 <h3 className="font-semibold text-gray-900 mb-4">Charging Instructions</h3>
                 <p className="text-gray-600 whitespace-pre-line">{booking.charger.instructions}</p>
               </Card>
@@ -396,9 +428,9 @@ export default function BookingDetailPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className="lg:col-span-1 space-y-8">
             {/* Payment Summary */}
-            <Card className="p-6">
+            <Card className="p-8">
               <h3 className="font-semibold text-gray-900 mb-4">Payment Summary</h3>
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
@@ -425,8 +457,50 @@ export default function BookingDetailPage() {
               )}
             </Card>
 
+            {/* Demo only: plays the charger hardware (backend needs DEVICE_MOCK=true) */}
+            {import.meta.env.DEV && booking.status === 'authorized' && (
+              <Card className="p-8 border-dashed">
+                <h3 className="font-semibold text-gray-900 mb-1">Simulate charger device</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Demo tool. Plays what the charger hardware will send, then pays or refunds the booking.
+                </p>
+                <select
+                  value={scenario}
+                  onChange={(e) => setScenario(e.target.value)}
+                  className="w-full mb-3 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  aria-label="Device scenario"
+                >
+                  {DEVICE_SCENARIOS.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
+                </select>
+                <Button className="w-full" variant="outline" onClick={handleSimulate} disabled={actionLoading}>
+                  {actionLoading ? <Loading size="sm" /> : 'Run scenario'}
+                </Button>
+              </Card>
+            )}
+
+            {import.meta.env.DEV && simResult && (
+              <Card className="p-8">
+                <h3 className="font-semibold text-gray-900 mb-2">Device result: {simResult.scenario}</h3>
+                <ul className="text-sm text-gray-700 space-y-1">
+                  {simResult.steps.map((step, i) => (
+                    <li key={i}>
+                      {step.ok ? '✓' : '✗'} {step.type}
+                      {step.outcome ? ` → ${step.outcome}${step.reason ? ` (${step.reason})` : ''}` : ''}
+                      {!step.ok ? ` → ${step.code}: ${step.message}` : ''}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-sm text-gray-500 mt-3">
+                  Booking: {simResult.booking?.status}. Session: {simResult.session?.outcome || simResult.session?.status}.
+                  Check /wallet for the money moves.
+                </p>
+              </Card>
+            )}
+
             {/* Actions */}
-            <Card className="p-6">
+            <Card className="p-8">
               <h3 className="font-semibold text-gray-900 mb-4">Actions</h3>
               <div className="space-y-3">
                 {canStartSession && (
@@ -453,9 +527,9 @@ export default function BookingDetailPage() {
                   <Button
                     className="w-full"
                     variant="outline"
-                    onClick={() => setShowReviewModal(true)}
+                    onClick={() => { setReviewError(null); setShowReviewModal(true); }}
                   >
-                    Leave Review
+                    {reviewLabel}
                   </Button>
                 )}
                 
@@ -489,9 +563,45 @@ export default function BookingDetailPage() {
               </div>
             </Card>
 
+            {/* Reviews left on this booking (both directions) */}
+            {hasAnyReview && (
+              <Card className="p-8">
+                <h3 className="font-semibold text-gray-900 mb-4">Reviews</h3>
+                <div className="space-y-4">
+                  {[
+                    ['Driver → Charger', booking.reviews.charger],
+                    ['Host → Driver', booking.reviews.driver],
+                  ].filter(([, r]) => r).map(([label, r]) => (
+                    <div key={label}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-500">{label}</span>
+                        <span className="text-yellow-500" aria-label={`${r.rating} out of 5 stars`}>
+                          {'★'.repeat(r.rating)}<span className="text-gray-300">{'★'.repeat(5 - r.rating)}</span>
+                        </span>
+                      </div>
+                      {r.reviewText && <p className="text-sm text-gray-700 mt-1">{r.reviewText}</p>}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Driver (host view) */}
+            {booking.driver && (
+              <Card className="p-8">
+                <h3 className="font-semibold text-gray-900 mb-4">Driver</h3>
+                <p className="font-medium">{booking.driver.name}</p>
+                <p className="text-sm text-gray-600">
+                  {booking.driver.totalReviews > 0
+                    ? `★ ${booking.driver.avgRating.toFixed(1)} from ${booking.driver.totalReviews} host review${booking.driver.totalReviews === 1 ? '' : 's'}`
+                    : 'No host reviews yet'}
+                </p>
+              </Card>
+            )}
+
             {/* Host Contact */}
             {booking.charger?.host && (
-              <Card className="p-6">
+              <Card className="p-8">
                 <h3 className="font-semibold text-gray-900 mb-4">Host</h3>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -618,9 +728,12 @@ export default function BookingDetailPage() {
       <Modal
         isOpen={showReviewModal}
         onClose={() => setShowReviewModal(false)}
-        title="Leave a Review"
+        title={reviewLabel}
       >
         <div className="space-y-4">
+          {reviewError && (
+            <p className="p-3 bg-red-50 text-red-700 text-sm rounded-lg" role="alert">{reviewError}</p>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Rating

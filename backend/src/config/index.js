@@ -34,11 +34,29 @@ export const config = {
     webhookId: process.env.PAYPAL_WEBHOOK_ID,
   },
 
-  // OpenRouter (AI)
+  // AI provider layer. AI_PROVIDER picks one entry from `providers`; AI_MODEL overrides its default model.
+  // openrouter, openai and ollama all speak the OpenAI chat API; `mock` needs no key (demos and tests).
   ai: {
-    apiKey: process.env.OPENROUTER_API_KEY,
-    model: process.env.OPENROUTER_MODEL || 'openai/gpt-3.5-turbo',
-    baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+    provider: (process.env.AI_PROVIDER || 'openrouter').toLowerCase(),
+    providers: {
+      openrouter: {
+        apiKey: process.env.OPENROUTER_API_KEY,
+        baseUrl: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+        model: process.env.OPENROUTER_MODEL || 'openai/gpt-3.5-turbo',
+      },
+      openai: {
+        apiKey: process.env.OPENAI_API_KEY,
+        baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      },
+      ollama: {
+        apiKey: process.env.OLLAMA_API_KEY || 'ollama',
+        baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
+        model: process.env.OLLAMA_MODEL || 'llama3.1',
+      },
+      mock: { model: 'mock' },
+    },
+    modelOverride: process.env.AI_MODEL,
     temperature: parseFloat(process.env.AI_TEMPERATURE || '0'),
     timeoutMs: parseInt(process.env.AI_TIMEOUT_MS || '30000', 10),
     maxRetries: parseInt(process.env.AI_MAX_RETRIES || '2', 10),
@@ -52,6 +70,49 @@ export const config = {
     defaultMandateCap: parseFloat(process.env.DEFAULT_MANDATE_CAP || '1000'),
     defaultMandateDistanceKm: parseFloat(process.env.DEFAULT_MANDATE_DISTANCE_KM || '10'),
     defaultMandateExpiryHours: parseInt(process.env.DEFAULT_MANDATE_EXPIRY_HOURS || '24', 10),
+  },
+
+  // Wallet. The minimum balance doubles as the damage deposit: it must be in the wallet
+  // before a user can book or list a charger, and withdrawals can never dip below it.
+  wallet: {
+    // Balance a user needs in the wallet before booking or listing
+    minBalance: parseFloat(process.env.WALLET_MIN_BALANCE || '500'),
+    // Part of the wallet that stays locked as the damage deposit. The rest can be spent on bookings.
+    deposit: parseFloat(process.env.WALLET_DEPOSIT || '250'),
+    // PayPal mock mode only: one-time demo credit for a wallet that has never been used (0 turns it off)
+    mockCredit: parseFloat(process.env.WALLET_MOCK_CREDIT || '1000'),
+  },
+
+  // Payout to the host. With a delay, the host is credited that many hours after the session ends,
+  // and a dispute raised in between freezes it. 0 credits at once.
+  payout: {
+    delayHours: parseFloat(process.env.PAYOUT_DELAY_HOURS || '0'),
+  },
+
+  // Charger hardware that proves sessions with signed events
+  device: {
+    // Mock endpoint that plays a device (never active in production)
+    mock: process.env.DEVICE_MOCK === 'true' && process.env.NODE_ENV !== 'production',
+    // A session shorter than this counts as failed (full refund)
+    minSessionMinutes: parseFloat(process.env.MIN_SESSION_MINUTES || '5'),
+    // Energy below this over a long enough session counts as a meter fault (full refund)
+    minEnergyKwh: parseFloat(process.env.MIN_ENERGY_KWH || '0.05'),
+    // Minutes after the booked end before an unfinished or never-unlocked session is closed automatically
+    graceMinutes: parseFloat(process.env.DEVICE_GRACE_MINUTES || '10'),
+    // Seconds between background runs (auto close and delayed payouts). 0 turns the runner off.
+    jobIntervalSec: parseInt(process.env.JOB_INTERVAL_SEC || '60', 10),
+  },
+
+  // Know Your Agent: key used to encrypt each agent's signing key at rest
+  kya: {
+    keySecret: process.env.KYA_KEY_SECRET || process.env.JWT_SECRET || 'dev-kya-secret-change-in-production',
+  },
+
+  // Agent defaults (autonomy level 0-4, monthly auto-spend limit)
+  agent: {
+    defaultLevel: parseInt(process.env.AGENT_DEFAULT_LEVEL || '2', 10),
+    defaultSpendingLimit: parseFloat(process.env.AGENT_DEFAULT_SPENDING_LIMIT || '5000'),
+    approvalExpiryMinutes: parseInt(process.env.AGENT_APPROVAL_EXPIRY_MINUTES || '30', 10),
   },
 
   // Cancellation policy (hours before booking)
@@ -84,9 +145,15 @@ export function validateConfig() {
     required.push(
       'PAYPAL_CLIENT_ID',
       'PAYPAL_CLIENT_SECRET',
-      'OPENROUTER_API_KEY',
       'TOTP_ENCRYPTION_KEY'
     );
+    const provider = config.ai.providers[config.ai.provider];
+    if (!provider) {
+      throw new Error(`Unknown AI_PROVIDER: ${config.ai.provider}`);
+    }
+    if (config.ai.provider !== 'mock' && config.ai.provider !== 'ollama' && !provider.apiKey) {
+      throw new Error(`Missing API key for AI provider "${config.ai.provider}"`);
+    }
   }
 
   const missing = required.filter(key => !process.env[key]);

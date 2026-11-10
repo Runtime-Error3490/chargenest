@@ -10,6 +10,7 @@ import { Select } from '../components/ui/Select';
 import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
 import StarRating from '../components/ui/StarRating';
+import ImageCarousel from '../components/ui/ImageCarousel';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers in react-leaflet
@@ -51,6 +52,88 @@ const kwTierToNumber = {
   'kW150': 150,
 };
 
+// Number filter: blocks negatives / exponent chars, clamps to max, shows inline hint
+function NumberFilter({ label, value, onChange, placeholder, unit, min = 0, max, step = 1 }) {
+  const [hint, setHint] = useState('');
+
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    if (raw === '') {
+      setHint('');
+      onChange('');
+      return;
+    }
+    const num = Number(raw);
+    if (Number.isNaN(num)) return;
+    if (num < min) {
+      setHint(`Must be ${min} or more`);
+      return;
+    }
+    if (max !== undefined && num > max) {
+      setHint(`Max allowed is ${max}`);
+      onChange(String(max));
+      return;
+    }
+    setHint('');
+    onChange(raw);
+  };
+
+  const blockInvalidKeys = (e) => {
+    if (['-', '+', 'e', 'E'].includes(e.key)) {
+      e.preventDefault();
+      setHint('Enter a positive number');
+    }
+  };
+
+  return (
+    <div className="relative flex-shrink-0">
+      <label className="sr-only">{label}</label>
+      <div
+        className={`flex items-center rounded-lg border bg-white px-3 h-10 transition-colors focus-within:ring-2 ${
+          hint
+            ? 'border-red-400 focus-within:ring-red-200'
+            : 'border-gray-300 focus-within:border-green-500 focus-within:ring-green-200'
+        }`}
+      >
+        <input
+          type="number"
+          inputMode="decimal"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          placeholder={placeholder}
+          aria-label={label}
+          aria-invalid={!!hint}
+          onKeyDown={blockInvalidKeys}
+          onChange={handleChange}
+          onBlur={() => setHint('')}
+          onWheel={(e) => e.target.blur()}
+          className="w-20 bg-transparent text-sm outline-none border-0 p-0 focus:ring-0 placeholder-gray-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <span className="text-xs text-gray-500 ml-1 whitespace-nowrap">{unit}</span>
+        {value !== '' && (
+          <button
+            type="button"
+            aria-label={`Clear ${label}`}
+            onClick={() => { setHint(''); onChange(''); }}
+            className="ml-2 text-gray-400 hover:text-gray-600 text-base leading-none"
+          >
+            ×
+          </button>
+        )}
+      </div>
+      {hint && (
+        <p className="absolute left-0 top-11 text-xs text-red-600 whitespace-nowrap" role="alert">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const POWER_PRESETS = [7, 11, 22, 50];
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -63,8 +146,8 @@ export default function SearchPage() {
   // Filter states
   const [filters, setFilters] = useState({
     connectorType: searchParams.get('connector') || '',
-    minPower: searchParams.get('minKw') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
+    minPower: Number(searchParams.get('minPower')) > 0 ? searchParams.get('minPower') : '',
+    maxPrice: Number(searchParams.get('maxPrice')) > 0 ? searchParams.get('maxPrice') : '',
     amenities: searchParams.get('amenities')?.split(',').filter(Boolean) || [],
   });
   
@@ -177,26 +260,43 @@ export default function SearchPage() {
             </div>
 
             {/* Min Power */}
-            <div className="flex-shrink-0">
-              <Input
-                type="number"
-                placeholder="Min kW"
+            <div className="flex items-center gap-2">
+              <NumberFilter
+                label="Minimum power"
+                placeholder="Min"
+                unit="kW"
+                max={350}
+                step={0.1}
                 value={filters.minPower}
-                onChange={(e) => handleFilterChange('minPower', e.target.value)}
-                className="w-24 text-sm"
+                onChange={(v) => handleFilterChange('minPower', v)}
               />
+              <div className="flex gap-1">
+                {POWER_PRESETS.map(kw => (
+                  <button
+                    key={kw}
+                    type="button"
+                    onClick={() => handleFilterChange('minPower', String(filters.minPower) === String(kw) ? '' : String(kw))}
+                    className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
+                      String(filters.minPower) === String(kw)
+                        ? 'bg-green-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {kw}+
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Max Price */}
-            <div className="flex-shrink-0">
-              <Input
-                type="number"
-                placeholder="Max ₹/hr"
-                value={filters.maxPrice}
-                onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                className="w-28 text-sm"
-              />
-            </div>
+            <NumberFilter
+              label="Maximum price per hour"
+              placeholder="Max"
+              unit="₹/hr"
+              max={10000}
+              value={filters.maxPrice}
+              onChange={(v) => handleFilterChange('maxPrice', v)}
+            />
 
             {/* Amenities */}
             <div className="flex flex-wrap gap-2">
@@ -267,19 +367,17 @@ export default function SearchPage() {
                       onClick={() => handleChargerClick(charger)}
                     >
                       <div className="flex gap-5">
-                        {/* Image */}
-                        <div className="flex-shrink-0 w-36 h-28 bg-gray-200 rounded-lg overflow-hidden">
-                          {charger.photos?.[0] ? (
-                            <img
-                              src={charger.photos[0]}
-                              alt={charger.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-4xl">
-                              ⚡
-                            </div>
-                          )}
+                        {/* Image Carousel */}
+                        <div className="flex-shrink-0 w-36 h-28 rounded-lg overflow-hidden">
+                          <ImageCarousel
+                            images={charger.photos}
+                            alt={charger.name}
+                            aspectRatio="4/3"
+                            showArrows={charger.photos?.length > 1}
+                            showDots={false}
+                            showThumbnails={false}
+                            className="h-full"
+                          />
                         </div>
 
                         {/* Info */}
