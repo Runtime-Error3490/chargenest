@@ -7,6 +7,7 @@ import { validateBody, validateQuery } from '../middleware/validate.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { successResponse, paginatedResponse } from '../utils/apiResponse.js';
 import { createAuditLog, AuditActions } from '../services/audit.service.js';
+import { config as appConfig } from '../config/index.js';
 
 const router = Router();
 
@@ -764,7 +765,8 @@ router.get('/users/:id', async (req, res, next) => {
         disputesRaised: {
           select: { id: true, status: true, reason: true, createdAt: true },
         },
-        driverRatings: {
+        // Reviews hosts left about this user as a driver
+        hostRatingsReceived: {
           select: { rating: true, reviewText: true, createdAt: true },
           orderBy: { createdAt: 'desc' },
           take: 5,
@@ -836,7 +838,7 @@ router.get('/users/:id', async (req, res, next) => {
         rating: c.avgRating ? parseFloat(c.avgRating) : null,
       })),
       disputes: user.disputesRaised,
-      recentRatingsReceived: user.driverRatings.map(r => ({
+      recentRatingsReceived: user.hostRatingsReceived.map(r => ({
         rating: r.rating,
         review: r.reviewText,
         date: r.createdAt,
@@ -1523,7 +1525,7 @@ router.get('/payments/summary', async (req, res, next) => {
         amount: parseFloat(refunds._sum.refundedAmount || 0),
       },
       netPlatformRevenue: parseFloat(
-        (summary._sum.platformFeeAmount || 0) - (refunds._sum.refundedAmount || 0) * 0.07 // Approximate platform fee on refunds
+        (summary._sum.platformFeeAmount || 0) - (refunds._sum.refundedAmount || 0) * (appConfig.platform.feePercent / 100) // Approximate platform fee on refunds
       ),
     });
   } catch (error) {
@@ -1537,7 +1539,7 @@ router.get('/payments/summary', async (req, res, next) => {
 
 // In-memory config (in production, use database or environment variables)
 const platformConfig = {
-  platformFeePercent: 7,
+  platformFeePercent: appConfig.platform.feePercent,
   aiConfidenceThreshold: 95,
   maxBookingAdvanceDays: 30,
   cancellationFeePercent: 10,

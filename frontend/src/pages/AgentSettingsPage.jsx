@@ -68,7 +68,7 @@ const ACTION_CATEGORIES = [
     name: 'Payment & Billing',
     actions: [
       { id: 'view_payment', name: 'View payment history', defaultLevel: 1 },
-      { id: 'make_payment', name: 'Make payments', defaultLevel: 3 },
+      { id: 'make_payment', name: 'Make payments', defaultLevel: 2 },
       { id: 'request_refund', name: 'Request refunds', defaultLevel: 2 },
     ],
   },
@@ -102,6 +102,8 @@ export default function AgentSettingsPage() {
 
   // Audit log
   const [auditLog, setAuditLog] = useState([]);
+  const [identity, setIdentity] = useState(null);
+  const [spentThisMonth, setSpentThisMonth] = useState(0);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -114,15 +116,15 @@ export default function AgentSettingsPage() {
         setLoading(true);
         
         // Fetch current mandate settings
-        const response = await agentService.getMandateSettings();
-        if (response.data) {
-          setMandateLevel(response.data.level || 2);
-          setCustomPermissions(response.data.permissions || {});
-          setSpendingLimit(response.data.spendingLimit || 5000);
-        }
+        const settings = await agentService.getSettings();
+        setMandateLevel(settings.level ?? 2);
+        setCustomPermissions(settings.permissions || {});
+        setSpendingLimit(settings.spendingLimit || 0);
+        setSpentThisMonth(settings.spentThisMonth || 0);
 
-        // Fetch audit log
-        const logResponse = await agentService.getAgentAuditLog();
+        // KYA identity card and recent agent actions
+        setIdentity(await agentService.getIdentity());
+        const logResponse = await agentService.getActivity({ limit: 10 });
         setAuditLog(logResponse.data || []);
         
         setError(null);
@@ -165,7 +167,7 @@ export default function AgentSettingsPage() {
       setError(null);
       setSuccess(null);
 
-      await agentService.updateMandateSettings({
+      await agentService.updateSettings({
         level: mandateLevel,
         permissions: customPermissions,
         spendingLimit: spendingLimit,
@@ -215,18 +217,38 @@ export default function AgentSettingsPage() {
           </Button>
         </div>
 
-        {/* KYA Info Banner */}
+        {/* KYA identity card */}
         <Card className="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-2xl">🛡️</span>
             </div>
-            <div>
-              <h3 className="font-semibold text-green-900">Know Your Agent (KYA)</h3>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-green-900">Know Your Agent (KYA)</h3>
+                {identity && (
+                  <Badge variant={identity.kyaVerified ? 'success' : 'warning'}>
+                    {identity.kyaVerified ? 'Verified' : 'Not verified'}
+                  </Badge>
+                )}
+              </div>
               <p className="text-sm text-green-800 mt-1">
-                KYA is our safety framework that ensures you always know what your AI agent can do.
-                You control the autonomy level, set spending limits, and can review all actions taken on your behalf.
+                Your agent has its own identity, linked to your account. Every action it takes is signed
+                with its key and checked against the permissions you set here.
               </p>
+              {identity && (
+                <dl className="mt-3 text-xs text-green-900 space-y-1">
+                  <div className="flex gap-2"><dt className="font-medium">Agent ID:</dt><dd className="font-mono truncate">{identity.agentId}</dd></div>
+                  <div className="flex gap-2"><dt className="font-medium">Model:</dt><dd>{identity.provider} / {identity.model}</dd></div>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {Object.entries(identity.checks || {}).map(([check, ok]) => (
+                      <span key={check} className={`px-2 py-0.5 rounded ${ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {ok ? '✓' : '✕'} {check}
+                      </span>
+                    ))}
+                  </div>
+                </dl>
+              )}
             </div>
           </div>
         </Card>
@@ -302,7 +324,7 @@ export default function AgentSettingsPage() {
           <Card className="mb-6 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending Limit</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Maximum amount the AI can spend without asking for approval.
+              Most the AI can spend each month. Spent this month: ₹{spentThisMonth.toLocaleString()}. Zero means no limit.
             </p>
             
             <div className="flex items-center gap-4">

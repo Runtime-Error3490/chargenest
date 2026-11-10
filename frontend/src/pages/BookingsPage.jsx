@@ -157,9 +157,7 @@ export default function BookingsPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl">
-                          ⚡
-                        </div>
+                        <img src="/charger-placeholder.svg" alt="" className="w-full h-full object-cover" />
                       )}
                     </div>
 

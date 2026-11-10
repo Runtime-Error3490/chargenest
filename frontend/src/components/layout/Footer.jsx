@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { Zap, Github, Linkedin, Twitter } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
 export function Footer() {
@@ -25,17 +24,7 @@ export function Footer() {
               The peer-to-peer EV charging marketplace. Connect with homeowners who have idle charger capacity. 
               Find, book, and pay for charging sessions with ease.
             </p>
-            <div className="flex gap-4 mt-4">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Linkedin className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">
-                <Github className="w-5 h-5" />
-              </a>
-            </div>
+
           </div>
 
           {/* Links - Different based on auth state and role */}
@@ -107,7 +96,7 @@ export function Footer() {
                       <Link to="/host/dashboard" className="hover:text-white transition-colors">Host Dashboard</Link>
                     </li>
                     <li>
-                      <Link to="/bookings" className="hover:text-white transition-colors">Manage Bookings</Link>
+                      <Link to="/host/bookings" className="hover:text-white transition-colors">Manage Bookings</Link>
                     </li>
                   </ul>
                 </div>
@@ -137,10 +126,10 @@ export function Footer() {
                     <Link to="/team" className="hover:text-white transition-colors">Our Team</Link>
                   </li>
                   <li>
-                    <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
+                    <Link to="/#how-it-works" className="hover:text-white transition-colors">How It Works</Link>
                   </li>
                   <li>
-                    <a href="#" className="hover:text-white transition-colors">Become a Host</a>
+                    <Link to="/host/register" className="hover:text-white transition-colors">Become a Host</Link>
                   </li>
                 </ul>
               </div>
@@ -154,8 +143,9 @@ export function Footer() {
             <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-gray-500">
               <p>© 2026 ChargeNest. Built for PayPal AI Hackathon.</p>
               <div className="flex gap-4">
-                <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-                <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+                <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+                <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+                <Link to="/host-policy" className="hover:text-white transition-colors">Host Policy</Link>
               </div>
             </div>
             <div className="flex items-center gap-4 text-sm">

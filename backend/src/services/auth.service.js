@@ -152,6 +152,14 @@ export const authService = {
       mfaSetupRequired: true,
       mfaQrCode: qrCodeUrl,
       mfaSecret: totpSecret.base32, // Show once for manual entry
+      // Next step after signup: fund the wallet via PayPal. Booking and listing stay blocked until then.
+      deposit: {
+        required: true,
+        minBalance: config.wallet.minBalance,
+        deposit: config.wallet.deposit,
+        currency: config.platform.defaultCurrency,
+        topUpUrl: '/api/payments/wallet/topup',
+      },
     };
   },
 

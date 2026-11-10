@@ -1,11 +1,22 @@
 import axios from 'axios';
 import { config } from '../config/index.js';
 import { PaymentError } from '../utils/errors.js';
+import { mockPaypalTransport } from './paypal.mock.js';
 
 /**
  * Get PayPal access token
  */
+let cachedToken = null;
+let cachedTokenExpiresAt = 0;
+const TOKEN_SAFETY_MS = 60 * 1000;
+
 async function getAccessToken() {
+  if (cachedToken && Date.now() < cachedTokenExpiresAt) {
+    return cachedToken;
+  }
+  if (!config.paypal.clientId || !config.paypal.clientSecret) {
+    throw new PaymentError('PayPal is not configured: set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET');
+  }
   try {
     const auth = Buffer.from(
       `${config.paypal.clientId}:${config.paypal.clientSecret}`
@@ -22,17 +33,49 @@ async function getAccessToken() {
       }
     );
 
-    return response.data.access_token;
+    cachedToken = response.data.access_token;
+    cachedTokenExpiresAt = Date.now() + (response.data.expires_in || 0) * 1000 - TOKEN_SAFETY_MS;
+    return cachedToken;
   } catch (error) {
     console.error('PayPal auth error:', error.response?.data || error.message);
     throw new PaymentError('Failed to authenticate with PayPal');
   }
 }
 
+let mockWarned = false;
+
+/**
+ * Mock mode: PayPal calls are simulated in memory. On when PAYPAL_MOCK=true, or when the
+ * client id or secret is missing or still a placeholder. Never on in production.
+ */
+function isMockMode() {
+  if (process.env.NODE_ENV === 'production') return false;
+  if (process.env.PAYPAL_MOCK === 'true') return true;
+  if (process.env.PAYPAL_MOCK === 'false') return false;
+  const looksUnset = (v) => !v || /^your-|placeholder/i.test(v);
+  return looksUnset(config.paypal.clientId) || looksUnset(config.paypal.clientSecret);
+}
+
+/**
+ * Network seam. Every PayPal call goes through `transport.request(method, endpoint, data)`.
+ * Tests swap it with `paypalService.setTransport(fake)`; production uses the HTTP one below.
+ */
+let transport = null;
+
 /**
  * Make authenticated PayPal API request
  */
 async function paypalRequest(method, endpoint, data = null) {
+  if (transport) {
+    return transport.request(method, endpoint, data);
+  }
+  if (isMockMode()) {
+    if (!mockWarned) {
+      mockWarned = true;
+      console.warn('PayPal MOCK MODE: no real PayPal credentials set, payments are simulated. Set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET to use the sandbox.');
+    }
+    return mockPaypalTransport.request(method, endpoint, data);
+  }
   const accessToken = await getAccessToken();
 
   try {
@@ -49,6 +92,11 @@ async function paypalRequest(method, endpoint, data = null) {
 
     return response.data;
   } catch (error) {
+    if (error.response?.status === 401) {
+      // Token expired or revoked: drop the cache so the next call fetches a new one
+      cachedToken = null;
+      cachedTokenExpiresAt = 0;
+    }
     console.error('PayPal API error:', {
       endpoint,
       status: error.response?.status,
@@ -63,6 +111,24 @@ async function paypalRequest(method, endpoint, data = null) {
 
 export const paypalService = {
   /**
+   * Replace the HTTP layer (pass null to restore it). The fake must expose
+   * `request(method, endpoint, data)` and return the parsed PayPal JSON body.
+   */
+  setTransport(fake) {
+    transport = fake;
+  },
+
+  /**
+   * True when PayPal is simulated because no credentials are set
+   */
+  isMock: isMockMode,
+
+  /**
+   * Fetch an OAuth access token (client credentials)
+   */
+  getAccessToken,
+
+  /**
    * Create an order with AUTHORIZE intent
    */
   async createOrder({
@@ -73,21 +139,18 @@ export const paypalService = {
     mandateId = null,
     returnUrl,
     cancelUrl,
+    intent = 'AUTHORIZE',
   }) {
-    // PayPal sandbox may not support INR - fallback to USD
-    const effectiveCurrency = currency;
-    const effectiveAmount = amount;
-
     const orderData = {
-      intent: 'AUTHORIZE',
+      intent,
       purchase_units: [
         {
           reference_id: bookingId,
           description,
           custom_id: mandateId || bookingId, // For mandate tracking
           amount: {
-            currency_code: effectiveCurrency,
-            value: effectiveAmount.toFixed(2),
+            currency_code: currency,
+            value: amount.toFixed(2),
           },
         },
       ],
@@ -116,13 +179,6 @@ export const paypalService = {
       status: order.status,
       approveUrl: approveLink?.href,
     };
-  },
-
-  /**
-   * Get order details
-   */
-  async getOrder(orderId) {
-    return paypalRequest('GET', `/v2/checkout/orders/${orderId}`);
   },
 
   /**
@@ -250,6 +306,10 @@ export const paypalService = {
         status: result.batch_header.batch_status,
       };
     } catch (error) {
+      // Outside sandbox a failed payout must fail loudly, never look paid
+      if (config.paypal.mode !== 'sandbox') {
+        throw error;
+      }
       // Payouts might not be enabled in sandbox - return simulated result
       console.warn('Payout failed (possibly not enabled in sandbox):', error.message);
       return {
@@ -259,6 +319,117 @@ export const paypalService = {
         note: 'Payouts may not be enabled in sandbox. In production, this would send real payment.',
       };
     }
+  },
+
+  /**
+   * Capture an approved CAPTURE-intent order (wallet top-up)
+   */
+  async captureOrder(orderId) {
+    const result = await paypalRequest('POST', `/v2/checkout/orders/${orderId}/capture`, {});
+    const capture = result.purchase_units?.[0]?.payments?.captures?.[0];
+
+    return {
+      orderId: result.id,
+      status: result.status,
+      referenceId: result.purchase_units?.[0]?.reference_id,
+      captureId: capture?.id,
+      captureStatus: capture?.status,
+      amount: capture ? parseFloat(capture.amount.value) : null,
+      currency: capture?.amount?.currency_code,
+    };
+  },
+
+  /**
+   * Invoicing v2: create a draft invoice, returns the invoice id
+   */
+  async createInvoice({ recipientEmail, recipientName, amount, currency = 'INR', description, note }) {
+    const { invoice_number: invoiceNumber } = await paypalRequest(
+      'POST',
+      '/v2/invoicing/generate-next-invoice-number'
+    );
+
+    const draft = await paypalRequest('POST', '/v2/invoicing/invoices', {
+      detail: {
+        invoice_number: invoiceNumber,
+        currency_code: currency,
+        note,
+      },
+      primary_recipients: [
+        {
+          billing_info: {
+            email_address: recipientEmail,
+            name: recipientName ? { given_name: recipientName } : undefined,
+          },
+        },
+      ],
+      items: [
+        {
+          name: description,
+          quantity: '1',
+          unit_amount: { currency_code: currency, value: amount.toFixed(2) },
+        },
+      ],
+    });
+
+    // Response only carries a link whose last path segment is the invoice id
+    const id = draft.href.split('/').pop();
+    return { invoiceId: id, invoiceNumber, href: draft.href };
+  },
+
+  /**
+   * Invoicing v2: send a draft invoice to the recipient by email
+   */
+  async sendInvoice(invoiceId) {
+    await paypalRequest('POST', `/v2/invoicing/invoices/${invoiceId}/send`, {
+      send_to_recipient: true,
+      send_to_invoicer: false,
+    });
+    return { sent: true };
+  },
+
+  /**
+   * Invoicing v2: read an invoice (status, payer view link)
+   */
+  async getInvoice(invoiceId) {
+    const invoice = await paypalRequest('GET', `/v2/invoicing/invoices/${invoiceId}`);
+    return {
+      status: invoice.status,
+      recipientViewUrl: invoice.detail?.metadata?.recipient_view_url,
+    };
+  },
+
+  /**
+   * Customer Disputes v1: read a dispute that a buyer opened with PayPal
+   */
+  async getDispute(disputeId) {
+    return paypalRequest('GET', `/v1/customer/disputes/${disputeId}`);
+  },
+
+  /**
+   * Customer Disputes v1: accept the buyer's claim (seller agrees to refund)
+   */
+  async acceptDisputeClaim(disputeId, note) {
+    return paypalRequest('POST', `/v1/customer/disputes/${disputeId}/accept-claim`, {
+      note,
+    });
+  },
+
+  /**
+   * Customer Disputes v1: deny the buyer's claim and give the seller's reason
+   */
+  async denyDispute(disputeId, note) {
+    return paypalRequest('POST', `/v1/customer/disputes/${disputeId}/deny-offer`, {
+      note,
+    });
+  },
+
+  /**
+   * Customer Disputes v1: send a message to the buyer (seller response)
+   */
+  async sendDisputeMessage(disputeId, message) {
+    return paypalRequest('POST', `/v1/customer/disputes/${disputeId}/send-message`, {
+      message,
+    });
   },
 
   /**

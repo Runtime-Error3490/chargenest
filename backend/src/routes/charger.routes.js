@@ -1,13 +1,44 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
 
 import { chargerService } from '../services/charger.service.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { authenticate, optionalAuth, requireRole } from '../middleware/auth.js';
 import { successResponse, paginatedResponse } from '../utils/apiResponse.js';
 import { createAuditLog, AuditActions } from '../services/audit.service.js';
+import { ValidationError } from '../utils/errors.js';
 
 const router = Router();
+
+// ===========================================
+// PHOTO UPLOAD (local disk storage)
+// ===========================================
+
+export const UPLOAD_ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '../../uploads');
+const CHARGER_PHOTO_DIR = path.join(UPLOAD_ROOT, 'chargers');
+fs.mkdirSync(CHARGER_PHOTO_DIR, { recursive: true });
+
+const MAX_PHOTOS = 5;
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024; // 5 MB
+const PHOTO_EXTENSIONS = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
+
+const photoUpload = multer({
+  storage: multer.diskStorage({
+    destination: CHARGER_PHOTO_DIR,
+    // Random name; extension comes from the checked mime type, never the client filename
+    filename: (req, file, cb) => cb(null, `${crypto.randomUUID()}${PHOTO_EXTENSIONS[file.mimetype]}`),
+  }),
+  limits: { fileSize: MAX_PHOTO_BYTES, files: MAX_PHOTOS },
+  fileFilter: (req, file, cb) => {
+    if (PHOTO_EXTENSIONS[file.mimetype]) return cb(null, true);
+    cb(new ValidationError('Only JPG, PNG or WebP images are allowed'));
+  },
+}).array('photos', MAX_PHOTOS);
 
 // ===========================================
 // VALIDATION SCHEMAS
@@ -36,7 +67,7 @@ const createChargerSchema = z.object({
   connectorType: z.enum(['Type2', 'CCS2', 'CHAdeMO', 'Type1', 'GBT']),
   kwTier: z.enum(['kW3_3', 'kW7_4', 'kW11', 'kW22', 'kW50', 'kW150']),
   amenities: z.array(z.string()).optional().default([]),
-  photos: z.array(z.string().url()).optional().default([]),
+  photos: z.array(z.string().url()).max(5, 'Up to 5 photos allowed').optional().default([]),
   packages: z.array(z.object({
     name: z.string().min(1),
     durationMin: z.number().min(15).max(720), // 15 min to 12 hours
@@ -56,7 +87,7 @@ const updateChargerSchema = z.object({
   description: z.string().optional().nullable(),
   address: z.string().min(10).optional(),
   amenities: z.array(z.string()).optional(),
-  photos: z.array(z.string().url()).optional(),
+  photos: z.array(z.string().url()).max(5, 'Up to 5 photos allowed').optional(),
   status: z.enum(['active', 'inactive', 'maintenance']).optional(),
 });
 
@@ -135,6 +166,31 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+/**
+ * POST /api/chargers/photos
+ * Upload up to 5 charger photos (multipart field "photos"). Returns public URLs.
+ */
+router.post('/photos', authenticate, requireRole('host'), (req, res, next) => {
+  photoUpload(req, res, (err) => {
+    if (err) {
+      if (err instanceof multer.MulterError) {
+        const message = err.code === 'LIMIT_FILE_SIZE'
+          ? 'Each photo must be 5 MB or smaller'
+          : `You can upload up to ${MAX_PHOTOS} photos`;
+        return next(new ValidationError(message));
+      }
+      return next(err);
+    }
+    if (!req.files?.length) {
+      return next(new ValidationError('No photos uploaded'));
+    }
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    successResponse(res, {
+      photos: req.files.map(f => `${baseUrl}/uploads/chargers/${f.filename}`),
+    }, 201);
+  });
 });
 
 /**

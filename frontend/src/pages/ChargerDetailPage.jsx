@@ -11,6 +11,7 @@ import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
 import Modal from '../components/ui/Modal';
 import StarRating from '../components/ui/StarRating';
+import ImageCarousel from '../components/ui/ImageCarousel';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers
@@ -20,6 +21,39 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+// Durations a driver can book. Each is priced from the host's hourly rate.
+const DURATION_CHOICES = [30, 60, 120];
+
+// Custom duration limits (same as the server)
+const CUSTOM_MIN = 15;
+const CUSTOM_MAX = 480;
+const CUSTOM_STEP = 15;
+
+const customError = (value) => {
+  const min = Number(value);
+  if (!value || !Number.isInteger(min)) return 'Enter the time in whole minutes';
+  if (min < CUSTOM_MIN || min > CUSTOM_MAX) return `Choose between ${CUSTOM_MIN} and ${CUSTOM_MAX} minutes`;
+  if (min % CUSTOM_STEP !== 0) return `Use steps of ${CUSTOM_STEP} minutes`;
+  return null;
+};
+
+const durationName = (min) => (min % 60 === 0 ? `${min / 60} Hour${min === 60 ? '' : 's'}` : `${min} min`);
+
+// Same rounding as the server (priceForDuration)
+const priceFor = (hourlyRate, min) => Math.round(((hourlyRate * min) / 60) * 100) / 100;
+
+const customOption = (hourlyRate, minutes) => {
+  const min = Number(minutes);
+  return { key: 'custom', name: durationName(min), durationMin: min, price: priceFor(hourlyRate, min) };
+};
+
+const rateOptions = (hourlyRate) => DURATION_CHOICES.map((min) => ({
+  key: `d${min}`,
+  name: durationName(min),
+  durationMin: min,
+  price: priceFor(hourlyRate, min),
+}));
 
 const chargerIcon = new L.Icon({
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
@@ -54,11 +88,12 @@ export default function ChargerDetailPage() {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [useCustom, setUseCustom] = useState(false);
+  const [customMin, setCustomMin] = useState('90');
+  const [customTouched, setCustomTouched] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState(null);
-
-  // Image gallery state
-  const [activeImage, setActiveImage] = useState(0);
+  const [needsWallet, setNeedsWallet] = useState(false);
 
   useEffect(() => {
     const fetchCharger = async () => {
@@ -68,8 +103,10 @@ export default function ChargerDetailPage() {
         const data = response.data;
         setCharger(data);
         
-        // Set default selected package
-        if (data.packages?.length > 0) {
+        // Default to 1 hour at the host's rate (or the first fixed package if there is no rate)
+        if (data.hourlyRate) {
+          setSelectedPackage(rateOptions(data.hourlyRate).find((o) => o.durationMin === 60));
+        } else if (data.packages?.length > 0) {
           setSelectedPackage(data.packages[0]);
         }
         
@@ -101,7 +138,9 @@ export default function ChargerDetailPage() {
       rating: charger.avgRating || charger.rating || 0,
       totalBookings: charger.totalBookings || 0,
       host: charger.host,
-      packages: charger.packages || [],
+      hourlyRate: charger.hourlyRate || null,
+      // Priced from the host's hourly rate when there is one, otherwise the fixed packages
+      packages: charger.hourlyRate ? rateOptions(charger.hourlyRate) : (charger.packages || []),
       availability: charger.availability || [],
       reviews: charger.reviews || [],
       status: charger.status || 'active',
@@ -137,21 +176,27 @@ export default function ChargerDetailPage() {
 
     setBookingLoading(true);
     setBookingError(null);
+    setNeedsWallet(false);
 
     try {
       const startTime = new Date(`${selectedDate}T${selectedTime}`);
       const endTime = new Date(startTime.getTime() + selectedPackage.durationMin * 60 * 1000);
       
+      // The amount is held from the user's PayPal-funded wallet, so no extra payment step
       const response = await bookingService.createBooking({
         chargerId: id,
-        packageId: selectedPackage.id,
+        // Rate-based options have a duration; old fixed packages have an id
+        ...(selectedPackage.key
+          ? { durationMin: selectedPackage.durationMin }
+          : { packageId: selectedPackage.id }),
         scheduledStart: startTime.toISOString(),
-        scheduledEnd: endTime.toISOString(),
+        fundingSource: 'wallet',
       });
 
-      navigate(`/bookings/${response.data.booking?.id || response.data.id}/confirm`);
+      navigate(`/bookings/${response.booking.id}`, { state: { paymentSuccess: true } });
     } catch (err) {
-      setBookingError(err.response?.data?.error?.message || err.message || 'Failed to create booking');
+      setNeedsWallet(err.apiCode === 'DEPOSIT_REQUIRED' || /wallet/i.test(err.message || ''));
+      setBookingError(err.message || 'Failed to create booking');
     } finally {
       setBookingLoading(false);
     }
@@ -212,36 +257,17 @@ export default function ChargerDetailPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
+            {/* Image Carousel */}
             <Card className="p-0 overflow-hidden">
-              <div className="relative aspect-video bg-gray-200">
-                {display.photos?.length > 0 ? (
-                  <img
-                    src={display.photos[activeImage]}
-                    alt={display.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-8xl">
-                    ⚡
-                  </div>
-                )}
-              </div>
-              {display.photos?.length > 1 && (
-                <div className="flex gap-2 p-4 overflow-x-auto">
-                  {display.photos.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setActiveImage(index)}
-                      className={`flex-shrink-0 w-20 h-14 rounded-lg overflow-hidden border-2 transition-colors ${
-                        activeImage === index ? 'border-green-500' : 'border-transparent'
-                      }`}
-                    >
-                      <img src={image} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
+              <ImageCarousel
+                images={display.photos}
+                alt={display.name}
+                aspectRatio="video"
+                showArrows={true}
+                showDots={true}
+                showThumbnails={display.photos?.length > 1}
+                autoPlay={false}
+              />
             </Card>
 
             {/* Details */}
@@ -270,9 +296,9 @@ export default function ChargerDetailPage() {
                 </div>
                 <div className="text-center p-6 bg-gray-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {display.packages?.[0] ? `₹${display.packages[0].price}` : 'N/A'}
+                    {display.hourlyRate ? `₹${display.hourlyRate}/hr` : (display.packages?.[0] ? `₹${display.packages[0].price}` : 'N/A')}
                   </div>
-                  <div className="text-sm text-gray-600">Starting Price</div>
+                  <div className="text-sm text-gray-600">{display.hourlyRate ? 'Host rate' : 'Starting Price'}</div>
                 </div>
                 <div className="text-center p-6 bg-gray-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">{display.connectorType}</div>
@@ -416,15 +442,15 @@ export default function ChargerDetailPage() {
                     {display.packages?.length > 0 && (
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Select Package
+                          {display.hourlyRate ? `Select Duration (₹${display.hourlyRate} per hour)` : 'Select Package'}
                         </label>
                         <div className="space-y-2">
                           {display.packages.map(pkg => (
                             <button
-                              key={pkg.id}
-                              onClick={() => setSelectedPackage(pkg)}
+                              key={pkg.key || pkg.id}
+                              onClick={() => { setUseCustom(false); setSelectedPackage(pkg); }}
                               className={`w-full p-3 rounded-lg border-2 text-left transition-colors ${
-                                selectedPackage?.id === pkg.id
+                                !useCustom && (selectedPackage?.key || selectedPackage?.id) === (pkg.key || pkg.id)
                                   ? 'border-green-500 bg-green-50'
                                   : 'border-gray-200 hover:border-gray-300'
                               }`}
@@ -440,6 +466,56 @@ export default function ChargerDetailPage() {
                               </div>
                             </button>
                           ))}
+
+                          {/* Custom duration, priced at the host's hourly rate */}
+                          {display.hourlyRate && (
+                            <div
+                              className={`w-full p-3 rounded-lg border-2 transition-colors ${
+                                useCustom ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                className="w-full text-left font-medium"
+                                onClick={() => {
+                                  setUseCustom(true);
+                                  setSelectedPackage(customError(customMin) ? null : customOption(display.hourlyRate, customMin));
+                                }}
+                              >
+                                Custom time
+                              </button>
+                              {useCustom && (
+                                <div className="mt-2">
+                                  <label htmlFor="custom-minutes" className="block text-xs text-gray-500 mb-1">
+                                    Minutes ({CUSTOM_MIN} to {CUSTOM_MAX}, in steps of {CUSTOM_STEP})
+                                  </label>
+                                  <input
+                                    id="custom-minutes"
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={CUSTOM_MIN}
+                                    max={CUSTOM_MAX}
+                                    step={CUSTOM_STEP}
+                                    value={customMin}
+                                    onChange={(e) => {
+                                      setCustomMin(e.target.value);
+                                      setCustomTouched(true);
+                                      setSelectedPackage(customError(e.target.value) ? null : customOption(display.hourlyRate, e.target.value));
+                                    }}
+                                    onBlur={() => setCustomTouched(true)}
+                                    aria-invalid={customTouched && !!customError(customMin)}
+                                    aria-describedby="custom-minutes-error"
+                                    className={`w-full rounded-lg border px-3 py-2 text-sm ${
+                                      customTouched && customError(customMin) ? 'border-red-500' : 'border-gray-300'
+                                    }`}
+                                  />
+                                  {customTouched && customError(customMin) && (
+                                    <p id="custom-minutes-error" className="mt-1 text-xs text-red-600">{customError(customMin)}</p>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -539,6 +615,11 @@ export default function ChargerDetailPage() {
           {bookingError && (
             <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
               {bookingError}
+              {needsWallet && (
+                <button onClick={() => navigate('/wallet')} className="ml-2 font-medium underline">
+                  Add money
+                </button>
+              )}
             </div>
           )}
 

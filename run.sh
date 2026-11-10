@@ -91,39 +91,20 @@ setup_database() {
     # Check if .env exists
     if [ ! -f .env ]; then
         print_msg "Creating .env file from template..." "$YELLOW"
-        if [ -f .env.example ]; then
-            cp .env.example .env
-        else
-            cat > .env << 'EOF'
-# Database
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ev_charging_marketplace?schema=public"
-
-# JWT
-JWT_SECRET="your-super-secret-jwt-key-change-in-production"
-JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-in-production"
-JWT_EXPIRES_IN="15m"
-JWT_REFRESH_EXPIRES_IN="7d"
-
-# PayPal Sandbox
-PAYPAL_CLIENT_ID="your-paypal-sandbox-client-id"
-PAYPAL_CLIENT_SECRET="your-paypal-sandbox-client-secret"
-PAYPAL_MODE="sandbox"
-
-# OpenRouter AI
-OPENROUTER_API_KEY="your-openrouter-api-key"
-OPENROUTER_MODEL="meta-llama/llama-3.1-8b-instruct:free"
-
-# Server
-PORT=3001
-NODE_ENV="development"
-
-# Frontend URL (for CORS)
-FRONTEND_URL="http://localhost:5173"
-EOF
-        fi
-        print_msg "✓ .env file created. Please update with your credentials." "$GREEN"
+        cp .env.example .env
+        # Run out of the box: scripted AI replies need no key. PayPal still needs sandbox credentials.
+        sed 's/^AI_PROVIDER=.*/AI_PROVIDER=mock/' .env > .env.tmp && mv .env.tmp .env
+        print_msg "✓ .env file created (AI_PROVIDER=mock)." "$GREEN"
+        print_msg "  PayPal runs in mock mode until you add sandbox PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET to backend/.env." "$YELLOW"
     fi
     
+    # Frontend env: API URL must match the backend PORT
+    if [ ! -f "$FRONTEND_DIR/.env" ]; then
+        backend_port=$(grep -E '^PORT=' .env | head -1 | cut -d= -f2 | tr -d '"')
+        printf 'VITE_API_URL=http://localhost:%s/api\n' "${backend_port:-4000}" > "$FRONTEND_DIR/.env"
+        print_msg "✓ frontend/.env created" "$GREEN"
+    fi
+
     # Generate Prisma client
     print_msg "\nGenerating Prisma client..." "$YELLOW"
     npx prisma generate
@@ -138,7 +119,7 @@ run_migrations() {
     cd "$BACKEND_DIR"
     
     print_msg "Running Prisma migrations..." "$YELLOW"
-    npx prisma migrate dev --name init 2>/dev/null || npx prisma db push
+    npx prisma migrate deploy 2>/dev/null || npx prisma db push
     
     print_msg "\n✓ Database schema applied" "$GREEN"
 }
@@ -155,39 +136,125 @@ seed_database() {
     print_msg "\n✓ Database seeded with demo data" "$GREEN"
 }
 
+# Kill a process and everything it started (npm -> nodemon/vite -> node)
+kill_tree() {
+    local pid=$1 sig=${2:-TERM} child
+    for child in $(pgrep -P "$pid" 2>/dev/null); do
+        kill_tree "$child" "$sig"
+    done
+    kill "-$sig" "$pid" 2>/dev/null || true
+}
+
+CLEANING_UP=0
+SERVER_PIDS=()
+
+# Stop both dev servers. Runs on Ctrl+C, kill, or when a server exits on its own.
+cleanup() {
+    local exit_code=${1:-0}
+    [ "$CLEANING_UP" -eq 1 ] && return
+    CLEANING_UP=1
+    trap '' INT TERM
+
+    if [ "${#SERVER_PIDS[@]}" -gt 0 ]; then
+        echo ""
+        print_msg "Shutting down servers..." "$YELLOW"
+        local pid
+        for pid in "${SERVER_PIDS[@]}"; do kill_tree "$pid" TERM; done
+
+        # Give them up to 5 seconds, then force-stop whatever is left
+        local waited=0 alive
+        while [ "$waited" -lt 5 ]; do
+            alive=0
+            for pid in "${SERVER_PIDS[@]}"; do
+                kill -0 "$pid" 2>/dev/null && alive=1
+            done
+            [ "$alive" -eq 0 ] && break
+            sleep 1
+            waited=$((waited + 1))
+        done
+        for pid in "${SERVER_PIDS[@]}"; do
+            kill -0 "$pid" 2>/dev/null && kill_tree "$pid" KILL
+            wait "$pid" 2>/dev/null || true
+        done
+        print_msg "✓ Servers stopped" "$GREEN"
+    fi
+    exit "$exit_code"
+}
+
+# Make sure everything the latest code needs is in place before starting
+ensure_ready() {
+    print_header "Preparing"
+
+    if [ ! -d "$BACKEND_DIR/node_modules" ] || [ ! -d "$FRONTEND_DIR/node_modules" ]; then
+        install_deps
+    fi
+
+    # Creates backend/.env and frontend/.env if missing, and regenerates the Prisma client
+    setup_database
+
+    # Applies any new migrations (wallet, KYA, invoices...) so the database matches the code
+    run_migrations
+}
+
+# Read PORT from backend/.env (default 4000)
+backend_port() {
+    local port
+    port=$(grep -E '^PORT=' "$BACKEND_DIR/.env" 2>/dev/null | head -1 | cut -d= -f2 | tr -d '"' | tr -d "'")
+    echo "${port:-4000}"
+}
+
 # Start development servers
 start_dev() {
+    # `all` has already prepared everything
+    [ "${SKIP_PREPARE:-0}" = "1" ] || ensure_ready
+
     print_header "Starting Development Servers"
-    
-    # Check if ports are available
-    if lsof -Pi :3001 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        print_msg "! Port 3001 is already in use" "$YELLOW"
+
+    local port
+    port=$(backend_port)
+
+    port_busy() { lsof -nP -iTCP:"$1" -sTCP:LISTEN -t >/dev/null 2>&1; }
+
+    # The backend port is fixed (the frontend API URL points at it)
+    if port_busy "$port"; then
+        print_msg "✗ Port $port is already in use. Stop that process or change PORT in backend/.env." "$RED"
+        exit 1
     fi
-    
-    if lsof -Pi :5173 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        print_msg "! Port 5173 is already in use" "$YELLOW"
+
+    # The frontend takes the first free port from 5173 up, so another Vite app can keep 5173
+    local fport=5173
+    while port_busy "$fport"; do fport=$((fport + 1)); done
+    if [ "$fport" -ne 5173 ]; then
+        print_msg "! Port 5173 is busy, using $fport for the frontend" "$YELLOW"
     fi
-    
-    print_msg "Starting backend server on http://localhost:3001..." "$YELLOW"
-    cd "$BACKEND_DIR"
-    npm run dev &
-    BACKEND_PID=$!
-    
+    local frontend_url="http://localhost:$fport"
+
+    trap 'cleanup 130' INT
+    trap 'cleanup 143' TERM
+    trap 'cleanup $?' EXIT
+
+    print_msg "Starting backend server on http://localhost:$port..." "$YELLOW"
+    # FRONTEND_URL drives CORS and the PayPal return links, so it must match the frontend port
+    (cd "$BACKEND_DIR" && FRONTEND_URL="$frontend_url" exec npm run dev) &
+    SERVER_PIDS+=($!)
+
     sleep 2
-    
-    print_msg "Starting frontend server on http://localhost:5173..." "$YELLOW"
-    cd "$FRONTEND_DIR"
-    npm run dev &
-    FRONTEND_PID=$!
-    
+
+    print_msg "Starting frontend server on $frontend_url..." "$YELLOW"
+    (cd "$FRONTEND_DIR" && exec npm run dev -- --port "$fport" --strictPort) &
+    SERVER_PIDS+=($!)
+
     print_msg "\n${GREEN}========================================${NC}"
     print_msg "${GREEN}  ⚡ ChargeNest Running!${NC}"
     print_msg "${GREEN}  Power up at home, anywhere.${NC}"
     print_msg "${GREEN}========================================${NC}"
     echo ""
-    print_msg "Frontend: ${BLUE}http://localhost:5173${NC}"
-    print_msg "Backend:  ${BLUE}http://localhost:3001${NC}"
-    print_msg "API Docs: ${BLUE}http://localhost:3001/api${NC}"
+    print_msg "Frontend: ${BLUE}$frontend_url${NC}"
+    print_msg "Backend:  ${BLUE}http://localhost:$port${NC}"
+    print_msg "API Docs: ${BLUE}http://localhost:$port/api${NC}"
+    echo ""
+    print_msg "Wallet: run './run.sh seed' once to fund the demo wallets above the minimum balance." "$YELLOW"
+    print_msg "Without PayPal keys in backend/.env, PayPal runs in mock mode (payments simulated). AI runs on the provider set by AI_PROVIDER." "$YELLOW"
     echo ""
     print_msg "Demo Accounts (Password: REDACTED_PASSWORD):" "$YELLOW"
     print_msg "  Client:      demo_driver@example.com"
@@ -196,10 +263,13 @@ start_dev() {
     print_msg "  Admin:       demo_admin@example.com"
     echo ""
     print_msg "Press Ctrl+C to stop all servers" "$YELLOW"
-    
-    # Wait for interrupt
-    trap "kill $BACKEND_PID $FRONTEND_PID 2>/dev/null; exit 0" INT TERM
-    wait
+
+    # Stay here until Ctrl+C, or until either server exits on its own
+    while kill -0 "${SERVER_PIDS[0]}" 2>/dev/null && kill -0 "${SERVER_PIDS[1]}" 2>/dev/null; do
+        sleep 1
+    done
+    print_msg "✗ A server stopped unexpectedly" "$RED"
+    cleanup 1
 }
 
 # Build for production
@@ -226,6 +296,7 @@ show_help() {
     echo "  migrate     Run database migrations"
     echo "  seed        Seed database with demo data"
     echo "  dev         Start development servers (default)"
+    echo "  test        Run backend tests"
     echo "  build       Build for production"
     echo "  all         Run full setup: install, setup, migrate, seed, dev"
     echo "  help        Show this help message"
@@ -258,6 +329,9 @@ main() {
         dev)
             start_dev
             ;;
+        test)
+            (cd "$BACKEND_DIR" && npm test)
+            ;;
         build)
             build_prod
             ;;
@@ -267,6 +341,7 @@ main() {
             setup_database
             run_migrations
             seed_database
+            SKIP_PREPARE=1
             start_dev
             ;;
         help|--help|-h)

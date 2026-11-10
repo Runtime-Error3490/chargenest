@@ -133,3 +133,85 @@ body {
 .star-empty {
   @apply text-gray-300;
 }
+
+/* ===========================================
+   DARK MODE
+   Pages use light utility classes directly (bg-white, text-gray-900, ...).
+   Instead of adding dark: variants to every page, remap those utilities
+   when <html class="dark"> is set. .dark .x beats .x on specificity.
+   =========================================== */
+.dark { color-scheme: dark; }
+.dark body { background-color: #0b1120; color: #e5e7eb; }
+
+/* Surfaces */
+.dark .bg-white { background-color: #111827; }
+.dark .bg-gray-50 { background-color: #0b1120; }
+.dark .bg-gray-100 { background-color: #1f2937; }
+.dark .bg-gray-200 { background-color: #374151; }
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover { background-color: #1f2937; }
+.dark .hover\:bg-gray-200:hover { background-color: #374151; }
+
+/* Text */
+.dark .text-gray-900,
+.dark .text-gray-800 { color: #f3f4f6; }
+.dark .text-gray-700 { color: #d1d5db; }
+.dark .text-gray-600 { color: #9ca3af; }
+.dark .text-gray-500 { color: #9ca3af; }
+.dark .hover\:text-gray-900:hover { color: #ffffff; }
+
+/* Borders */
+.dark .border-gray-100,
+.dark .border-gray-200 { border-color: #1f2937; }
+.dark .border-gray-300 { border-color: #374151; }
+.dark .border,
+.dark .border-b,
+.dark .border-t { border-color: #1f2937; }
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-y > :not([hidden]) ~ :not([hidden]) { border-color: #1f2937; }
+
+/* Tinted info boxes: keep the hue, drop the brightness */
+.dark .bg-green-50, .dark .bg-primary-50 { background-color: rgba(34, 197, 94, 0.12); }
+.dark .bg-green-100, .dark .bg-primary-100 { background-color: rgba(34, 197, 94, 0.2); }
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.12); }
+.dark .bg-yellow-50, .dark .bg-accent-50 { background-color: rgba(234, 179, 8, 0.12); }
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12); }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2); }
+.dark .bg-purple-50 { background-color: rgba(168, 85, 247, 0.12); }
+.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2); }
+.dark .text-green-900, .dark .text-green-800, .dark .text-green-700,
+.dark .text-primary-700 { color: #86efac; }
+.dark .text-red-800, .dark .text-red-700 { color: #fca5a5; }
+.dark .text-yellow-800, .dark .text-yellow-700, .dark .text-accent-700 { color: #fde047; }
+.dark .text-blue-900, .dark .text-blue-800, .dark .text-blue-700 { color: #93c5fd; }
+.dark .text-purple-700 { color: #d8b4fe; }
+.dark .border-green-200, .dark .border-red-200, .dark .border-yellow-200,
+.dark .border-blue-200 { border-color: rgba(255, 255, 255, 0.12); }
+
+/* Form controls (many pages use bare <input>/<textarea>) */
+.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.dark textarea,
+.dark select { background-color: #111827; color: #f3f4f6; border-color: #374151; }
+.dark input::placeholder,
+.dark textarea::placeholder { color: #6b7280; }
+
+/* Component classes */
+.dark .card { background-color: #111827; border-color: #1f2937; }
+.dark .btn-outline { border-color: #374151; color: #e5e7eb; }
+.dark .btn-outline:hover { background-color: #1f2937; }
+.dark .btn-secondary { background-color: #1f2937; color: #e5e7eb; }
+.dark .chat-message-agent { background-color: #1f2937; color: #f3f4f6; }
+.dark .shadow-sm, .dark .shadow, .dark .shadow-lg { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
+
+/* Scrollbar */
+.dark ::-webkit-scrollbar-track { background-color: #111827; }
+.dark ::-webkit-scrollbar-thumb { background-color: #374151; }
+
+/* Map tiles: dim instead of glaring white */
+.dark .leaflet-tile-pane { filter: brightness(0.75) contrast(1.1) saturate(0.8); }
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip { background-color: #111827; color: #f3f4f6; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-transition * { transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
+}

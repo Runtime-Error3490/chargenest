@@ -36,6 +36,30 @@ export const bookingService = {
     return { data: response.data.data?.booking || response.data.data };
   },
 
+  // Review a completed booking. Driver rates the charger; host rates the driver.
+  async submitReview(id, { rating, comment }) {
+    try {
+      const response = await api.post(`/bookings/${id}/review`, {
+        rating,
+        reviewText: comment?.trim() || undefined,
+      });
+      return response.data.data;
+    } catch (err) {
+      // Surface the backend's reason (e.g. "already reviewed", "only after completion")
+      throw new Error(err.response?.data?.error?.message || 'Failed to submit review');
+    }
+  },
+
+  // Play a charger-device scenario for a booking (backend needs DEVICE_MOCK=true)
+  async simulateDevice(bookingId, scenario) {
+    try {
+      const response = await api.post('/device/mock/simulate', { bookingId, scenario });
+      return response.data.data;
+    } catch (err) {
+      throw new Error(err.response?.data?.error?.message || 'Device simulation failed');
+    }
+  },
+
   // Authorize booking (after PayPal approval)
   async authorizeBooking(id) {
     const response = await api.post(`/bookings/${id}/authorize`);

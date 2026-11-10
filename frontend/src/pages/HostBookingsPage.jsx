@@ -6,7 +6,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
-import { Calendar, Clock, User, MapPin, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, User, MapPin, CheckCircle, XCircle } from 'lucide-react';
 
 export default function HostBookingsPage() {
   const navigate = useNavigate();
@@ -242,7 +242,6 @@ export default function HostBookingsPage() {
                   {/* Amount & Actions */}
                   <div className="text-right ml-6">
                     <div className="flex items-center gap-1 justify-end mb-1">
-                      <DollarSign className="w-4 h-4 text-green-600" />
                       <span className="text-2xl font-bold text-green-600">
                         {formatCurrency(booking.totalAmount || 0)}
                       </span>

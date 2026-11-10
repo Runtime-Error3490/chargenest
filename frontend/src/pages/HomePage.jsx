@@ -1,4 +1,5 @@
-import { Link, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { 
   Zap, MapPin, Shield, CreditCard, MessageSquare, 
   Users, TrendingUp, ArrowRight, CheckCircle 
@@ -8,6 +9,12 @@ import { useAuthStore } from '../store/authStore';
 
 export default function HomePage() {
   const { isAuthenticated, hasRole } = useAuthStore();
+  const { hash } = useLocation();
+
+  // Scroll to an in-page section (e.g. footer "How It Works" -> /#how-it-works)
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+  }, [hash]);
 
   // Redirect logged-in users to appropriate dashboard
   if (isAuthenticated) {
@@ -142,7 +149,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 bg-gray-50">
+      <section id="how-it-works" className="py-20 bg-gray-50 scroll-mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">

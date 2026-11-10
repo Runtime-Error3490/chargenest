@@ -6,3 +6,4 @@ export { Badge, StatusBadge } from './Badge';
 export { Modal } from './Modal';
 export { Loading, PageLoading, CardSkeleton } from './Loading';
 export { StarRating, InteractiveStarRating } from './StarRating';
+export { default as ImageCarousel } from './ImageCarousel';

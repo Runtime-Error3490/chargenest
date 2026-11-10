@@ -16,9 +16,13 @@ const router = Router();
 
 const createBookingSchema = z.object({
   chargerId: z.string().uuid(),
-  packageId: z.string().uuid(),
+  // Either a fixed package, or a duration priced from the host's hourly rate
+  packageId: z.string().uuid().optional(),
+  durationMin: z.number().int().min(15).max(480).optional(),
   scheduledStart: z.string().datetime(),
-});
+  // wallet = hold from the PayPal-funded wallet (default); paypal = authorize directly at PayPal
+  fundingSource: z.enum(['wallet', 'paypal']).optional().default('wallet'),
+}).refine((b) => b.packageId || b.durationMin, { message: 'Choose a package or a duration' });
 
 const cancelBookingSchema = z.object({
   reason: z.string().optional(),
@@ -29,6 +33,11 @@ const listBookingsSchema = z.object({
   role: z.enum(['driver', 'host']).optional().default('driver'),
   page: z.string().transform(Number).optional().default('1'),
   limit: z.string().transform(Number).optional().default('20'),
+});
+
+const reviewSchema = z.object({
+  rating: z.number().int().min(1, 'Rating must be 1 to 5').max(5, 'Rating must be 1 to 5'),
+  reviewText: z.string().max(1000, 'Review must be 1000 characters or less').optional(),
 });
 
 const updateStatusSchema = z.object({
@@ -49,7 +58,9 @@ router.post('/', authenticate, requireRole('driver'), validateBody(createBooking
       driverId: req.user.id,
       chargerId: req.body.chargerId,
       packageId: req.body.packageId,
+      durationMin: req.body.durationMin,
       scheduledStart: req.body.scheduledStart,
+      fundingSource: req.body.fundingSource,
       frontendUrl: config.frontendUrl,
     });
 
@@ -62,6 +73,7 @@ router.post('/', authenticate, requireRole('driver'), validateBody(createBooking
       details: {
         chargerId: req.body.chargerId,
         packageId: req.body.packageId,
+        durationMin: req.body.durationMin,
         scheduledStart: req.body.scheduledStart,
       },
       ipAddress: req.ip,
@@ -127,8 +139,34 @@ router.get('/host', authenticate, requireRole('host'), validateQuery(listBooking
  */
 router.get('/:id', authenticate, async (req, res, next) => {
   try {
-    const booking = await bookingService.getBookingById(req.params.id, req.user.id);
+    const booking = await bookingService.getBookingById(req.params.id, req.user.id, req.user.roles);
     successResponse(res, { booking });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/bookings/:id/review
+ * Driver reviews the charger, or host reviews the driver.
+ * Booking must be completed; each side may review once. Side and role are checked in the service.
+ */
+router.post('/:id/review', authenticate, requireRole('driver', 'host'), validateBody(reviewSchema), async (req, res, next) => {
+  try {
+    const result = await bookingService.submitReview(req.params.id, req.user, req.body);
+
+    await createAuditLog({
+      userId: req.user.id,
+      action: AuditActions.RATING_SUBMIT,
+      bookingId: req.params.id,
+      resource: 'booking',
+      resourceId: req.params.id,
+      details: { target: result.target, rating: req.body.rating },
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+
+    successResponse(res, result, 201);
   } catch (error) {
     next(error);
   }

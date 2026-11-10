@@ -21,7 +21,7 @@ export const agentService = {
     return response.data;
   },
 
-  // Chat with agent
+  // Chat with agent. Returns { message, requiresApproval, pendingApprovals, ... }
   async chat(message, mandateToken, context = {}) {
     const response = await api.post('/agent/chat', {
       message,
@@ -31,10 +31,49 @@ export const agentService = {
     return response.data.data;
   },
 
-  // Get activity log
+  // Get activity log (paginated response: { data: [...], pagination })
   async getActivity(params = {}) {
     const response = await api.get('/agent/activity', { params });
     return response.data;
+  },
+
+  // { isActive, mandateLevel, agentId, provider, model }
+  async getStatus() {
+    const response = await api.get('/agent/status');
+    return response.data.data;
+  },
+
+  // { level, permissions, spendingLimit, agentId, spentThisMonth }
+  async getSettings() {
+    const response = await api.get('/agent/settings');
+    return response.data.data;
+  },
+
+  async updateSettings(settings) {
+    const response = await api.put('/agent/settings', settings);
+    return response.data.data;
+  },
+
+  // KYA identity card
+  async getIdentity() {
+    const response = await api.get('/agent/identity');
+    return response.data.data;
+  },
+
+  // Actions the agent is waiting on the owner to confirm
+  async getApprovals() {
+    const response = await api.get('/agent/approvals');
+    return response.data.data;
+  },
+
+  async getApproval(id) {
+    const response = await api.get(`/agent/approvals/${id}`);
+    return response.data.data;
+  },
+
+  async respondToApproval(id, approved) {
+    const response = await api.post(`/agent/approvals/${id}/respond`, { approved });
+    return response.data.data;
   },
 };
 

@@ -274,6 +274,16 @@ TOTP_ENCRYPTION_KEY="$(openssl rand -hex 16 2>/dev/null || echo 'totp-encryption
 PAYPAL_CLIENT_ID="your-paypal-sandbox-client-id"
 PAYPAL_CLIENT_SECRET="your-paypal-sandbox-client-secret"
 PAYPAL_MODE="sandbox"
+PAYPAL_API_URL="https://api-m.sandbox.paypal.com"
+PAYPAL_WEBHOOK_ID="your-webhook-id"
+
+# AI provider: openrouter | openai | ollama | mock (mock needs no key)
+AI_PROVIDER=mock
+
+# Wallet deposit and Know Your Agent key secret
+WALLET_MIN_BALANCE=500
+WALLET_DEPOSIT=250
+KYA_KEY_SECRET="$(openssl rand -hex 32 2>/dev/null || echo 'kya-key-secret-change-me-32-characters-long')"
 
 # OpenRouter AI (replace with your API key)
 OPENROUTER_API_KEY="your-openrouter-api-key"

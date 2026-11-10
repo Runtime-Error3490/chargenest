@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "test": "node --import ./tests/setup.js --test \"tests/*.test.js\"",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
@@ -23,6 +24,7 @@
     "express-rate-limit": "^7.4.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "2.5.0",
     "openai": "^4.68.4",
     "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0",

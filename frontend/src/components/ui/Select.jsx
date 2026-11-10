@@ -84,7 +84,7 @@ export function Select({
 
   const handleSelect = (option) => {
     const newValue = getOptionValue(option);
-    onChange({ target: { value: newValue } });
+    onChange(newValue);
     setIsOpen(false);
     setHighlightedIndex(-1);
   };

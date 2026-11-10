@@ -1,74 +1,43 @@
-import OpenAI from 'openai';
 import { config } from '../config/index.js';
+import { getProvider } from './ai/index.js';
 import { AIError } from '../utils/errors.js';
 
-// Initialize OpenAI client for OpenRouter
-const openai = new OpenAI({
-  baseURL: config.ai.baseUrl,
-  apiKey: config.ai.apiKey,
-  defaultHeaders: {
-    'HTTP-Referer': config.frontendUrl,
-    'X-Title': 'EV Charging Marketplace',
-  },
-});
-
 /**
- * Call LLM with retry logic
+ * Call the configured AI provider with retry logic.
+ * Returns { content, toolCalls, message } whichever provider is configured.
  */
 async function callLLM(messages, tools = null, options = {}) {
   const maxRetries = config.ai.maxRetries;
+  const provider = getProvider();
   let lastError;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let timer;
     try {
-      const requestOptions = {
-        model: config.ai.model,
-        messages,
-        temperature: options.temperature ?? config.ai.temperature,
-        max_tokens: options.maxTokens || 2048,
-      };
-
-      if (tools && tools.length > 0) {
-        requestOptions.tools = tools;
-        requestOptions.tool_choice = options.toolChoice || 'auto';
-      }
-
-      const response = await Promise.race([
-        openai.chat.completions.create(requestOptions),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout')), config.ai.timeoutMs)
-        ),
+      return await Promise.race([
+        provider.chat({
+          messages,
+          tools,
+          temperature: options.temperature ?? config.ai.temperature,
+          maxTokens: options.maxTokens || 2048,
+        }),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Timeout')), config.ai.timeoutMs);
+        }),
       ]);
-
-      return response;
     } catch (error) {
       lastError = error;
-      console.error(`LLM attempt ${attempt + 1} failed:`, error.message);
-      
+      console.error(`LLM attempt ${attempt + 1} failed (${provider.name}):`, error.message);
+
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
       }
+    } finally {
+      clearTimeout(timer);
     }
   }
 
   throw new AIError(`LLM request failed after ${maxRetries + 1} attempts: ${lastError.message}`);
-}
-
-/**
- * Parse tool calls from response
- */
-function parseToolCalls(response) {
-  const message = response.choices[0]?.message;
-  
-  if (!message?.tool_calls || message.tool_calls.length === 0) {
-    return null;
-  }
-
-  return message.tool_calls.map(tc => ({
-    id: tc.id,
-    name: tc.function.name,
-    arguments: JSON.parse(tc.function.arguments),
-  }));
 }
 
 export const aiService = {
@@ -90,12 +59,14 @@ Your capabilities:
 - Search for chargers near a location
 - Get details about specific chargers and hosts
 - Estimate costs for charging sessions
-- Create booking holds (only when user confirms)
+- Create bookings paid from the user's wallet (only when user confirms)
+- Raise a dispute for a booking (only when user asks)
 
 Guidelines:
 - Always explain your reasoning before suggesting a charger
 - Consider distance, price, rating, and connector compatibility
-- Only call create_booking_hold when the user explicitly confirms they want to book
+- Only call create_booking when the user explicitly confirms they want to book
+- The user sets your permissions. If a tool answers requiresApproval, tell the user it waits for their approval. If it is denied, explain why and do not retry
 - Present options clearly with key details (distance, price, rating)
 - Be helpful and conversational
 
@@ -112,20 +83,19 @@ When presenting charger options:
       iterations++;
 
       const response = await callLLM(conversationMessages, tools);
-      const toolCalls = parseToolCalls(response);
+      const toolCalls = response.toolCalls.length > 0 ? response.toolCalls : null;
 
       if (!toolCalls) {
         // No tool calls - return the text response
         return {
-          message: response.choices[0].message.content,
+          message: response.content,
           toolsUsed,
           durationMs: Date.now() - startTime,
         };
       }
 
       // Execute tool calls
-      const assistantMessage = response.choices[0].message;
-      conversationMessages.push(assistantMessage);
+      conversationMessages.push(response.message);
 
       for (const toolCall of toolCalls) {
         toolsUsed.push(toolCall.name);
@@ -214,7 +184,7 @@ Please provide your decision as JSON.`,
       maxTokens: 1024,
     });
 
-    const content = response.choices[0].message.content;
+    const content = response.content;
 
     // Parse JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -281,7 +251,7 @@ Explain why ₹${basePrice}/hour is a good price for this charger.`,
       maxTokens: 256,
     });
 
-    return response.choices[0].message.content;
+    return response.content;
   },
 };
 

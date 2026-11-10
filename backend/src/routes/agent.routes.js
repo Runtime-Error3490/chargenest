@@ -19,9 +19,17 @@ const createMandateSchema = z.object({
   expiresInHours: z.number().min(1).max(168).optional().default(24), // Max 1 week
 });
 
+const settingsSchema = z.object({
+  level: z.number().int().min(0).max(4),
+  permissions: z.record(z.boolean()).optional().default({}),
+  spendingLimit: z.number().min(0).max(1000000).optional().default(0),
+});
+
+const approvalResponseSchema = z.object({ approved: z.boolean() });
+
 const chatSchema = z.object({
   message: z.string().min(1).max(2000),
-  mandateToken: z.string().min(1),
+  mandateToken: z.string().min(1).optional(),
   context: z.object({
     currentLocation: z.object({
       latitude: z.number().min(-90).max(90),
@@ -90,6 +98,77 @@ router.get('/activity', authenticate, validateQuery(activityQuerySchema), async 
       limit: req.query.limit,
     });
     paginatedResponse(res, result.activities, result.pagination);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/agent/identity
+ * KYA identity card: agent id, owner, public key, verification checks
+ */
+router.get('/identity', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, await agentService.getIdentity(req.user.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/agent/status
+ */
+router.get('/status', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, await agentService.getStatus(req.user.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/agent/settings
+ * PUT /api/agent/settings
+ * Autonomy level (0-4), per-action overrides and monthly spending limit
+ */
+router.get('/settings', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, await agentService.getSettings(req.user.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/settings', authenticate, validateBody(settingsSchema), async (req, res, next) => {
+  try {
+    successResponse(res, await agentService.updateSettings(req.user.id, req.body));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * Pending confirmations: list, read, and approve or deny
+ */
+router.get('/approvals', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, await agentService.getPendingApprovals(req.user.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/approvals/:id', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, await agentService.getApproval(req.user.id, req.params.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/approvals/:id/respond', authenticate, validateBody(approvalResponseSchema), async (req, res, next) => {
+  try {
+    successResponse(res, await agentService.respondToApproval(req.user.id, req.params.id, req.body.approved));
   } catch (error) {
     next(error);
   }

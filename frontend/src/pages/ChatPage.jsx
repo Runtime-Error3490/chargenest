@@ -52,12 +52,10 @@ How can I help you today?`,
 
     const fetchAgentStatus = async () => {
       try {
-        const response = await agentService.getAgentStatus();
-        setAgentStatus(response.data);
-        
+        setAgentStatus(await agentService.getStatus());
+
         // Check for pending approvals
-        const approvalsResponse = await agentService.getPendingApprovals();
-        setPendingApprovals(approvalsResponse.data || []);
+        setPendingApprovals(await agentService.getApprovals());
       } catch (err) {
         console.error('Failed to fetch agent status:', err);
       }
@@ -87,36 +85,31 @@ How can I help you today?`,
     setLoading(true);
 
     try {
-      const response = await agentService.chat({ message: content.trim() });
+      const data = await agentService.chat(content.trim());
       
       // Add assistant response
       const assistantMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.data.message,
+        content: data.message,
         timestamp: new Date(),
-        action: response.data.action,
-        actionData: response.data.actionData,
-        requiresApproval: response.data.requiresApproval,
-        confidence: response.data.confidence,
       };
       
       setMessages(prev => [...prev, assistantMessage]);
 
-      // If there's a pending approval, add it to the list
-      if (response.data.requiresApproval) {
-        setPendingApprovals(prev => [...prev, {
-          id: response.data.approvalId,
-          action: response.data.action,
-          description: response.data.actionDescription,
-        }]);
+      // The agent needs the owner's confirmation before it acts
+      if (data.pendingApprovals?.length) {
+        setPendingApprovals(prev => [
+          ...prev,
+          ...data.pendingApprovals.filter(a => !prev.some(p => p.id === a.id)),
+        ]);
       }
     } catch (err) {
       // Add error message
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "I'm sorry, I encountered an error. Please try again or contact support if the issue persists.",
+        content: err.message || "I'm sorry, I encountered an error. Please try again.",
         timestamp: new Date(),
         isError: true,
       };
@@ -129,45 +122,30 @@ How can I help you today?`,
 
   const handleApproval = async (approvalId, approved) => {
     try {
-      await agentService.respondToApproval(approvalId, { approved });
-      
-      // Remove from pending
+      setLoading(true);
+      // The backend runs the action when the owner approves, and returns the outcome
+      const result = await agentService.respondToApproval(approvalId, approved);
       setPendingApprovals(prev => prev.filter(a => a.id !== approvalId));
-      
-      // Add confirmation message
-      const message = {
+      setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',
-        content: approved 
-          ? "Action approved! I'm processing your request now..."
+        content: approved
+          ? (result.message || 'Done. The action has been completed.')
           : "Action cancelled. Let me know if there's anything else I can help with.",
         timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, message]);
-
-      // If approved, the action result will come through
-      if (approved) {
-        setLoading(true);
-        // Wait for action result
-        setTimeout(async () => {
-          try {
-            const response = await agentService.getActionResult(approvalId);
-            const resultMessage = {
-              id: (Date.now() + 1).toString(),
-              role: 'assistant',
-              content: response.data.message || "Done! The action has been completed.",
-              timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, resultMessage]);
-          } catch {
-            // Silent fail
-          } finally {
-            setLoading(false);
-          }
-        }, 1000);
-      }
+        isError: approved && result.status === 'failed',
+      }]);
     } catch (err) {
-      console.error('Approval error:', err);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: err.message || 'Could not complete that action.',
+        timestamp: new Date(),
+        isError: true,
+      }]);
+      setPendingApprovals(prev => prev.filter(a => a.id !== approvalId));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -203,7 +181,7 @@ How can I help you today?`,
                   ) : (
                     <span className="text-gray-400">● Standby</span>
                   )}
-                  {agentStatus?.mandateLevel && (
+                  {agentStatus?.mandateLevel > 0 && (
                     <span className="ml-2">Level: {agentStatus.mandateLevel}</span>
                   )}
                 </p>
@@ -276,69 +254,6 @@ How can I help you today?`,
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 
-                {/* Confidence indicator for AI responses */}
-                {message.role === 'assistant' && message.confidence && (
-                  <div className="mt-2 pt-2 border-t border-gray-100">
-                    <p className="text-xs text-gray-500">
-                      Confidence: {Math.round(message.confidence * 100)}%
-                    </p>
-                  </div>
-                )}
-
-                {/* Action buttons in assistant messages */}
-                {message.action && message.actionData && (
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    {message.action === 'view_charger' && (
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(`/chargers/${message.actionData.chargerId}`)}
-                      >
-                        View Charger
-                      </Button>
-                    )}
-                    {message.action === 'view_booking' && (
-                      <Button
-                        size="sm"
-                        onClick={() => navigate(`/bookings/${message.actionData.bookingId}`)}
-                      >
-                        View Booking
-                      </Button>
-                    )}
-                    {message.action === 'search_chargers' && (
-                      <Button
-                        size="sm"
-                        onClick={() => navigate('/search')}
-                      >
-                        Browse Chargers
-                      </Button>
-                    )}
-                  </div>
-                )}
-
-                {/* Approval request */}
-                {message.requiresApproval && (
-                  <div className="mt-3 p-3 bg-yellow-50 rounded-lg">
-                    <p className="text-sm text-yellow-800 mb-2">
-                      This action requires your approval.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleApproval(message.actionData?.approvalId, false)}
-                      >
-                        Deny
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleApproval(message.actionData?.approvalId, true)}
-                      >
-                        Approve
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
                 <p className={`text-xs mt-2 ${
                   message.role === 'user' ? 'text-green-200' : 'text-gray-400'
                 }`}>

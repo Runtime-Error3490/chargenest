@@ -7,6 +7,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
+import WalletBanner from '../components/WalletBanner';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -98,6 +99,8 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
+        <WalletBanner />
+
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
@@ -175,9 +178,7 @@ export default function DashboardPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xl">
-                            ⚡
-                          </div>
+                          <img src="/charger-placeholder.svg" alt="" className="w-full h-full object-cover" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">

@@ -1,11 +1,134 @@
 import { Router } from 'express';
+import { z } from 'zod';
 
 import { prisma } from '../utils/prisma.js';
-import { authenticate } from '../middleware/auth.js';
+import { walletService } from '../services/wallet.service.js';
+import { invoiceService } from '../services/invoice.service.js';
+import { validateBody } from '../middleware/validate.js';
+import { authenticate, requireRole } from '../middleware/auth.js';
 import { successResponse } from '../utils/apiResponse.js';
 import { NotFoundError, ForbiddenError } from '../utils/errors.js';
 
 const router = Router();
+
+// ===========================================
+// VALIDATION SCHEMAS
+// ===========================================
+
+const topUpSchema = z.object({
+  amount: z.number()
+    .min(1, 'Minimum top-up is 1')
+    .max(100000, 'Maximum top-up is 100000')
+    // At most 2 decimals, like a currency amount
+    .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, 'Use at most 2 decimal places'),
+});
+const captureTopUpSchema = z.object({ orderId: z.string().min(1) });
+const withdrawSchema = z.object({ amount: z.number().positive().max(100000) });
+const createInvoiceSchema = z.object({
+  bookingId: z.string().uuid(),
+  amount: z.number().positive().max(100000),
+  description: z.string().min(5).max(500),
+});
+
+// ===========================================
+// WALLET AND INVOICES (declared before /:bookingId)
+// ===========================================
+
+/**
+ * GET /api/payments/wallet
+ * Balance, held escrow, deposit status and recent ledger
+ */
+router.get('/wallet', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, await walletService.getWallet(req.user.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/payments/wallet/topup
+ * Create a PayPal order; the user approves it at PayPal
+ */
+router.post('/wallet/topup', authenticate, validateBody(topUpSchema), async (req, res, next) => {
+  try {
+    successResponse(res, await walletService.startTopUp(req.user.id, req.body.amount), 201);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/payments/wallet/topup/capture
+ * After PayPal approval, capture the order and credit the wallet
+ */
+router.post('/wallet/topup/capture', authenticate, validateBody(captureTopUpSchema), async (req, res, next) => {
+  try {
+    successResponse(res, await walletService.completeTopUp(req.user.id, req.body.orderId));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/payments/wallet/withdraw
+ * Pay spendable balance (above the deposit) out to the user's PayPal email
+ */
+router.post('/wallet/withdraw', authenticate, validateBody(withdrawSchema), async (req, res, next) => {
+  try {
+    successResponse(res, await walletService.withdraw(req.user.id, req.body.amount));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/payments/wallet/close
+ * Pay out the whole wallet, deposit included. Blocked while bookings, disputes or invoices are open.
+ */
+router.post('/wallet/close', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, await walletService.closeWallet(req.user.id));
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /api/payments/invoices
+ * Invoices the user issued or received
+ */
+router.get('/invoices', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, { invoices: await invoiceService.listForUser(req.user.id) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/payments/invoices
+ * Host sends a PayPal invoice to the driver (for example for damage)
+ */
+router.post('/invoices', authenticate, requireRole('host'), validateBody(createInvoiceSchema), async (req, res, next) => {
+  try {
+    successResponse(res, { invoice: await invoiceService.createDamageInvoice(req.user.id, req.body) }, 201);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/payments/invoices/:id/refresh
+ * Check PayPal for the invoice status
+ */
+router.post('/invoices/:id/refresh', authenticate, async (req, res, next) => {
+  try {
+    successResponse(res, { invoice: await invoiceService.refresh(req.params.id, req.user.id) });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // ===========================================
 // ROUTES

@@ -195,7 +195,7 @@ export default function BecomeHostPage() {
                   className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                 />
                 <span className="text-sm text-gray-600">
-                  I agree to the <a href="#" className="text-primary-600 hover:underline">Host Terms of Service</a> and <a href="#" className="text-primary-600 hover:underline">Privacy Policy</a>
+                  I agree to the <a href="/host-policy" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Host Policy</a>, <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">Privacy Policy</a>
                 </span>
               </label>
 

@@ -6,6 +6,7 @@ import { validateBody } from '../middleware/validate.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { successResponse } from '../utils/apiResponse.js';
 import { NotFoundError, ConflictError } from '../utils/errors.js';
+import { config } from '../config/index.js';
 
 const router = Router();
 
@@ -222,7 +223,7 @@ router.get('/host/stats', authenticate, requireRole('host'), async (req, res, ne
     successResponse(res, {
       totalEarnings: parseFloat(totalEarnings._sum.hostPayoutAmount || 0),
       thisMonthEarnings: parseFloat(thisMonthEarnings._sum.hostPayoutAmount || 0),
-      pendingPayout: parseFloat(pendingPayout._sum.authorizedAmount || 0) * 0.93, // After platform fee
+      pendingPayout: parseFloat(pendingPayout._sum.authorizedAmount || 0) * (1 - config.platform.feePercent / 100), // After platform fee
       totalBookings,
       activeChargers,
       totalChargers: chargers.length,
