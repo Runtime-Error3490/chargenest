@@ -325,8 +325,8 @@ ev-charging-marketplace/
 
 | Name | Role | GitHub |
 |------|------|--------|
-| Nandini A Choukimath | Co-founder & Developer | [@nandini](https://github.com/nandini) |
-| Shaleen Shukla | Co-founder & Developer | [@shaleen](https://github.com/shaleen) |
+| Nandini A Choukimath | Co-founder & Developer | [@nandini](https://github.com/spacescribe) |
+| Shaleen Shukla | Co-founder & Developer | [@shaleen](https://github.com/Runtime-Error3490) |
 
 ---
 
