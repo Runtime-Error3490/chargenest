@@ -1,0 +1,436 @@
+// Prisma Schema for EV Charging Marketplace
+// PostgreSQL Database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// ENUMS
+// ===========================================
+
+enum UserRole {
+  driver
+  host
+  admin
+}
+
+enum AgentStatus {
+  active
+  revoked
+  suspended
+}
+
+enum MandateStatus {
+  active
+  used
+  expired
+  revoked
+}
+
+enum ConnectorType {
+  Type2
+  CCS2
+  CHAdeMO
+  Type1
+  GBT
+}
+
+enum KwTier {
+  kW3_3  @map("3.3kW")
+  kW7_4  @map("7.4kW")
+  kW11   @map("11kW")
+  kW22   @map("22kW")
+  kW50   @map("50kW")
+  kW150  @map("150kW")
+}
+
+enum ChargerStatus {
+  active
+  inactive
+  maintenance
+  blocked
+}
+
+enum BookingStatus {
+  pending
+  authorized
+  in_progress
+  completed
+  cancelled
+  no_show
+  disputed
+}
+
+enum SessionStatus {
+  awaiting_start
+  driver_confirmed
+  host_confirmed
+  in_progress
+  ended
+  disputed
+}
+
+enum PaymentStatus {
+  pending
+  authorized
+  captured
+  partially_refunded
+  refunded
+  voided
+  failed
+}
+
+enum DisputeStatus {
+  open
+  ai_reviewed
+  pending_admin
+  resolved
+  closed
+}
+
+enum DisputeDecision {
+  release_to_host
+  partial_refund
+  full_refund
+}
+
+// ===========================================
+// MODELS
+// ===========================================
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  name          String
+  phone         String?
+  totpSecret    String?  @map("totp_secret")
+  totpEnabled   Boolean  @default(false) @map("totp_enabled")
+  avatarUrl     String?  @map("avatar_url")
+  isVerified    Boolean  @default(false) @map("is_verified")
+  paypalEmail   String?  @map("paypal_email")
+  
+  // Terms & Conditions acceptance
+  termsAccepted     Boolean   @default(false) @map("terms_accepted")
+  termsAcceptedAt   DateTime? @map("terms_accepted_at")
+  termsVersion      String?   @map("terms_version")
+  privacyAccepted   Boolean   @default(false) @map("privacy_accepted")
+  privacyAcceptedAt DateTime? @map("privacy_accepted_at")
+  privacyVersion    String?   @map("privacy_version")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  roles           UserRoleMapping[]
+  agents          Agent[]
+  mandates        Mandate[]
+  chargersOwned   Charger[]         @relation("HostChargers")
+  chargersBlocked Charger[]         @relation("BlockedChargers")
+  bookingsAsDriver Booking[]        @relation("DriverBookings")
+  disputesRaised  Dispute[]         @relation("DisputeRaiser")
+  disputesResolved Dispute[]        @relation("DisputeResolver")
+  driverRatings   DriverRating[]
+  hostRatingsGiven HostRating[]     @relation("HostRater")
+  hostRatingsReceived HostRating[]  @relation("DriverRated")
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model UserRoleMapping {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  role      UserRole
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model Agent {
+  id         String      @id @default(uuid())
+  userId     String      @map("user_id")
+  name       String      @default("Charging Concierge")
+  model      String
+  provider   String
+  version    String?
+  status     AgentStatus @default(active)
+  publicKey  String?     @map("public_key")
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mandates  Mandate[]
+  auditLogs AuditLog[]
+
+  @@map("agents")
+}
+
+model Mandate {
+  id              String        @id @default(uuid())
+  agentId         String        @map("agent_id")
+  userId          String        @map("user_id")
+  maxAmount       Decimal       @map("max_amount") @db.Decimal(10, 2)
+  currency        String        @default("INR")
+  maxDistanceKm   Decimal?      @map("max_distance_km") @db.Decimal(5, 2)
+  connectorTypes  ConnectorType[] @map("connector_types")
+  token           String
+  status          MandateStatus @default(active)
+  amountUsed      Decimal       @default(0) @map("amount_used") @db.Decimal(10, 2)
+  bookingsCount   Int           @default(0) @map("bookings_count")
+  expiresAt       DateTime      @map("expires_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  revokedAt       DateTime?     @map("revoked_at")
+
+  agent     Agent      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+  payments  Payment[]
+  auditLogs AuditLog[]
+
+  @@map("mandates")
+}
+
+model Charger {
+  id             String        @id @default(uuid())
+  hostId         String        @map("host_id")
+  name           String
+  description    String?
+  address        String
+  city           String        @default("Bengaluru")
+  latitude       Decimal       @db.Decimal(10, 8)
+  longitude      Decimal       @db.Decimal(11, 8)
+  connectorType  ConnectorType @map("connector_type")
+  kwTier         KwTier        @map("kw_tier")
+  amenities      Json          @default("[]")
+  photos         String[]
+  status         ChargerStatus @default(active)
+  totalBookings  Int           @default(0) @map("total_bookings")
+  avgRating      Decimal       @default(0) @map("avg_rating") @db.Decimal(2, 1)
+  suggestedPrice Decimal?      @map("suggested_price") @db.Decimal(10, 2)
+  
+  // Admin blocking fields
+  isBlocked      Boolean       @default(false) @map("is_blocked")
+  blockedAt      DateTime?     @map("blocked_at")
+  blockedBy      String?       @map("blocked_by")
+  blockReason    String?       @map("block_reason")
+  
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  host          User           @relation("HostChargers", fields: [hostId], references: [id], onDelete: Cascade)
+  blockedByUser User?          @relation("BlockedChargers", fields: [blockedBy], references: [id])
+  packages      TimePackage[]
+  availability  Availability[]
+  bookings      Booking[]
+  driverRatings DriverRating[]
+
+  // Prevent duplicate chargers: same host cannot have charger with same name and address
+  @@unique([hostId, name, address])
+  @@map("chargers")
+}
+
+model TimePackage {
+  id          String   @id @default(uuid())
+  chargerId   String   @map("charger_id")
+  name        String
+  durationMin Int      @map("duration_min")
+  price       Decimal  @db.Decimal(10, 2)
+  currency    String   @default("INR")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  charger  Charger   @relation(fields: [chargerId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@map("time_packages")
+}
+
+model Availability {
+  id          String   @id @default(uuid())
+  chargerId   String   @map("charger_id")
+  dayOfWeek   Int      @map("day_of_week")
+  startTime   String   @map("start_time")
+  endTime     String   @map("end_time")
+  isAvailable Boolean  @default(true) @map("is_available")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  charger Charger @relation(fields: [chargerId], references: [id], onDelete: Cascade)
+
+  @@map("availability")
+}
+
+model Booking {
+  id                 String        @id @default(uuid())
+  chargerId          String        @map("charger_id")
+  driverId           String        @map("driver_id")
+  packageId          String        @map("package_id")
+  scheduledStart     DateTime      @map("scheduled_start")
+  scheduledEnd       DateTime      @map("scheduled_end")
+  baseAmount         Decimal       @map("base_amount") @db.Decimal(10, 2)
+  platformFee        Decimal       @map("platform_fee") @db.Decimal(10, 2)
+  totalAmount        Decimal       @map("total_amount") @db.Decimal(10, 2)
+  currency           String        @default("INR")
+  mandateId          String?       @map("mandate_id")
+  bookedByAgent      Boolean       @default(false) @map("booked_by_agent")
+  status             BookingStatus @default(pending)
+  cancelledAt        DateTime?     @map("cancelled_at")
+  cancellationFee    Decimal?      @map("cancellation_fee") @db.Decimal(10, 2)
+  cancellationReason String?       @map("cancellation_reason")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  charger       Charger        @relation(fields: [chargerId], references: [id])
+  driver        User           @relation("DriverBookings", fields: [driverId], references: [id])
+  package       TimePackage    @relation(fields: [packageId], references: [id])
+  mandate       Mandate?       @relation(fields: [mandateId], references: [id])
+  session       Session?
+  payment       Payment?
+  dispute       Dispute?
+  driverRating  DriverRating?
+  hostRating    HostRating?
+  auditLogs     AuditLog[]
+
+  @@map("bookings")
+}
+
+model Session {
+  id                  String        @id @default(uuid())
+  bookingId           String        @unique @map("booking_id")
+  driverStartConfirm  DateTime?     @map("driver_start_confirm")
+  hostStartConfirm    DateTime?     @map("host_start_confirm")
+  actualStart         DateTime?     @map("actual_start")
+  actualEnd           DateTime?     @map("actual_end")
+  actualDurationMin   Int?          @map("actual_duration_min")
+  driverEndConfirm    DateTime?     @map("driver_end_confirm")
+  hostEndConfirm      DateTime?     @map("host_end_confirm")
+  finalAmount         Decimal?      @map("final_amount") @db.Decimal(10, 2)
+  status              SessionStatus @default(awaiting_start)
+  notes               String?
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  bookingId         String        @unique @map("booking_id")
+  paypalOrderId     String?       @map("paypal_order_id")
+  paypalAuthId      String?       @map("paypal_auth_id")
+  paypalCaptureId   String?       @map("paypal_capture_id")
+  paypalPayoutId    String?       @map("paypal_payout_id")
+  authorizedAmount  Decimal?      @map("authorized_amount") @db.Decimal(10, 2)
+  capturedAmount    Decimal?      @map("captured_amount") @db.Decimal(10, 2)
+  refundedAmount    Decimal       @default(0) @map("refunded_amount") @db.Decimal(10, 2)
+  hostPayoutAmount  Decimal?      @map("host_payout_amount") @db.Decimal(10, 2)
+  platformFeeAmount Decimal?      @map("platform_fee_amount") @db.Decimal(10, 2)
+  currency          String        @default("INR")
+  status            PaymentStatus @default(pending)
+  mandateId         String?       @map("mandate_id")
+  authorizedAt      DateTime?     @map("authorized_at")
+  capturedAt        DateTime?     @map("captured_at")
+  refundedAt        DateTime?     @map("refunded_at")
+  payoutAt          DateTime?     @map("payout_at")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  booking Booking  @relation(fields: [bookingId], references: [id])
+  mandate Mandate? @relation(fields: [mandateId], references: [id])
+
+  @@map("payments")
+}
+
+model Dispute {
+  id                String          @id @default(uuid())
+  bookingId         String          @unique @map("booking_id")
+  raisedById        String          @map("raised_by_id")
+  raisedByRole      UserRole        @map("raised_by_role")
+  reason            String
+  description       String?
+  evidence          Json?
+  aiDecision        DisputeDecision? @map("ai_decision")
+  aiRefundAmount    Decimal?        @map("ai_refund_amount") @db.Decimal(10, 2)
+  aiReasoning       String?         @map("ai_reasoning")
+  aiConfidence      Decimal?        @map("ai_confidence") @db.Decimal(3, 2)
+  aiReviewedAt      DateTime?       @map("ai_reviewed_at")
+  finalDecision     DisputeDecision? @map("final_decision")
+  finalRefundAmount Decimal?        @map("final_refund_amount") @db.Decimal(10, 2)
+  adminNotes        String?         @map("admin_notes")
+  resolvedById      String?         @map("resolved_by_id")
+  status            DisputeStatus   @default(open)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  resolvedAt        DateTime?       @map("resolved_at")
+
+  booking    Booking @relation(fields: [bookingId], references: [id])
+  raisedBy   User    @relation("DisputeRaiser", fields: [raisedById], references: [id])
+  resolvedBy User?   @relation("DisputeResolver", fields: [resolvedById], references: [id])
+
+  @@map("disputes")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  agentId       String?  @map("agent_id")
+  mandateId     String?  @map("mandate_id")
+  userId        String?  @map("user_id")
+  action        String
+  inputs        Json?
+  outputs       Json?
+  bookingId     String?  @map("booking_id")
+  paypalOrderId String?  @map("paypal_order_id")
+  success       Boolean  @default(true)
+  errorMessage  String?  @map("error_message")
+  durationMs    Int?     @map("duration_ms")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  agent   Agent?   @relation(fields: [agentId], references: [id])
+  mandate Mandate? @relation(fields: [mandateId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
+  booking Booking? @relation(fields: [bookingId], references: [id])
+
+  @@map("audit_log")
+}
+
+model DriverRating {
+  id         String   @id @default(uuid())
+  bookingId  String   @unique @map("booking_id")
+  chargerId  String   @map("charger_id")
+  driverId   String   @map("driver_id")
+  rating     Int
+  reviewText String?  @map("review_text")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  charger Charger @relation(fields: [chargerId], references: [id])
+  driver  User    @relation(fields: [driverId], references: [id])
+
+  @@map("driver_ratings")
+}
+
+model HostRating {
+  id         String   @id @default(uuid())
+  bookingId  String   @unique @map("booking_id")
+  driverId   String   @map("driver_id")
+  hostId     String   @map("host_id")
+  rating     Int
+  reviewText String?  @map("review_text")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  driver  User    @relation("DriverRated", fields: [driverId], references: [id])
+  host    User    @relation("HostRater", fields: [hostId], references: [id])
+
+  @@map("host_ratings")
+}
