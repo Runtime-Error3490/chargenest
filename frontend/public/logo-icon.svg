@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="nestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FCD34D"/>
+      <stop offset="100%" style="stop-color:#F59E0B"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Compact nest shape -->
+  <path d="M32 8 L56 26 L56 52 C56 55 53 58 50 58 L14 58 C11 58 8 55 8 52 L8 26 Z" 
+        fill="url(#nestGrad)" />
+  
+  <!-- Lightning bolt -->
+  <path d="M37 18 L30 32 L36 32 L27 48 L34 34 L28 34 Z" 
+        fill="url(#boltGrad)" />
+</svg>
