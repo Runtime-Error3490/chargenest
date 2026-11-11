@@ -3,34 +3,51 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-// Stock photos for EV chargers from Unsplash (free to use)
+// High-quality EV charging stock photos from Unsplash (free to use)
+// Using more realistic and diverse EV charging images
 const stockPhotos = {
   homeCharger: [
-    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // EV charging at home
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // Electric car plugged in
-    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Home garage charger
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Tesla charging at home garage
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // EV plugged in residential
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Home wall charger setup
+    'https://images.unsplash.com/photo-1657469871408-903a644358a8?w=800&q=80', // Modern home charging
   ],
   cafeCharger: [
     'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Public charging station
-    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // EV charging point
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // EV charging point modern
     'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Tesla supercharger style
-    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // EV charging
+    'https://images.unsplash.com/photo-1697577427168-7fa7a2b3e0e3?w=800&q=80', // Cafe parking charger
+    'https://images.unsplash.com/photo-1606220838315-056192d5e927?w=800&q=80', // Commercial EV station
   ],
   apartmentCharger: [
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // EV plugged in
-    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Charging station
-    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Parking garage
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // EV plugged in parking
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Parking garage charger
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Underground parking EV
+    'https://images.unsplash.com/photo-1633108069902-cd2a2f9db6ee?w=800&q=80', // Apartment complex charger
   ],
   techParkCharger: [
-    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // Modern charging
-    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Commercial station
-    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Fast charger
-    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // EV charging
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // Car plugged in
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // Modern corporate charging
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Tech park fast charger
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Multiple charging bays
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Premium EV charging
+    'https://images.unsplash.com/photo-1606220838315-056192d5e927?w=800&q=80', // Corporate charging hub
+    'https://images.unsplash.com/photo-1697577427168-7fa7a2b3e0e3?w=800&q=80', // Business park station
   ],
   residentialCharger: [
-    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Home setup
-    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Residential charging
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Home setup evening
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Residential driveway
+    'https://images.unsplash.com/photo-1657469871408-903a644358a8?w=800&q=80', // Quiet neighborhood charger
+  ],
+  mallCharger: [
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Shopping mall EV parking
+    'https://images.unsplash.com/photo-1606220838315-056192d5e927?w=800&q=80', // Retail charging station
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // Mall parking charger
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Multiple charger bays
+  ],
+  hotelCharger: [
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Hotel valet charging
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Premium hotel charger
+    'https://images.unsplash.com/photo-1697577427168-7fa7a2b3e0e3?w=800&q=80', // Boutique hotel station
   ],
 };
 
@@ -40,15 +57,15 @@ async function main() {
   // Hash password (REDACTED_PASSWORD)
   const passwordHash = await bcrypt.hash('REDACTED_PASSWORD', 10);
 
-  // Create demo users
+  // Create demo users with realistic names
   const driver = await prisma.user.upsert({
     where: { email: 'demo_driver@example.com' },
     update: {},
     create: {
       email: 'demo_driver@example.com',
       passwordHash,
-      name: 'Rahul Kumar',
-      phone: '+919876543210',
+      name: 'Alex Thompson',
+      phone: '+14155551234',
       paypalEmail: 'sb-buyer@personal.example.com',
       isVerified: true,
       roles: {
@@ -63,8 +80,8 @@ async function main() {
     create: {
       email: 'demo_host@example.com',
       passwordHash,
-      name: 'Priya Sharma',
-      phone: '+919876543211',
+      name: 'Sarah Mitchell',
+      phone: '+14155551235',
       paypalEmail: 'sb-seller@business.example.com',
       isVerified: true,
       roles: {
@@ -80,7 +97,7 @@ async function main() {
       email: 'demo_admin@example.com',
       passwordHash,
       name: 'Admin User',
-      phone: '+919876543212',
+      phone: '+14155551236',
       isVerified: true,
       roles: {
         create: [{ role: 'admin' }],
@@ -95,8 +112,8 @@ async function main() {
     create: {
       email: 'clientdemo_host@example.com',
       passwordHash,
-      name: 'Arjun Nair',
-      phone: '+919876543213',
+      name: 'Michael Chen',
+      phone: '+14155551237',
       paypalEmail: 'sb-dual@personal.example.com',
       isVerified: true,
       roles: {
@@ -107,12 +124,11 @@ async function main() {
 
   console.log('✅ Created users');
 
-  // Demo wallets: the minimum balance is a damage deposit, so seeded users start above it.
-  // Only credits wallets that are still empty, so re-running the seed never adds money twice.
+  // Demo wallets with USD amounts
   const demoWallets = [
-    { user: driver, amount: 5000 },
-    { user: host, amount: 1000 },
-    { user: dualUser, amount: 3000 },
+    { user: driver, amount: 500 },
+    { user: host, amount: 100 },
+    { user: dualUser, amount: 300 },
   ];
   for (const { user, amount } of demoWallets) {
     const credited = await prisma.user.updateMany({
@@ -133,12 +149,12 @@ async function main() {
   }
   console.log('✅ Funded demo wallets');
 
-  // Create chargers in Bengaluru
+  // Create chargers in Bengaluru with USD pricing
   const chargers = [
     {
       hostId: host.id,
-      name: "Priya's Home Charger",
-      description: 'Well-maintained 7.4kW AC charger in covered parking. Pet-friendly!',
+      name: "Sarah's Home Charger",
+      description: 'Well-maintained 7.4kW AC charger in covered parking. Pet-friendly home with easy access. Perfect for a quick top-up while you grab coffee nearby!',
       address: '123 4th Cross, HSR Layout Sector 2, Bengaluru 560102',
       city: 'Bengaluru',
       latitude: 12.9141,
@@ -147,11 +163,11 @@ async function main() {
       kwTier: 'kW7_4',
       amenities: ['parking', 'wifi', 'restroom'],
       photos: stockPhotos.homeCharger,
-      suggestedPrice: 140,
+      suggestedPrice: 5,
       packages: [
-        { name: 'Quick Charge', durationMin: 30, price: 75 },
-        { name: 'Standard', durationMin: 60, price: 140 },
-        { name: 'Extended', durationMin: 120, price: 260 },
+        { name: 'Quick Charge', durationMin: 30, price: 3 },
+        { name: 'Standard', durationMin: 60, price: 5 },
+        { name: 'Extended', durationMin: 120, price: 9 },
       ],
       availability: [
         { dayOfWeek: 0, startTime: '08:00', endTime: '22:00' },
@@ -165,21 +181,21 @@ async function main() {
     },
     {
       hostId: host.id,
-      name: 'Quick Charge Koramangala',
-      description: 'Fast 22kW charger at a cafe. Enjoy coffee while you charge!',
+      name: 'Quick Charge @ Brew House',
+      description: 'Fast 22kW charger at our popular cafe. Enjoy artisan coffee and pastries while your EV charges. Free WiFi and comfortable seating area.',
       address: '45 5th Block, Koramangala, Bengaluru 560095',
       city: 'Bengaluru',
       latitude: 12.9352,
       longitude: 77.6245,
       connectorType: 'CCS2',
       kwTier: 'kW22',
-      amenities: ['cafe', 'wifi', 'seating'],
+      amenities: ['cafe', 'wifi', 'seating', 'restroom'],
       photos: stockPhotos.cafeCharger,
-      suggestedPrice: 280,
+      suggestedPrice: 10,
       packages: [
-        { name: 'Quick Boost', durationMin: 30, price: 150 },
-        { name: 'Standard', durationMin: 60, price: 280 },
-        { name: 'Extended', durationMin: 120, price: 520 },
+        { name: 'Quick Boost', durationMin: 30, price: 6 },
+        { name: 'Standard', durationMin: 60, price: 10 },
+        { name: 'Extended', durationMin: 120, price: 18 },
       ],
       availability: [
         { dayOfWeek: 0, startTime: '07:00', endTime: '23:00' },
@@ -193,21 +209,21 @@ async function main() {
     },
     {
       hostId: host.id,
-      name: 'Indiranagar Apartment Charger',
-      description: 'Shared charger in apartment complex. Visitor parking available.',
+      name: 'Skyline Apartments Charger',
+      description: 'Shared charger in premium apartment complex. 24/7 security with visitor parking available. Underground parking protects your car from weather.',
       address: '78 100 Feet Road, Indiranagar, Bengaluru 560038',
       city: 'Bengaluru',
       latitude: 12.9784,
       longitude: 77.6408,
       connectorType: 'Type2',
       kwTier: 'kW11',
-      amenities: ['parking', 'security'],
+      amenities: ['parking', 'security', 'restroom'],
       photos: stockPhotos.apartmentCharger,
-      suggestedPrice: 180,
+      suggestedPrice: 7,
       packages: [
-        { name: 'Quick Charge', durationMin: 30, price: 95 },
-        { name: 'Standard', durationMin: 60, price: 180 },
-        { name: 'Extended', durationMin: 120, price: 340 },
+        { name: 'Quick Charge', durationMin: 30, price: 4 },
+        { name: 'Standard', durationMin: 60, price: 7 },
+        { name: 'Extended', durationMin: 120, price: 12 },
       ],
       availability: [
         { dayOfWeek: 0, startTime: '06:00', endTime: '22:00' },
@@ -221,49 +237,49 @@ async function main() {
     },
     {
       hostId: dualUser.id,
-      name: 'Whitefield Tech Park',
-      description: 'Business charger in tech park. Entry after 6 PM and weekends.',
+      name: 'TechHub Fast Charger',
+      description: 'High-speed 50kW DC fast charger in tech park. Perfect for quick top-ups during work. Food court nearby with multiple dining options.',
       address: '15 ITPL Main Road, Whitefield, Bengaluru 560066',
       city: 'Bengaluru',
       latitude: 12.9698,
       longitude: 77.7500,
       connectorType: 'CCS2',
       kwTier: 'kW50',
-      amenities: ['parking', 'security', 'food_court'],
+      amenities: ['parking', 'security', 'cafe', 'wifi'],
       photos: stockPhotos.techParkCharger,
-      suggestedPrice: 400,
+      suggestedPrice: 15,
       packages: [
-        { name: 'Quick Boost', durationMin: 30, price: 220 },
-        { name: 'Standard', durationMin: 60, price: 400 },
-        { name: 'Full Charge', durationMin: 90, price: 560 },
+        { name: 'Quick Boost', durationMin: 30, price: 8 },
+        { name: 'Standard', durationMin: 60, price: 15 },
+        { name: 'Full Charge', durationMin: 90, price: 20 },
       ],
       availability: [
-        { dayOfWeek: 0, startTime: '00:00', endTime: '23:59' }, // Sunday all day
+        { dayOfWeek: 0, startTime: '00:00', endTime: '23:59' },
         { dayOfWeek: 1, startTime: '18:00', endTime: '23:00' },
         { dayOfWeek: 2, startTime: '18:00', endTime: '23:00' },
         { dayOfWeek: 3, startTime: '18:00', endTime: '23:00' },
         { dayOfWeek: 4, startTime: '18:00', endTime: '23:00' },
         { dayOfWeek: 5, startTime: '18:00', endTime: '23:00' },
-        { dayOfWeek: 6, startTime: '00:00', endTime: '23:59' }, // Saturday all day
+        { dayOfWeek: 6, startTime: '00:00', endTime: '23:59' },
       ],
     },
     {
       hostId: host.id,
-      name: 'JP Nagar Home Charger',
-      description: 'Quiet residential area. Perfect for overnight charging.',
+      name: 'Peaceful Gardens Charger',
+      description: 'Quiet residential area charger. Perfect for overnight charging with secure parking. Wake up to a fully charged EV!',
       address: '234 15th Cross, JP Nagar 6th Phase, Bengaluru 560078',
       city: 'Bengaluru',
       latitude: 12.8891,
       longitude: 77.5852,
       connectorType: 'Type2',
       kwTier: 'kW3_3',
-      amenities: ['parking', 'quiet'],
+      amenities: ['parking', 'security'],
       photos: stockPhotos.residentialCharger,
-      suggestedPrice: 80,
+      suggestedPrice: 3,
       packages: [
-        { name: 'Short', durationMin: 60, price: 80 },
-        { name: 'Half Day', durationMin: 240, price: 280 },
-        { name: 'Overnight', durationMin: 480, price: 500 },
+        { name: 'Short', durationMin: 60, price: 3 },
+        { name: 'Half Day', durationMin: 240, price: 10 },
+        { name: 'Overnight', durationMin: 480, price: 18 },
       ],
       availability: [
         { dayOfWeek: 0, startTime: '18:00', endTime: '23:59' },
@@ -273,6 +289,62 @@ async function main() {
         { dayOfWeek: 4, startTime: '18:00', endTime: '23:59' },
         { dayOfWeek: 5, startTime: '18:00', endTime: '23:59' },
         { dayOfWeek: 6, startTime: '18:00', endTime: '23:59' },
+      ],
+    },
+    {
+      hostId: dualUser.id,
+      name: 'Phoenix Mall Charger',
+      description: 'Convenient charger at Phoenix Marketcity mall. Charge while you shop! Validated parking available for mall visitors.',
+      address: '142 Whitefield Main Road, Bengaluru 560048',
+      city: 'Bengaluru',
+      latitude: 12.9970,
+      longitude: 77.6961,
+      connectorType: 'CCS2',
+      kwTier: 'kW22',
+      amenities: ['parking', 'security', 'cafe', 'restroom', 'wifi'],
+      photos: stockPhotos.mallCharger,
+      suggestedPrice: 8,
+      packages: [
+        { name: 'Quick Shop', durationMin: 30, price: 5 },
+        { name: 'Standard', durationMin: 60, price: 8 },
+        { name: 'Movie Time', durationMin: 180, price: 20 },
+      ],
+      availability: [
+        { dayOfWeek: 0, startTime: '10:00', endTime: '22:00' },
+        { dayOfWeek: 1, startTime: '10:00', endTime: '22:00' },
+        { dayOfWeek: 2, startTime: '10:00', endTime: '22:00' },
+        { dayOfWeek: 3, startTime: '10:00', endTime: '22:00' },
+        { dayOfWeek: 4, startTime: '10:00', endTime: '22:00' },
+        { dayOfWeek: 5, startTime: '10:00', endTime: '23:00' },
+        { dayOfWeek: 6, startTime: '10:00', endTime: '23:00' },
+      ],
+    },
+    {
+      hostId: host.id,
+      name: 'Grand Hotel Charger',
+      description: 'Premium charging at The Grand Hotel. Valet service available. Enjoy fine dining or spa services while your vehicle charges.',
+      address: '89 MG Road, Bengaluru 560001',
+      city: 'Bengaluru',
+      latitude: 12.9758,
+      longitude: 77.6097,
+      connectorType: 'Type2',
+      kwTier: 'kW11',
+      amenities: ['parking', 'security', 'cafe', 'wifi', 'restroom'],
+      photos: stockPhotos.hotelCharger,
+      suggestedPrice: 12,
+      packages: [
+        { name: 'Quick Stay', durationMin: 60, price: 12 },
+        { name: 'Dinner & Charge', durationMin: 120, price: 20 },
+        { name: 'Overnight', durationMin: 480, price: 35 },
+      ],
+      availability: [
+        { dayOfWeek: 0, startTime: '00:00', endTime: '23:59' },
+        { dayOfWeek: 1, startTime: '00:00', endTime: '23:59' },
+        { dayOfWeek: 2, startTime: '00:00', endTime: '23:59' },
+        { dayOfWeek: 3, startTime: '00:00', endTime: '23:59' },
+        { dayOfWeek: 4, startTime: '00:00', endTime: '23:59' },
+        { dayOfWeek: 5, startTime: '00:00', endTime: '23:59' },
+        { dayOfWeek: 6, startTime: '00:00', endTime: '23:59' },
       ],
     },
   ];
@@ -355,9 +427,9 @@ async function main() {
         scheduledStart: addDays(addHours(now, -120), 0), // 5 days ago
         scheduledEnd: addHours(addDays(now, -5), 1),
         status: 'completed',
-        baseAmount: (allChargers[0].packages[1]?.price || 140) * 0.93,
-        totalAmount: allChargers[0].packages[1]?.price || 140,
-        platformFee: (allChargers[0].packages[1]?.price || 140) * 0.07,
+        baseAmount: (allChargers[0].packages[1]?.price || 5) * 0.93,
+        totalAmount: allChargers[0].packages[1]?.price || 5,
+        platformFee: (allChargers[0].packages[1]?.price || 5) * 0.07,
       },
       // Completed booking - 12 days ago
       {
@@ -367,9 +439,9 @@ async function main() {
         scheduledStart: addDays(now, -12),
         scheduledEnd: addHours(addDays(now, -12), 0.5),
         status: 'completed',
-        baseAmount: (allChargers[1]?.packages[0]?.price || 150) * 0.93,
-        totalAmount: allChargers[1]?.packages[0]?.price || 150,
-        platformFee: (allChargers[1]?.packages[0]?.price || 150) * 0.07,
+        baseAmount: (allChargers[1]?.packages[0]?.price || 6) * 0.93,
+        totalAmount: allChargers[1]?.packages[0]?.price || 6,
+        platformFee: (allChargers[1]?.packages[0]?.price || 6) * 0.07,
       },
       // Completed booking - 20 days ago
       {
@@ -379,9 +451,9 @@ async function main() {
         scheduledStart: addDays(now, -20),
         scheduledEnd: addHours(addDays(now, -20), 2),
         status: 'completed',
-        baseAmount: (allChargers[2]?.packages[2]?.price || 340) * 0.93,
-        totalAmount: allChargers[2]?.packages[2]?.price || 340,
-        platformFee: (allChargers[2]?.packages[2]?.price || 340) * 0.07,
+        baseAmount: (allChargers[2]?.packages[2]?.price || 12) * 0.93,
+        totalAmount: allChargers[2]?.packages[2]?.price || 12,
+        platformFee: (allChargers[2]?.packages[2]?.price || 12) * 0.07,
       },
       // Authorized booking - tomorrow (ready to use)
       {
@@ -391,9 +463,9 @@ async function main() {
         scheduledStart: addHours(addDays(now, 1), 10), // Tomorrow at 10am
         scheduledEnd: addHours(addDays(now, 1), 11),
         status: 'authorized',
-        baseAmount: (allChargers[0].packages[1]?.price || 140) * 0.93,
-        totalAmount: allChargers[0].packages[1]?.price || 140,
-        platformFee: (allChargers[0].packages[1]?.price || 140) * 0.07,
+        baseAmount: (allChargers[0].packages[1]?.price || 5) * 0.93,
+        totalAmount: allChargers[0].packages[1]?.price || 5,
+        platformFee: (allChargers[0].packages[1]?.price || 5) * 0.07,
       },
       // Authorized booking - in 3 days
       {
@@ -403,9 +475,9 @@ async function main() {
         scheduledStart: addHours(addDays(now, 3), 14), // 3 days from now at 2pm
         scheduledEnd: addHours(addDays(now, 3), 15),
         status: 'authorized',
-        baseAmount: (allChargers[3]?.packages[1]?.price || 400) * 0.93,
-        totalAmount: allChargers[3]?.packages[1]?.price || 400,
-        platformFee: (allChargers[3]?.packages[1]?.price || 400) * 0.07,
+        baseAmount: (allChargers[3]?.packages[1]?.price || 15) * 0.93,
+        totalAmount: allChargers[3]?.packages[1]?.price || 15,
+        platformFee: (allChargers[3]?.packages[1]?.price || 15) * 0.07,
       },
       // Cancelled booking - was for yesterday
       {
@@ -415,8 +487,8 @@ async function main() {
         scheduledStart: addDays(now, -1),
         scheduledEnd: addHours(addDays(now, -1), 1),
         status: 'cancelled',
-        baseAmount: (allChargers[1]?.packages[1]?.price || 280) * 0.93,
-        totalAmount: allChargers[1]?.packages[1]?.price || 280,
+        baseAmount: (allChargers[1]?.packages[1]?.price || 10) * 0.93,
+        totalAmount: allChargers[1]?.packages[1]?.price || 10,
         platformFee: 0,
       },
       // Additional completed bookings for revenue data - last month
@@ -427,9 +499,9 @@ async function main() {
         scheduledStart: addDays(now, -35),
         scheduledEnd: addHours(addDays(now, -35), 2),
         status: 'completed',
-        baseAmount: 500 * 0.93,
-        totalAmount: 500,
-        platformFee: 500 * 0.07,
+        baseAmount: 18 * 0.93,
+        totalAmount: 18,
+        platformFee: 18 * 0.07,
       },
       {
         driverId: driver.id,
@@ -438,9 +510,9 @@ async function main() {
         scheduledStart: addDays(now, -40),
         scheduledEnd: addHours(addDays(now, -40), 1),
         status: 'completed',
-        baseAmount: 200 * 0.93,
-        totalAmount: 200,
-        platformFee: 200 * 0.07,
+        baseAmount: 8 * 0.93,
+        totalAmount: 8,
+        platformFee: 8 * 0.07,
       },
       {
         driverId: driver.id,
@@ -449,9 +521,9 @@ async function main() {
         scheduledStart: addDays(now, -45),
         scheduledEnd: addHours(addDays(now, -45), 1),
         status: 'completed',
-        baseAmount: 350 * 0.93,
-        totalAmount: 350,
-        platformFee: 350 * 0.07,
+        baseAmount: 12 * 0.93,
+        totalAmount: 12,
+        platformFee: 12 * 0.07,
       },
     ];
 
@@ -495,11 +567,11 @@ async function main() {
           if (needsHold) {
             const total = Number(bookingData.totalAmount);
             const held = await prisma.user.updateMany({
-              where: { id: driver.id, walletBalance: { gte: total + (parseFloat(process.env.WALLET_DEPOSIT || '250')) } },
+              where: { id: driver.id, walletBalance: { gte: total + (parseFloat(process.env.WALLET_DEPOSIT || '25')) } },
               data: { walletBalance: { decrement: total }, walletHeld: { increment: total } },
             });
             if (held.count === 0) {
-              console.warn(`⚠️  Skipped an upcoming booking of ${total}: the demo driver's wallet cannot hold it`);
+              console.warn(`⚠️  Skipped an upcoming booking of $${total}: the demo driver's wallet cannot hold it`);
               continue;
             }
           }
@@ -532,7 +604,7 @@ async function main() {
                 platformFeeAmount: bookingData.platformFee,
                 hostPayoutAmount: bookingData.baseAmount,
                 capturedAmount: bookingData.totalAmount,
-                currency: 'INR',
+                currency: 'USD',
                 status: 'captured',
                 paypalOrderId: `MOCK_ORDER_${booking.id.substring(0, 8)}`,
                 paypalAuthId: `MOCK_AUTH_${booking.id.substring(0, 8)}`,
@@ -548,7 +620,7 @@ async function main() {
                 authorizedAmount: bookingData.totalAmount,
                 platformFeeAmount: bookingData.platformFee,
                 hostPayoutAmount: bookingData.baseAmount,
-                currency: 'INR',
+                currency: 'USD',
                 status: 'authorized',
                 paypalOrderId: `MOCK_ORDER_${booking.id.substring(0, 8)}`,
                 paypalAuthId: `MOCK_AUTH_${booking.id.substring(0, 8)}`,

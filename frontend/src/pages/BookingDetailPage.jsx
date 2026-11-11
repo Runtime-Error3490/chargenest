@@ -13,6 +13,28 @@ import Modal from '../components/ui/Modal';
 import Input from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import 'leaflet/dist/leaflet.css';
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  MapPin,
+  Zap,
+  User,
+  Navigation,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  Timer,
+  DollarSign,
+  CreditCard,
+  MessageCircle,
+  Flag,
+  Star,
+  Battery,
+  Info,
+  Play,
+  Square
+} from 'lucide-react';
 
 // Fix marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -32,39 +54,36 @@ const chargerIcon = new L.Icon({
 });
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pending Payment', variant: 'warning', color: 'yellow' },
-  authorized: { label: 'Confirmed', variant: 'success', color: 'green' },
-  confirmed: { label: 'Confirmed', variant: 'success', color: 'green' },
-  in_progress: { label: 'In Progress', variant: 'primary', color: 'blue' },
-  active: { label: 'In Progress', variant: 'primary', color: 'blue' },
-  completed: { label: 'Completed', variant: 'default', color: 'gray' },
-  cancelled: { label: 'Cancelled', variant: 'error', color: 'red' },
-  no_show: { label: 'No Show', variant: 'error', color: 'red' },
-  disputed: { label: 'Disputed', variant: 'warning', color: 'orange' },
+  pending: { label: 'Pending Payment', variant: 'warning', icon: Timer, color: 'yellow' },
+  authorized: { label: 'Confirmed', variant: 'success', icon: CheckCircle, color: 'green' },
+  confirmed: { label: 'Confirmed', variant: 'success', icon: CheckCircle, color: 'green' },
+  in_progress: { label: 'In Progress', variant: 'primary', icon: Zap, color: 'blue' },
+  active: { label: 'In Progress', variant: 'primary', icon: Zap, color: 'blue' },
+  completed: { label: 'Completed', variant: 'default', icon: CheckCircle, color: 'gray' },
+  cancelled: { label: 'Cancelled', variant: 'error', icon: XCircle, color: 'red' },
+  no_show: { label: 'No Show', variant: 'error', icon: AlertCircle, color: 'red' },
+  disputed: { label: 'Disputed', variant: 'warning', icon: AlertCircle, color: 'orange' },
 };
 
 // One plain line about where the money is, from the booking's payment and status
 function describePayment(booking) {
-    const p = booking.payment;
+  const p = booking.payment;
   if (!p?.status) return null;
   const amount = (n) => `$${Number(n).toFixed(2)}`;
-  const green = 'bg-green-50 text-green-800';
-  const amber = 'bg-amber-50 text-amber-800';
-  const gray = 'bg-gray-100 text-gray-700';
   switch (p.status) {
     case 'authorized':
-      return { label: `Payment held: ${amount(p.authorizedAmount ?? booking.totalAmount)}`, detail: 'Taken from your wallet and kept safe. It is paid to the host when the session is done.', className: amber };
+      return { label: `Payment held: ${amount(p.authorizedAmount ?? booking.totalAmount)}`, detail: 'Taken from your wallet and kept safe. It is paid to the host when the session is done.', type: 'warning' };
     case 'captured':
-      return { label: `Paid: ${amount(p.capturedAmount ?? booking.totalAmount)}`, detail: 'The session is complete and the host has been paid.', className: green };
+      return { label: `Paid: ${amount(p.capturedAmount ?? booking.totalAmount)}`, detail: 'The session is complete and the host has been paid.', type: 'success' };
     case 'partially_refunded':
-      return { label: `Paid ${amount(p.capturedAmount)}, rest refunded`, detail: 'The unused part went back to your wallet.', className: green };
+      return { label: `Paid ${amount(p.capturedAmount)}, rest refunded`, detail: 'The unused part went back to your wallet.', type: 'success' };
     case 'refunded':
     case 'voided':
-      return { label: 'Refunded', detail: 'The held amount went back to your wallet.', className: gray };
+      return { label: 'Refunded', detail: 'The held amount went back to your wallet.', type: 'default' };
     case 'failed':
-      return { label: 'Payment failed', detail: null, className: 'bg-red-50 text-red-800' };
+      return { label: 'Payment failed', detail: null, type: 'error' };
     default:
-      return { label: 'Waiting for payment', detail: null, className: amber };
+      return { label: 'Waiting for payment', detail: null, type: 'warning' };
   }
 }
 
@@ -127,10 +146,26 @@ export default function BookingDetailPage() {
     fetchBooking();
   }, [id, isAuthenticated, navigate]);
 
-    const formatDateTime = (dateString) => {
+  const formatDateTime = (dateString) => {
     return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'full',
       timeStyle: 'short',
+    });
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const formatTime = (dateString) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
@@ -261,7 +296,6 @@ export default function BookingDetailPage() {
       setShowReviewModal(false);
       setReviewComment('');
     } catch (err) {
-      // Keep the error in the modal; the page-level error replaces the whole page
       setReviewError(err.message);
     } finally {
       setActionLoading(false);
@@ -270,7 +304,7 @@ export default function BookingDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Loading size="lg" />
       </div>
     );
@@ -278,11 +312,13 @@ export default function BookingDetailPage() {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <div className="text-6xl mb-4">😕</div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Booking not found</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <AlertCircle className="w-10 h-10 text-gray-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Booking not found</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
           <Button onClick={() => navigate('/bookings')}>View All Bookings</Button>
         </div>
       </div>
@@ -290,6 +326,7 @@ export default function BookingDetailPage() {
   }
 
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending;
+  const StatusIcon = statusConfig.icon;
   const timeUntilStart = getTimeUntilStart();
   const isUpcoming = booking.status === 'confirmed' && timeUntilStart;
   const paymentLine = describePayment(booking);
@@ -297,118 +334,155 @@ export default function BookingDetailPage() {
   const canStartSession = booking.status === 'confirmed' && !timeUntilStart;
   const canEndSession = booking.status === 'active';
   const canDispute = ['completed', 'active'].includes(booking.status);
-  // Backend decides: completed booking, right role for this side, not yet reviewed
   const canReview = !!booking.canReview;
   const reviewsDriver = booking.reviewTarget === 'driver';
   const reviewLabel = reviewsDriver ? 'Rate the Driver' : 'Rate this Charger';
   const hasAnyReview = booking.reviews?.charger || booking.reviews?.driver;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Back Button */}
         <button
           onClick={() => navigate('/bookings')}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors"
         >
-          <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ArrowLeft className="w-5 h-5 mr-2" />
           Back to Bookings
         </button>
 
         {/* Payment Success Banner */}
         {paymentSuccess && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3">
-            <span className="text-2xl">🎉</span>
+          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
             <div>
-              <h3 className="font-semibold text-green-800">Payment Successful!</h3>
-              <p className="text-sm text-green-700">Your booking has been confirmed.</p>
+              <h3 className="font-semibold text-green-800 dark:text-green-300">Payment Successful!</h3>
+              <p className="text-sm text-green-700 dark:text-green-400">Your booking has been confirmed.</p>
             </div>
           </div>
         )}
 
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Booking Details</h1>
-            <p className="text-gray-600 mt-1">ID: {booking.id.slice(0, 8)}</p>
+        {/* Header Card */}
+        <Card className="mb-6 overflow-hidden dark:bg-gray-800">
+          <div className={`h-2 ${
+            booking.status === 'pending' ? 'bg-yellow-500' :
+            ['authorized', 'confirmed'].includes(booking.status) ? 'bg-green-500' :
+            ['active', 'in_progress'].includes(booking.status) ? 'bg-blue-500' :
+            booking.status === 'completed' ? 'bg-gray-400' :
+            'bg-red-500'
+          }`}></div>
+          <div className="p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Badge variant={statusConfig.variant} className="flex items-center gap-1">
+                    <StatusIcon className="w-3 h-3" />
+                    {statusConfig.label}
+                  </Badge>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+                    #{booking.id.slice(0, 8).toUpperCase()}
+                  </span>
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Booking Details</h1>
+              </div>
+              {isUpcoming && (
+                <div className="text-right">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Starts in</p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{timeUntilStart}</p>
+                </div>
+              )}
+            </div>
           </div>
-          <Badge variant={statusConfig.variant} size="lg">
-            {statusConfig.label}
-          </Badge>
-        </div>
+        </Card>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-6">
           {/* Main Info */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6">
             {/* Charger Info */}
             {booking.charger && (
-              <Card className="p-8">
-                <div className="flex gap-4">
-                  <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                    {booking.charger.photos?.[0] ? (
-                      <img
-                        src={booking.charger.photos[0]}
-                        alt={booking.charger.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <img src="/charger-placeholder.svg" alt="" className="w-full h-full object-cover" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 text-lg">{booking.charger.name}</h3>
-                    <p className="text-gray-600">{booking.charger.address}</p>
-                    <div className="flex items-center gap-4 mt-2">
-                      <Badge>{booking.charger.connectorType}</Badge>
-                      <span className="text-sm text-gray-600">{booking.charger.kwTier?.replace('kW', '')} kW</span>
+              <Card className="overflow-hidden dark:bg-gray-800">
+                <div className="p-6">
+                  <div className="flex gap-5">
+                    <div className="w-28 h-28 bg-gray-200 dark:bg-gray-700 rounded-xl overflow-hidden flex-shrink-0">
+                      {booking.charger.photos?.[0] ? (
+                        <img
+                          src={booking.charger.photos[0]}
+                          alt={booking.charger.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Battery className="w-10 h-10 text-gray-400" />
+                        </div>
+                      )}
                     </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 dark:text-white text-lg mb-1">{booking.charger.name}</h3>
+                      <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400 text-sm mb-3">
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">{booking.charger.address}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge>{booking.charger.connectorType}</Badge>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                          <Zap className="w-4 h-4" />
+                          {booking.charger.kwTier?.replace('kW', '')} kW
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/chargers/${booking.charger.id}`)}
+                    >
+                      View Charger
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="self-start whitespace-nowrap !px-3 !py-1 text-xs"
-                    onClick={() => navigate(`/chargers/${booking.charger.id}`)}
-                  >
-                    View Charger
-                  </Button>
                 </div>
               </Card>
             )}
 
             {/* Time Slot */}
-            <Card className="p-8">
-              <h3 className="font-semibold text-gray-900 mb-4">Booking Time</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Start</p>
-                  <p className="font-medium">{formatDateTime(booking.startTime)}</p>
+            <Card className="dark:bg-gray-800">
+              <div className="p-6">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-green-600" />
+                  Booking Schedule
+                </h3>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Start Time</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{formatDate(booking.startTime)}</p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatTime(booking.startTime)}</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">End Time</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{formatDate(booking.endTime)}</p>
+                    <p className="text-lg font-bold text-gray-600 dark:text-gray-300">{formatTime(booking.endTime)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">End</p>
-                  <p className="font-medium">{formatDateTime(booking.endTime)}</p>
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <Clock className="w-4 h-4" />
+                    <span>Duration</span>
+                  </div>
+                  <span className="font-semibold text-gray-900 dark:text-white">{calculateDuration()} hour{calculateDuration() !== 1 ? 's' : ''}</span>
                 </div>
               </div>
-              <div className="mt-4 pt-4 border-t flex items-center justify-between">
-                <span className="text-gray-600">Duration</span>
-                <span className="font-medium">{calculateDuration()} hours</span>
-              </div>
-              
-              {isUpcoming && (
-                <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                  <p className="text-green-800 font-medium">
-                    Starts in {timeUntilStart}
-                  </p>
-                </div>
-              )}
             </Card>
 
             {/* Location Map */}
             {booking.charger && (
-              <Card className="p-8">
-                <h3 className="font-semibold text-gray-900 mb-4">Location</h3>
-                <div className="h-48 rounded-lg overflow-hidden">
+              <Card className="overflow-hidden dark:bg-gray-800">
+                <div className="p-6 pb-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-green-600" />
+                    Location
+                  </h3>
+                </div>
+                <div className="h-48">
                   <MapContainer
                     center={[booking.charger.latitude, booking.charger.longitude]}
                     zoom={15}
@@ -427,17 +501,14 @@ export default function BookingDetailPage() {
                     </Marker>
                   </MapContainer>
                 </div>
-                <div className="mt-4">
+                <div className="p-4 border-t border-gray-200 dark:border-gray-700">
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${booking.charger.latitude},${booking.charger.longitude}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center text-green-600 hover:text-green-700"
+                    className="inline-flex items-center gap-2 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium"
                   >
-                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                    <Navigation className="w-4 h-4" />
                     Get Directions
                   </a>
                 </div>
@@ -446,205 +517,268 @@ export default function BookingDetailPage() {
 
             {/* Instructions */}
             {booking.charger?.instructions && (
-              <Card className="p-8">
-                <h3 className="font-semibold text-gray-900 mb-4">Charging Instructions</h3>
-                <p className="text-gray-600 whitespace-pre-line">{booking.charger.instructions}</p>
+              <Card className="dark:bg-gray-800">
+                <div className="p-6">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <Info className="w-5 h-5 text-green-600" />
+                    Charging Instructions
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">{booking.charger.instructions}</p>
+                </div>
               </Card>
             )}
           </div>
 
           {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-8">
+          <div className="lg:col-span-1 space-y-6">
             {/* Payment Summary */}
-            <Card className="p-8">
-              <h3 className="font-semibold text-gray-900 mb-4">Payment Summary</h3>
-              <div className="space-y-3">
-                                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Charging fee</span>
-                  <span>${(booking.totalAmount * 0.93).toFixed(2)}</span>
+            <Card className="dark:bg-gray-800">
+              <div className="p-6">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-green-600" />
+                  Payment Summary
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Charging fee</span>
+                    <span className="text-gray-900 dark:text-white">${(booking.totalAmount * 0.93).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Platform fee (7%)</span>
+                    <span className="text-gray-900 dark:text-white">${(booking.totalAmount * 0.07).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-lg pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <span className="text-gray-900 dark:text-white">Total</span>
+                    <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                      <DollarSign className="w-5 h-5" />
+                      {booking.totalAmount.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Platform fee (7%)</span>
-                  <span>${(booking.totalAmount * 0.07).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between font-semibold text-lg pt-3 border-t">
-                  <span>Total</span>
-                  <span>${booking.totalAmount.toFixed(2)}</span>
-                </div>
-              </div>
               
-              {paymentLine && (
-                <div className={`mt-4 rounded-lg px-3 py-2 text-sm ${paymentLine.className}`} role="status">
-                  <span className="font-medium">{paymentLine.label}</span>
-                  {paymentLine.detail && <span className="block text-xs opacity-80">{paymentLine.detail}</span>}
-                </div>
-              )}
+                {paymentLine && (
+                  <div className={`mt-4 rounded-xl px-4 py-3 ${
+                    paymentLine.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' :
+                    paymentLine.type === 'warning' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300' :
+                    paymentLine.type === 'error' ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300' :
+                    'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  }`} role="status">
+                    <span className="font-medium">{paymentLine.label}</span>
+                    {paymentLine.detail && <span className="block text-xs opacity-80 mt-1">{paymentLine.detail}</span>}
+                  </div>
+                )}
 
-              {booking.status === 'pending' && (
-                <Button
-                  className="w-full mt-4"
-                  onClick={() => navigate(`/bookings/${id}/confirm`)}
-                >
-                  Complete Payment
-                </Button>
-              )}
+                {booking.status === 'pending' && (
+                  <Button
+                    className="w-full mt-4"
+                    onClick={() => navigate(`/bookings/${id}/confirm`)}
+                  >
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Complete Payment
+                  </Button>
+                )}
+              </div>
             </Card>
 
-            {/* Demo only: plays the charger hardware. Shown when the backend has DEVICE_MOCK on (and DEMO_MODE in production) */}
+            {/* Demo Device Simulator */}
             {booking.deviceMock && booking.status === 'authorized' && (
-              <Card className="p-8 border-dashed">
-                <h3 className="font-semibold text-gray-900 mb-1">Simulate charger device</h3>
-                <p className="text-sm text-gray-500 mb-4">
-                  Demo tool. Plays what the charger hardware will send, then pays or refunds the booking.
-                </p>
-                <select
-                  value={scenario}
-                  onChange={(e) => setScenario(e.target.value)}
-                  className="w-full mb-3 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                  aria-label="Device scenario"
-                >
-                  {DEVICE_SCENARIOS.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label}</option>
-                  ))}
-                </select>
-                <Button className="w-full" variant="outline" onClick={handleSimulate} disabled={actionLoading}>
-                  {actionLoading ? <Loading size="sm" /> : 'Run scenario'}
-                </Button>
+              <Card className="border-dashed dark:bg-gray-800">
+                <div className="p-6">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-1">Simulate charger device</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Demo tool. Plays what the charger hardware will send, then pays or refunds the booking.
+                  </p>
+                  <select
+                    value={scenario}
+                    onChange={(e) => setScenario(e.target.value)}
+                    className="w-full mb-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-2 text-sm"
+                    aria-label="Device scenario"
+                  >
+                    {DEVICE_SCENARIOS.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label}</option>
+                    ))}
+                  </select>
+                  <Button className="w-full" variant="outline" onClick={handleSimulate} disabled={actionLoading}>
+                    {actionLoading ? <Loading size="sm" /> : 'Run scenario'}
+                  </Button>
+                </div>
               </Card>
             )}
 
             {booking.deviceMock && simResult && (
-              <Card className="p-8">
-                <h3 className="font-semibold text-gray-900 mb-2">Device result: {simResult.scenario}</h3>
-                <ul className="text-sm text-gray-700 space-y-1">
-                  {simResult.steps.map((step, i) => (
-                    <li key={i}>
-                      {step.ok ? '✓' : '✗'} {step.type}
-                      {step.outcome ? ` → ${step.outcome}${step.reason ? ` (${step.reason})` : ''}` : ''}
-                      {!step.ok ? ` → ${step.code}: ${step.message}` : ''}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-sm text-gray-500 mt-3">
-                  Booking: {simResult.booking?.status}. Session: {simResult.session?.outcome || simResult.session?.status}.
-                  Check /wallet for the money moves.
-                </p>
+              <Card className="dark:bg-gray-800">
+                <div className="p-6">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Device result: {simResult.scenario}</h3>
+                  <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                    {simResult.steps.map((step, i) => (
+                      <li key={i}>
+                        {step.ok ? '✓' : '✗'} {step.type}
+                        {step.outcome ? ` → ${step.outcome}${step.reason ? ` (${step.reason})` : ''}` : ''}
+                        {!step.ok ? ` → ${step.code}: ${step.message}` : ''}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
+                    Booking: {simResult.booking?.status}. Session: {simResult.session?.outcome || simResult.session?.status}.
+                    Check /wallet for the money moves.
+                  </p>
+                </div>
               </Card>
             )}
 
             {/* Actions */}
-            <Card className="p-8">
-              <h3 className="font-semibold text-gray-900 mb-4">Actions</h3>
-              <div className="space-y-3">
-                {canStartSession && (
-                  <Button
-                    className="w-full"
-                    onClick={handleStartSession}
-                    disabled={actionLoading}
-                  >
-                    {actionLoading ? <Loading size="sm" /> : 'Start Charging'}
-                  </Button>
-                )}
-                
-                {canEndSession && (
-                  <Button
-                    className="w-full"
-                    onClick={handleEndSession}
-                    disabled={actionLoading}
-                  >
-                    {actionLoading ? <Loading size="sm" /> : 'End Session'}
-                  </Button>
-                )}
+            <Card className="dark:bg-gray-800">
+              <div className="p-6">
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4">Actions</h3>
+                <div className="space-y-3">
+                  {canStartSession && (
+                    <Button
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                      onClick={handleStartSession}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? <Loading size="sm" /> : (
+                        <>
+                          <Play className="w-4 h-4 mr-2" />
+                          Start Charging
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  
+                  {canEndSession && (
+                    <Button
+                      className="w-full"
+                      onClick={handleEndSession}
+                      disabled={actionLoading}
+                    >
+                      {actionLoading ? <Loading size="sm" /> : (
+                        <>
+                          <Square className="w-4 h-4 mr-2" />
+                          End Session
+                        </>
+                      )}
+                    </Button>
+                  )}
 
-                {canReview && (
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => { setReviewError(null); setShowReviewModal(true); }}
-                  >
-                    {reviewLabel}
-                  </Button>
-                )}
-                
-                {canCancel && (
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => setShowCancelModal(true)}
-                  >
-                    Cancel Booking
-                  </Button>
-                )}
-                
-                {canDispute && (
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => setShowDisputeModal(true)}
-                  >
-                    Report Issue
-                  </Button>
-                )}
+                  {canReview && (
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => { setReviewError(null); setShowReviewModal(true); }}
+                    >
+                      <Star className="w-4 h-4 mr-2" />
+                      {reviewLabel}
+                    </Button>
+                  )}
+                  
+                  {canCancel && (
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => setShowCancelModal(true)}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Cancel Booking
+                    </Button>
+                  )}
+                  
+                  {canDispute && (
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => setShowDisputeModal(true)}
+                    >
+                      <Flag className="w-4 h-4 mr-2" />
+                      Report Issue
+                    </Button>
+                  )}
 
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => navigate('/chat')}
-                >
-                  Contact Support
-                </Button>
+                  <Button
+                    className="w-full"
+                    variant="outline"
+                    onClick={() => navigate('/chat')}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Contact Support
+                  </Button>
+                </div>
               </div>
             </Card>
 
-            {/* Reviews left on this booking (both directions) */}
+            {/* Reviews */}
             {hasAnyReview && (
-              <Card className="p-8">
-                <h3 className="font-semibold text-gray-900 mb-4">Reviews</h3>
-                <div className="space-y-4">
-                  {[
-                    ['Driver → Charger', booking.reviews.charger],
-                    ['Host → Driver', booking.reviews.driver],
-                  ].filter(([, r]) => r).map(([label, r]) => (
-                    <div key={label}>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-500">{label}</span>
-                        <span className="text-yellow-500" aria-label={`${r.rating} out of 5 stars`}>
-                          {'★'.repeat(r.rating)}<span className="text-gray-300">{'★'.repeat(5 - r.rating)}</span>
-                        </span>
+              <Card className="dark:bg-gray-800">
+                <div className="p-6">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <Star className="w-5 h-5 text-yellow-500" />
+                    Reviews
+                  </h3>
+                  <div className="space-y-4">
+                    {[
+                      ['Driver → Charger', booking.reviews.charger],
+                      ['Host → Driver', booking.reviews.driver],
+                    ].filter(([, r]) => r).map(([label, r]) => (
+                      <div key={label} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
+                          <span className="text-yellow-500" aria-label={`${r.rating} out of 5 stars`}>
+                            {'★'.repeat(r.rating)}<span className="text-gray-300 dark:text-gray-600">{'★'.repeat(5 - r.rating)}</span>
+                          </span>
+                        </div>
+                        {r.reviewText && <p className="text-sm text-gray-700 dark:text-gray-300">{r.reviewText}</p>}
                       </div>
-                      {r.reviewText && <p className="text-sm text-gray-700 mt-1">{r.reviewText}</p>}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </Card>
             )}
 
             {/* Driver (host view) */}
             {booking.driver && (
-              <Card className="p-8">
-                <h3 className="font-semibold text-gray-900 mb-4">Driver</h3>
-                <p className="font-medium">{booking.driver.name}</p>
-                <p className="text-sm text-gray-600">
-                  {booking.driver.totalReviews > 0
-                    ? `★ ${booking.driver.avgRating.toFixed(1)} from ${booking.driver.totalReviews} host review${booking.driver.totalReviews === 1 ? '' : 's'}`
-                    : 'No host reviews yet'}
-                </p>
+              <Card className="dark:bg-gray-800">
+                <div className="p-6">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-green-600" />
+                    Driver
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-medium text-lg">
+                        {booking.driver.name?.[0] || 'D'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{booking.driver.name}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {booking.driver.totalReviews > 0
+                          ? `★ ${booking.driver.avgRating.toFixed(1)} from ${booking.driver.totalReviews} review${booking.driver.totalReviews === 1 ? '' : 's'}`
+                          : 'No reviews yet'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </Card>
             )}
 
             {/* Host Contact */}
             {booking.charger?.host && (
-              <Card className="p-8">
-                <h3 className="font-semibold text-gray-900 mb-4">Host</h3>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-green-700 font-medium text-lg">
-                      {booking.charger.host.name?.[0] || 'H'}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-medium">{booking.charger.host.name}</p>
-                    <p className="text-sm text-gray-600">Charger Host</p>
+              <Card className="dark:bg-gray-800">
+                <div className="p-6">
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-green-600" />
+                    Host
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-medium text-lg">
+                        {booking.charger.host.name?.[0] || 'H'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white">{booking.charger.host.name}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Charger Host</p>
+                    </div>
                   </div>
                 </div>
               </Card>
@@ -660,16 +794,17 @@ export default function BookingDetailPage() {
         title="Cancel Booking"
       >
         <div className="space-y-4">
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Are you sure you want to cancel this booking?
           </p>
           
           {getCancellationFee() > 0 && (
-            <div className="p-4 bg-yellow-50 rounded-lg">
-              <p className="text-yellow-800 font-medium">
-                                Cancellation fee: ${getCancellationFee().toFixed(2)}
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
+              <p className="text-yellow-800 dark:text-yellow-300 font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Cancellation fee: ${getCancellationFee().toFixed(2)}
               </p>
-              <p className="text-sm text-yellow-700 mt-1">
+              <p className="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
                 This fee will be deducted from your refund.
               </p>
             </div>
@@ -703,7 +838,7 @@ export default function BookingDetailPage() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Issue Type
             </label>
             <Select
@@ -722,7 +857,7 @@ export default function BookingDetailPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description
             </label>
             <textarea
@@ -730,11 +865,11 @@ export default function BookingDetailPage() {
               onChange={(e) => setDisputeDescription(e.target.value)}
               rows={4}
               placeholder="Please describe the issue in detail..."
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500"
             />
           </div>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Our AI will review your case. If confidence is below 95%, a human agent will assist.
           </p>
 
@@ -765,10 +900,10 @@ export default function BookingDetailPage() {
       >
         <div className="space-y-4">
           {reviewError && (
-            <p className="p-3 bg-red-50 text-red-700 text-sm rounded-lg" role="alert">{reviewError}</p>
+            <p className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded-lg" role="alert">{reviewError}</p>
           )}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Rating
             </label>
             <div className="flex gap-2">
@@ -776,8 +911,8 @@ export default function BookingDetailPage() {
                 <button
                   key={star}
                   onClick={() => setReviewRating(star)}
-                  className={`text-3xl ${
-                    star <= reviewRating ? 'text-yellow-400' : 'text-gray-300'
+                  className={`text-3xl transition-colors ${
+                    star <= reviewRating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'
                   }`}
                 >
                   ★
@@ -787,7 +922,7 @@ export default function BookingDetailPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Comment (optional)
             </label>
             <textarea
@@ -795,7 +930,7 @@ export default function BookingDetailPage() {
               onChange={(e) => setReviewComment(e.target.value)}
               rows={4}
               placeholder="Share your experience..."
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500"
             />
           </div>
 
