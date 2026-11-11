@@ -46,7 +46,12 @@ if (process.env.TRUST_PROXY) {
 
 // Security headers. The SPA loads PayPal, map tiles and fonts from other origins,
 // so helmet's default CSP is turned off only when this server also serves the frontend.
-app.use(helmet(serveFrontend ? { contentSecurityPolicy: false } : undefined));
+// Referrer-Policy: helmet's default is "no-referrer", but OpenStreetMap's tile servers refuse
+// (403) requests that carry no Referer, so the site sends its origin.
+app.use(helmet({
+  ...(serveFrontend ? { contentSecurityPolicy: false } : {}),
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
 
 // CORS: the website's own address is always allowed, so no setting is needed
 app.use((req, res, next) => cors({
