@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { agentService } from '../services/agentService';
 import { useAuthStore } from '../store/authStore';
 import Card from '../components/ui/Card';
@@ -17,6 +18,19 @@ const QUICK_ACTIONS = [
   { label: 'How does it work?', message: 'Explain how this platform works' },
 ];
 
+// Styles for the assistant's markdown. Raw HTML in a reply is not rendered.
+const markdownComponents = {
+  p: (props) => <p className="mb-2 last:mb-0" {...props} />,
+  ul: (props) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+  ol: (props) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+  strong: (props) => <strong className="font-semibold" {...props} />,
+  a: (props) => <a className="text-green-700 underline" target="_blank" rel="noopener noreferrer" {...props} />,
+  code: (props) => <code className="bg-gray-100 rounded px-1 text-sm" {...props} />,
+  h1: (props) => <h3 className="font-semibold text-lg mb-2" {...props} />,
+  h2: (props) => <h3 className="font-semibold text-lg mb-2" {...props} />,
+  h3: (props) => <h3 className="font-semibold mb-1" {...props} />,
+};
+
 export default function ChatPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
@@ -26,6 +40,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState('');
   const [agentStatus, setAgentStatus] = useState(null);
   const [pendingApprovals, setPendingApprovals] = useState([]);
 
@@ -84,18 +99,34 @@ How can I help you today?`,
     setInputValue('');
     setLoading(true);
 
+    const replyId = (Date.now() + 1).toString();
+    let streamed = false;
     try {
-      const data = await agentService.chat(content.trim());
-      
-      // Add assistant response
+      const data = await agentService.chatStream(content.trim(), undefined, {}, {
+        onText: (text) => {
+          setStatus('');
+          // Read the flag now: React runs the updater later, after the flag has changed
+          const hasReply = streamed;
+          streamed = true;
+          setMessages(prev => hasReply
+            ? prev.map(m => (m.id === replyId ? { ...m, content: m.content + text } : m))
+            : [...prev, { id: replyId, role: 'assistant', content: text, timestamp: new Date() }]);
+        },
+        onStatus: setStatus,
+      });
+
+      // Add the final assistant response (replaces any text that was streamed)
       const assistantMessage = {
-        id: (Date.now() + 1).toString(),
+        id: replyId,
         role: 'assistant',
         content: data.message,
         timestamp: new Date(),
       };
-      
-      setMessages(prev => [...prev, assistantMessage]);
+
+      const wasStreamed = streamed;
+      setMessages(prev => (wasStreamed
+        ? prev.map(m => (m.id === replyId ? assistantMessage : m))
+        : [...prev, assistantMessage]));
 
       // The agent needs the owner's confirmation before it acts
       if (data.pendingApprovals?.length) {
@@ -116,6 +147,7 @@ How can I help you today?`,
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
+      setStatus('');
       inputRef.current?.focus();
     }
   };
@@ -252,7 +284,11 @@ How can I help you today?`,
                     : 'bg-white shadow-sm border'
                 }`}
               >
-                <p className="whitespace-pre-wrap">{message.content}</p>
+                {message.role === 'assistant' && !message.isError ? (
+                  <ReactMarkdown components={markdownComponents}>{message.content}</ReactMarkdown>
+                ) : (
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                )}
                 
                 <p className={`text-xs mt-2 ${
                   message.role === 'user' ? 'text-green-200' : 'text-gray-400'
@@ -268,7 +304,7 @@ How can I help you today?`,
               <div className="bg-white shadow-sm border rounded-2xl px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Loading size="sm" />
-                  <span className="text-gray-500 text-sm">Thinking...</span>
+                  <span className="text-gray-500 text-sm">{status || 'Thinking...'}</span>
                 </div>
               </div>
             </div>

@@ -25,7 +25,7 @@
 | Backend | Node.js (Express) | Team familiarity |
 | Database | PostgreSQL | Both local and Render deployment |
 | Auth | JWT + TOTP MFA | Secure, authenticator-based (Google Authenticator/Authy) |
-| AI Provider | OpenRouter | OpenAI-compatible, model flexibility |
+| AI Provider | Pluggable (Gemini, OpenRouter, OpenAI, Ollama, mock) | All speak the OpenAI chat API; `AI_PROVIDER` + one `AI_MODEL` for any of them |
 | LLM Model | GPT-3.5-turbo or Claude Haiku | Cost-effective for MVP |
 | Payments | PayPal Sandbox | Hackathon requirement |
 | Hosting | Render | Qualifies for sponsor prize |
@@ -126,7 +126,7 @@ User logs in
 |-----------|-------|
 | Model | GPT-3.5-turbo / Claude Haiku |
 | Temperature | 0 (deterministic) |
-| Tools | `search_chargers`, `get_host_details`, `estimate_cost`, `create_booking_hold` |
+| Tools | See "AI Concierge Tools and Roles" below |
 | Mandate Enforcement | Server-side (not in prompt) |
 | Fallback | Show error, suggest manual booking |
 
@@ -283,6 +283,34 @@ An unknown device id or a bad signature never reaches a booking, so a fake stati
 
 ---
 
+## AI Concierge Tools and Roles (Nov 11, 2026)
+
+The agent acts for one user. Each tool maps to a permission switch in `agentPolicy.js`. Tools for a role the user does not have are not offered to the model, and are refused again when run. A user with both roles gets both sets.
+
+| Tool | For | Switch | Approval |
+|------|-----|--------|----------|
+| `search_chargers`, `estimate_cost` | Driver | `search_chargers`, `compare_prices` | None |
+| `get_charger_details` | Driver, host | `view_charger` | None |
+| `create_booking` | Driver | `create_booking` + `make_payment` | Below level 3, or over the spending limit |
+| `cancel_booking` | Driver | `cancel_booking` | Below level 3 |
+| `top_up_wallet` | Driver | `top_up_wallet` (new) | Below level 4 |
+| `raise_dispute` | Everyone | `create_dispute` | Below level 4 |
+| `get_wallet`, `list_my_bookings`, `list_disputes`, `list_invoices` | Everyone | `view_payment` | None |
+| `check_device_status` | Driver or host of that booking | `view_charger` | None |
+| `recommend_chargers` | Driver | `search_chargers` + `compare_prices` | None |
+| `create_damage_invoice` | Host | `create_invoice` (new) | Always, at every level. Limit `AGENT_MAX_INVOICES_PER_DAY` (default 5), checked in code. |
+
+- **Recommendations:** `rankChargers()` in `charger.service.js` scores nearby chargers on power, distance, rating and price, each scaled against the other candidates. The driver's priority (`balanced`, `fastest`, `nearest`, `cheapest`, `best_rated`) sets the weights. The code picks the top 3 and the model only explains them, so the ranking is repeatable. A charger nobody rated gets a neutral 3. Phase 2 travel plans can reuse it by feeding it chargers found along a route.
+- **Invoice:** the tool uses the same code as the host's invoice button, so its checks (booking finished, amount cap of 5x the booking) still apply.
+
+- **Top-up:** the tool only creates a PayPal link. The owner approves on PayPal, so the agent never pays by itself.
+- **Cancel:** it calls the same code as the cancel button, so the fee rule and wallet refund are identical.
+- **Decided:** the agent may act as host or driver by role. `raise_dispute` does not open a dispute on PayPal at raise time.
+- **Planned, not built:** respond to disputes, accept resolution, host withdraw.
+- **Not built, needs new backend code first:** `modify_booking` (no reschedule code exists) and `request_refund` (refunds only happen through disputes).
+
+---
+
 ## Open Items Resolved
 
 | Question | Resolution |
@@ -298,3 +326,5 @@ An unknown device id or a bad signature never reaches a booking, so a fake stati
 | Date | Change |
 |------|--------|
 | Nov 9, 2026 | Initial decisions document created |
+| Nov 11, 2026 | Added AI Concierge Tools and Roles |
+| Nov 11, 2026 | Added Gemini provider, streamed concierge replies (`POST /agent/chat/stream`, switchable), markdown in chat, Render Blueprint (`render.yaml`) |

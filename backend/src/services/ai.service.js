@@ -40,11 +40,58 @@ async function callLLM(messages, tools = null, options = {}) {
   throw new AIError(`LLM request failed after ${maxRetries + 1} attempts: ${lastError.message}`);
 }
 
+/**
+ * Streaming version of callLLM. Providers without stream() (the mock) use callLLM and the text is
+ * sent in one piece. Retries only happen while nothing has been sent, because text already shown
+ * to the user cannot be taken back.
+ */
+async function callLLMStreaming(messages, tools, onText) {
+  const provider = getProvider();
+  if (typeof provider.stream !== 'function') {
+    const response = await callLLM(messages, tools);
+    if (response.content) onText(response.content);
+    return response;
+  }
+
+  const maxRetries = config.ai.maxRetries;
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    let sent = false;
+    let timer;
+    try {
+      return await Promise.race([
+        provider.stream({
+          messages,
+          tools,
+          temperature: config.ai.temperature,
+          maxTokens: 2048,
+          onText: (t) => { sent = true; onText(t); },
+        }),
+        new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error('Timeout')), config.ai.timeoutMs);
+        }),
+      ]);
+    } catch (error) {
+      lastError = error;
+      console.error(`LLM stream attempt ${attempt + 1} failed (${provider.name}):`, error.message);
+      if (sent) break;
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      }
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw new AIError(`LLM stream failed: ${lastError.message}`);
+}
+
 export const aiService = {
   /**
-   * Chat with concierge agent
+   * Chat with concierge agent.
+   * If onText is given and the provider can stream, text is passed to it as it arrives.
+   * A stream that fails before any text arrived falls back to a normal call.
    */
-  async chatWithConcierge(messages, tools, executeToolCall) {
+  async chatWithConcierge(messages, tools, executeToolCall, { onText, onToolStart, onToolResult, profile } = {}) {
     const startTime = Date.now();
     const toolsUsed = [];
     let iterations = 0;
@@ -77,12 +124,21 @@ When presenting charger options:
 - Explain why you recommend a particular option`,
     };
 
+    if (profile) {
+      systemMessage.content += `
+
+About this driver (from their past bookings). Use it to tailor recommendations. Do not read it out as a list, and ignore it if they ask for something different:
+${JSON.stringify(profile)}`;
+    }
+
     const conversationMessages = [systemMessage, ...messages];
 
     while (iterations < maxIterations) {
       iterations++;
 
-      const response = await callLLM(conversationMessages, tools);
+      const response = onText
+        ? await callLLMStreaming(conversationMessages, tools, onText)
+        : await callLLM(conversationMessages, tools);
       const toolCalls = response.toolCalls.length > 0 ? response.toolCalls : null;
 
       if (!toolCalls) {
@@ -99,9 +155,11 @@ When presenting charger options:
 
       for (const toolCall of toolCalls) {
         toolsUsed.push(toolCall.name);
+        onToolStart?.(toolCall.name);
         
         try {
           const result = await executeToolCall(toolCall.name, toolCall.arguments);
+          onToolResult?.(toolCall.name, true);
           
           conversationMessages.push({
             role: 'tool',
@@ -109,6 +167,7 @@ When presenting charger options:
             content: JSON.stringify(result),
           });
         } catch (error) {
+          onToolResult?.(toolCall.name, false);
           conversationMessages.push({
             role: 'tool',
             tool_call_id: toolCall.id,
