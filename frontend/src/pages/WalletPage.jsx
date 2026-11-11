@@ -208,7 +208,7 @@ export default function WalletPage() {
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Balance</span>
               <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                <IndianRupee className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                                <DollarSign className="w-4 h-4 text-gray-600 dark:text-gray-400" />
               </div>
             </div>
             <p className="text-3xl font-bold text-gray-900 dark:text-white">{money(wallet?.balance, currency)}</p>
