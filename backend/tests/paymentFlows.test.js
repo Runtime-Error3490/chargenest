@@ -73,7 +73,7 @@ function reset(balance = 1000) {
   db.dispute = null;
   db.charger = {
     id: 'c1', name: 'Charger', status: 'active', hostId: 'h',
-    packages: [{ id: 'p1', name: 'One hour', durationMin: 60, price: 100, currency: 'INR' }],
+    packages: [{ id: 'p1', name: 'One hour', durationMin: 60, price: 100, currency: 'USD' }],
     host: { paypalEmail: null },
   };
 }
@@ -118,7 +118,7 @@ test('a hold that would dip into the deposit is refused and leaves no hold', asy
 test('invoice is created, sent through PayPal and stored as sent', async () => {
   reset();
   db.bookingRow = {
-    id: 'b1', status: 'completed', totalAmount: 100, currency: 'INR',
+    id: 'b1', status: 'completed', totalAmount: 100, currency: 'USD',
     charger: { hostId: 'h', name: 'Charger' },
     driver: { id: 'd', email: 'd@test.dev', name: 'Dee' },
   };
@@ -140,7 +140,7 @@ test('invoice is created, sent through PayPal and stored as sent', async () => {
 test('only the host of the charger can send an invoice, and only after the session', async () => {
   reset();
   db.bookingRow = {
-    id: 'b1', status: 'completed', totalAmount: 100, currency: 'INR',
+    id: 'b1', status: 'completed', totalAmount: 100, currency: 'USD',
     charger: { hostId: 'h', name: 'Charger' }, driver: { id: 'd', email: 'd@test.dev', name: 'Dee' },
   };
   await assert.rejects(() => invoiceService.createDamageInvoice('d', { bookingId: 'b1', amount: 10, description: 'x' }), /not on your charger/);

@@ -72,7 +72,7 @@ const createChargerSchema = z.object({
     name: z.string().min(1),
     durationMin: z.number().min(15).max(720), // 15 min to 12 hours
     price: z.number().min(0),
-    currency: z.string().optional().default('INR'),
+    currency: z.string().optional().default('USD'),
   })).min(1, 'At least one package is required'),
   availability: z.array(z.object({
     dayOfWeek: z.number().min(0).max(6),
@@ -96,7 +96,7 @@ const updatePackagesSchema = z.object({
     name: z.string().min(1),
     durationMin: z.number().min(15).max(720),
     price: z.number().min(0),
-    currency: z.string().optional().default('INR'),
+    currency: z.string().optional().default('USD'),
     isActive: z.boolean().optional().default(true),
   })).min(1),
 });

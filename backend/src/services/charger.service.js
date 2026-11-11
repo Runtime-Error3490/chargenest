@@ -399,7 +399,7 @@ export const chargerService = {
             name: p.name,
             durationMin: p.durationMin,
             price: p.price,
-            currency: p.currency || 'INR',
+            currency: p.currency || 'USD',
           })),
         },
         availability: availability ? {
@@ -422,7 +422,7 @@ export const chargerService = {
         id: charger.id,
         name: charger.name,
         suggestedPrice,
-        priceExplanation: `Based on ${kwTier.replace('kW', '').replace('_', '.')}kW tier and ${city} location, ₹${suggestedPrice}/hr is competitive for this area.`,
+        priceExplanation: `Based on ${kwTier.replace('kW', '').replace('_', '.')}kW tier and ${city} location, $${suggestedPrice}/hr is competitive for this area.`,
       },
     };
   },
@@ -497,7 +497,7 @@ export const chargerService = {
             name: p.name,
             durationMin: p.durationMin,
             price: p.price,
-            currency: p.currency || 'INR',
+            currency: p.currency || 'USD',
             isActive: p.isActive !== false,
           },
         })

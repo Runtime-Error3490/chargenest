@@ -13,7 +13,7 @@ function makeDb() {
     },
     booking: {
       id: 'b1', driverId: 'd', chargerId: 'c1', status: 'authorized', totalAmount: 100,
-      currency: 'INR', scheduledStart: new Date(Date.now() + 72 * 3600 * 1000),
+      currency: 'USD', scheduledStart: new Date(Date.now() + 72 * 3600 * 1000),
     },
     payment: { id: 'p1', bookingId: 'b1', fundingSource: 'wallet', status: 'authorized', paypalAuthId: null },
     ledger: [],
@@ -68,7 +68,7 @@ function reset(overrides = {}) {
   db.users.h = { walletBalance: 500, walletHeld: 0 };
   db.booking = {
     id: 'b1', driverId: 'd', chargerId: 'c1', status: 'authorized', totalAmount: 100,
-    currency: 'INR', scheduledStart: new Date(Date.now() + 72 * 3600 * 1000), ...overrides.booking,
+    currency: 'USD', scheduledStart: new Date(Date.now() + 72 * 3600 * 1000), ...overrides.booking,
   };
   db.payment = { id: 'p1', bookingId: 'b1', fundingSource: 'wallet', status: 'authorized', paypalAuthId: null, ...overrides.payment };
   db.ledger.length = 0;

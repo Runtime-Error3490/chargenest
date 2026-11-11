@@ -42,7 +42,7 @@ test('wallet top-up uses an Orders v2 order with CAPTURE intent', async () => {
 
   const order = await paypalService.createOrder({
     amount: 750,
-    currency: 'INR',
+    currency: 'USD',
     description: 'ChargeNest wallet top-up',
     bookingId: 'wallet:user-1',
     returnUrl: 'http://app/wallet',
@@ -69,7 +69,7 @@ test('captureOrder reports the reference, capture id and amount', async () => {
     status: 'COMPLETED',
     purchase_units: [{
       reference_id: 'wallet:user-1',
-      payments: { captures: [{ id: 'CAP1', status: 'COMPLETED', amount: { value: '750.00', currency_code: 'INR' } }] },
+      payments: { captures: [{ id: 'CAP1', status: 'COMPLETED', amount: { value: '750.00', currency_code: 'USD' } }] },
     }],
   };
   const capture = await paypalService.captureOrder('ORDER1');
@@ -83,14 +83,14 @@ test('authorize, capture and void use the Payments v2 endpoints', async () => {
   replies['POST /v2/checkout/orders/O1/authorize'] = {
     id: 'O1',
     status: 'COMPLETED',
-    purchase_units: [{ payments: { authorizations: [{ id: 'AUTH1', amount: { value: '107.00', currency_code: 'INR' } }] } }],
+    purchase_units: [{ payments: { authorizations: [{ id: 'AUTH1', amount: { value: '107.00', currency_code: 'USD' } }] } }],
   };
-  replies['POST /v2/payments/authorizations/AUTH1/capture'] = { id: 'CAP9', status: 'COMPLETED', amount: { value: '107.00', currency_code: 'INR' } };
+  replies['POST /v2/payments/authorizations/AUTH1/capture'] = { id: 'CAP9', status: 'COMPLETED', amount: { value: '107.00', currency_code: 'USD' } };
   replies['POST /v2/payments/authorizations/AUTH1/void'] = {};
 
   const auth = await paypalService.authorizeOrder('O1');
   assert.equal(auth.authorizationId, 'AUTH1');
-  assert.equal((await paypalService.captureAuthorization('AUTH1', 107, 'INR')).captureId, 'CAP9');
+  assert.equal((await paypalService.captureAuthorization('AUTH1', 107, 'USD')).captureId, 'CAP9');
   assert.deepEqual(await paypalService.voidAuthorization('AUTH1'), { voided: true });
 });
 
@@ -103,7 +103,7 @@ test('an invoice is created as a draft, then sent', async () => {
     recipientEmail: 'driver@example.com',
     recipientName: 'Dana',
     amount: 250,
-    currency: 'INR',
+    currency: 'USD',
     description: 'Damage claim: Home charger',
     note: 'Scratched cable',
   });
@@ -234,7 +234,7 @@ test('authorize API failure surfaces the PayPal message', async () => {
 
 test('payout posts a batch to the host email', async () => {
   replies['POST /v1/payments/payouts'] = { batch_header: { payout_batch_id: 'BATCH1', batch_status: 'PENDING' } };
-  const res = await paypalService.createPayout({ recipientEmail: 'host@example.com', amount: 93, currency: 'INR', note: 'Booking payout', bookingId: 'b1' });
+  const res = await paypalService.createPayout({ recipientEmail: 'host@example.com', amount: 93, currency: 'USD', note: 'Booking payout', bookingId: 'b1' });
   assert.deepEqual(res, { payoutBatchId: 'BATCH1', status: 'PENDING' });
   const sent = calls.find((c) => c.key === 'POST /v1/payments/payouts').body;
   assert.equal(sent.items[0].receiver, 'host@example.com');

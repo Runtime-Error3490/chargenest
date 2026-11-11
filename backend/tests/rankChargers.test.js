@@ -10,15 +10,15 @@ const charger = (id, over = {}) => ({
   distanceKm: 3,
   avgRating: 4,
   totalBookings: 10,
-  packages: [{ durationMin: 60, price: 100, currency: 'INR' }],
+  packages: [{ durationMin: 60, price: 100, currency: 'USD' }],
   ...over,
 });
 
 const set = [
-  charger('near', { distanceKm: 0.5, kwTier: 'kW7_4', packages: [{ durationMin: 60, price: 150, currency: 'INR' }] }),
-  charger('fast', { distanceKm: 8, kwTier: 'kW50', packages: [{ durationMin: 60, price: 400, currency: 'INR' }] }),
-  charger('cheap', { distanceKm: 5, kwTier: 'kW3_3', avgRating: 3, packages: [{ durationMin: 60, price: 40, currency: 'INR' }] }),
-  charger('loved', { distanceKm: 6, avgRating: 4.9, packages: [{ durationMin: 60, price: 200, currency: 'INR' }] }),
+  charger('near', { distanceKm: 0.5, kwTier: 'kW7_4', packages: [{ durationMin: 60, price: 150, currency: 'USD' }] }),
+  charger('fast', { distanceKm: 8, kwTier: 'kW50', packages: [{ durationMin: 60, price: 400, currency: 'USD' }] }),
+  charger('cheap', { distanceKm: 5, kwTier: 'kW3_3', avgRating: 3, packages: [{ durationMin: 60, price: 40, currency: 'USD' }] }),
+  charger('loved', { distanceKm: 6, avgRating: 4.9, packages: [{ durationMin: 60, price: 200, currency: 'USD' }] }),
 ];
 
 test('each priority puts the matching charger first', () => {

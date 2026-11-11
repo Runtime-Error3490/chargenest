@@ -74,7 +74,7 @@ async function main() {
       console.log('  (No bookings found)');
     } else {
       bookings.forEach(b => {
-        console.log(`  ${b.status.padEnd(12)} | ₹${String(b.totalAmount).padEnd(6)} | ${b.driver.name} → ${b.charger.name.substring(0,20)}`);
+        console.log(`  ${b.status.padEnd(12)} | $${String(b.totalAmount).padEnd(6)} | ${b.driver.name} → ${b.charger.name.substring(0,20)}`);
       });
     }
   } catch (e) {
@@ -93,7 +93,7 @@ async function main() {
       console.log('  (No payments found)');
     } else {
       payments.forEach(p => {
-        console.log(`  ${p.status.padEnd(12)} | ₹${String(p.amount).padEnd(8)} | PayPal: ${p.paypalOrderId || 'N/A'}`);
+        console.log(`  ${p.status.padEnd(12)} | $${String(p.amount).padEnd(8)} | PayPal: ${p.paypalOrderId || 'N/A'}`);
       });
     }
   } catch (e) {
@@ -108,9 +108,9 @@ async function main() {
       where: { status: 'captured' },
       _sum: { amount: true, platformFee: true, hostPayoutAmount: true }
     });
-    console.log(`  Total Captured    : ₹${totalRevenue._sum.amount || 0}`);
-    console.log(`  Platform Fees     : ₹${totalRevenue._sum.platformFee || 0}`);
-    console.log(`  Host Payouts      : ₹${totalRevenue._sum.hostPayoutAmount || 0}`);
+    console.log(`  Total Captured    : $${totalRevenue._sum.amount || 0}`);
+    console.log(`  Platform Fees     : $${totalRevenue._sum.platformFee || 0}`);
+    console.log(`  Host Payouts      : $${totalRevenue._sum.hostPayoutAmount || 0}`);
   } catch (e) {
     console.log('  Error:', e.message);
   }

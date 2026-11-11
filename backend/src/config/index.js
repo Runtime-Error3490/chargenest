@@ -119,7 +119,7 @@ export const config = {
   // Platform
   platform: {
     feePercent: parseFloat(process.env.PLATFORM_FEE_PERCENT || '7'),
-    defaultCurrency: process.env.DEFAULT_CURRENCY || 'INR',
+    defaultCurrency: process.env.DEFAULT_CURRENCY || 'USD',
     defaultMandateCap: parseFloat(process.env.DEFAULT_MANDATE_CAP || '1000'),
     defaultMandateDistanceKm: parseFloat(process.env.DEFAULT_MANDATE_DISTANCE_KM || '10'),
     defaultMandateExpiryHours: parseInt(process.env.DEFAULT_MANDATE_EXPIRY_HOURS || '24', 10),

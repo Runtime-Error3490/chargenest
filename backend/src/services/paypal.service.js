@@ -133,7 +133,7 @@ export const paypalService = {
    */
   async createOrder({
     amount,
-    currency = 'INR',
+    currency = config.platform.defaultCurrency,
     description,
     bookingId,
     mandateId = null,
@@ -207,7 +207,7 @@ export const paypalService = {
   /**
    * Capture an authorization
    */
-  async captureAuthorization(authorizationId, amount, currency = 'INR', finalCapture = true) {
+  async captureAuthorization(authorizationId, amount, currency = config.platform.defaultCurrency, finalCapture = true) {
     const captureData = {
       amount: {
         currency_code: currency,
@@ -246,7 +246,7 @@ export const paypalService = {
   /**
    * Refund a captured payment
    */
-  async refundCapture(captureId, amount = null, currency = 'INR') {
+  async refundCapture(captureId, amount = null, currency = config.platform.defaultCurrency) {
     const refundData = amount ? {
       amount: {
         currency_code: currency,
@@ -274,7 +274,7 @@ export const paypalService = {
   async createPayout({
     recipientEmail,
     amount,
-    currency = 'INR',
+    currency = config.platform.defaultCurrency,
     note,
     bookingId,
   }) {
@@ -342,7 +342,7 @@ export const paypalService = {
   /**
    * Invoicing v2: create a draft invoice, returns the invoice id
    */
-  async createInvoice({ recipientEmail, recipientName, amount, currency = 'INR', description, note }) {
+  async createInvoice({ recipientEmail, recipientName, amount, currency = config.platform.defaultCurrency, description, note }) {
     const { invoice_number: invoiceNumber } = await paypalRequest(
       'POST',
       '/v2/invoicing/generate-next-invoice-number'
