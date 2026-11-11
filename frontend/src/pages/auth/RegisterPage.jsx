@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { Zap, User, Mail, Lock, Phone, CheckCircle } from 'lucide-react';
+import { Zap, User, Mail, Lock, Phone, CheckCircle, Car, Home, Shield, FileText, X } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { Button, Input, Card, CardBody } from '../../components/ui';
-import { LegalSections } from '../LegalPage';
+import { LegalSections, LEGAL_DOCUMENTS } from '../LegalPage';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -105,26 +105,18 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-primary-50/30 to-accent-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2">
-            <img src="/logo-icon.svg" alt="ChargeNest" className="w-10 h-10" />
-            <span className="text-2xl font-bold">
-              <span className="text-primary-600">Charge</span>
-              <span className="text-gray-900">Nest</span>
-            </span>
-          </Link>
-        </div>
-
-        <Card>
-          <CardBody>
+        <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+          <CardBody className="p-8">
             {step === 'form' ? (
               <>
-                <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
                   Create your account
                 </h2>
+                <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+                  Start charging smarter today
+                </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <Input
@@ -178,11 +170,15 @@ export default function RegisterPage() {
 
                   {/* Role selection */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       I want to...
                     </label>
                     <div className="space-y-2">
-                      <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        formData.roles.includes('driver') 
+                          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' 
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}>
                         <input
                           type="checkbox"
                           name="driver"
@@ -190,22 +186,48 @@ export default function RegisterPage() {
                           onChange={handleChange}
                           className="w-4 h-4 text-primary-600 rounded"
                         />
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          formData.roles.includes('driver') 
+                            ? 'bg-primary-100 dark:bg-primary-800' 
+                            : 'bg-gray-100 dark:bg-gray-700'
+                        }`}>
+                          <Car className={`w-5 h-5 ${
+                            formData.roles.includes('driver') 
+                              ? 'text-primary-600 dark:text-primary-400' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`} />
+                        </div>
                         <div>
-                          <p className="font-medium text-gray-900">Find & Book Chargers</p>
-                          <p className="text-sm text-gray-500">I'm an EV driver looking to charge</p>
+                          <p className="font-medium text-gray-900 dark:text-white">Find & Book Chargers</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">I'm an EV driver looking to charge</p>
                         </div>
                       </label>
-                      <label className="flex items-center gap-3 p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                      <label className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        formData.roles.includes('host') 
+                          ? 'border-accent-500 bg-accent-50 dark:bg-accent-900/20' 
+                          : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}>
                         <input
                           type="checkbox"
                           name="host"
                           checked={formData.roles.includes('host')}
                           onChange={handleChange}
-                          className="w-4 h-4 text-primary-600 rounded"
+                          className="w-4 h-4 text-accent-600 rounded"
                         />
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          formData.roles.includes('host') 
+                            ? 'bg-accent-100 dark:bg-accent-800' 
+                            : 'bg-gray-100 dark:bg-gray-700'
+                        }`}>
+                          <Home className={`w-5 h-5 ${
+                            formData.roles.includes('host') 
+                              ? 'text-accent-600 dark:text-accent-400' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`} />
+                        </div>
                         <div>
-                          <p className="font-medium text-gray-900">List My Charger</p>
-                          <p className="text-sm text-gray-500">I have a charger to share</p>
+                          <p className="font-medium text-gray-900 dark:text-white">List My Charger</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">I have a charger to share</p>
                         </div>
                       </label>
                     </div>
@@ -215,22 +237,22 @@ export default function RegisterPage() {
                   </div>
 
                   {/* Terms & Conditions */}
-                  <div className="space-y-3 pt-4 border-t">
+                  <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div>
-                      <label className="flex items-start gap-3 cursor-pointer">
+                      <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
                           name="acceptTerms"
                           checked={formData.acceptTerms}
                           onChange={handleChange}
-                          className="w-4 h-4 text-primary-600 rounded mt-0.5"
+                          className="w-4 h-4 text-primary-600 rounded flex-shrink-0"
                         />
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
                           I agree to the{' '}
                           <button
                             type="button"
                             onClick={() => setShowTerms(true)}
-                            className="text-primary-600 hover:text-primary-700 font-medium underline"
+                            className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium underline"
                           >
                             Terms and Conditions
                           </button>
@@ -243,20 +265,20 @@ export default function RegisterPage() {
                     </div>
 
                     <div>
-                      <label className="flex items-start gap-3 cursor-pointer">
+                      <label className="flex items-center gap-3 cursor-pointer">
                         <input
                           type="checkbox"
                           name="acceptPrivacy"
                           checked={formData.acceptPrivacy}
                           onChange={handleChange}
-                          className="w-4 h-4 text-primary-600 rounded mt-0.5"
+                          className="w-4 h-4 text-primary-600 rounded flex-shrink-0"
                         />
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-gray-700 dark:text-gray-300">
                           I agree to the{' '}
                           <button
                             type="button"
                             onClick={() => setShowPrivacy(true)}
-                            className="text-primary-600 hover:text-primary-700 font-medium underline"
+                            className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium underline"
                           >
                             Privacy Policy
                           </button>
@@ -270,7 +292,7 @@ export default function RegisterPage() {
                   </div>
 
                   {error && (
-                    <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                    <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm border border-red-200 dark:border-red-800">
                       {error}
                     </div>
                   )}
@@ -284,9 +306,9 @@ export default function RegisterPage() {
                   </Button>
                 </form>
 
-                <div className="mt-6 text-center text-sm text-gray-600">
+                <div className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
                   Already have an account?{' '}
-                  <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+                  <Link to="/login" className="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium">
                     Sign in
                   </Link>
                 </div>
@@ -294,13 +316,13 @@ export default function RegisterPage() {
             ) : (
               <>
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                     Set Up Two-Factor Auth
                   </h2>
-                  <p className="text-gray-600 mt-2">
+                  <p className="text-gray-600 dark:text-gray-400 mt-2">
                     Scan this QR code with your authenticator app
                   </p>
                 </div>
@@ -318,14 +340,14 @@ export default function RegisterPage() {
                   </div>
 
                   {/* Manual entry */}
-                  <div className="p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-2">Or enter this code manually:</p>
-                    <code className="block text-center text-lg font-mono bg-white p-2 rounded border break-all">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Or enter this code manually:</p>
+                    <code className="block text-center text-lg font-mono bg-white dark:bg-gray-800 p-2 rounded border dark:border-gray-600 break-all text-gray-900 dark:text-white">
                       {mfaData?.secret}
                     </code>
                   </div>
 
-                  <div className="p-4 bg-blue-50 text-blue-700 rounded-lg text-sm">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg text-sm border border-blue-200 dark:border-blue-800">
                     <p className="font-medium mb-1">Recommended Apps:</p>
                     <ul className="list-disc list-inside">
                       <li>Google Authenticator</li>
@@ -345,21 +367,64 @@ export default function RegisterPage() {
             )}
           </CardBody>
         </Card>
+
+        {/* Trust badges */}
+        <div className="mt-6 flex items-center justify-center gap-6 text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1">
+            <Shield className="w-4 h-4" />
+            <span>Secure & Encrypted</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Lock className="w-4 h-4" />
+            <span>MFA Protected</span>
+          </div>
+        </div>
       </div>
 
       {/* Terms & Conditions Modal */}
       {showTerms && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            <div className="px-6 py-4 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900">Terms and Conditions</h3>
-              <button onClick={() => setShowTerms(false)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/20">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-800 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Terms of Service</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">The rules and guidelines for using ChargeNest</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowTerms(false)} 
+                  className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
             </div>
-            <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
+            {/* Modal Body */}
+            <div className="px-6 py-6 overflow-y-auto max-h-[60vh]">
               <LegalSections doc="terms" />
             </div>
-            <div className="px-6 py-4 border-t">
-              <Button onClick={() => setShowTerms(false)} className="w-full">Close</Button>
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setShowTerms(false)} className="flex-1">
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, acceptTerms: true }));
+                    setShowTerms(false);
+                  }} 
+                  className="flex-1"
+                >
+                  Accept Terms
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -367,17 +432,48 @@ export default function RegisterPage() {
 
       {/* Privacy Policy Modal */}
       {showPrivacy && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            <div className="px-6 py-4 border-b flex justify-between items-center">
-              <h3 className="text-xl font-bold text-gray-900">Privacy Policy</h3>
-              <button onClick={() => setShowPrivacy(false)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/20">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-800 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Privacy Policy</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">How we collect, use, and protect your data</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowPrivacy(false)} 
+                  className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
             </div>
-            <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
+            {/* Modal Body */}
+            <div className="px-6 py-6 overflow-y-auto max-h-[60vh]">
               <LegalSections doc="privacy" />
             </div>
-            <div className="px-6 py-4 border-t">
-              <Button onClick={() => setShowPrivacy(false)} className="w-full">Close</Button>
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setShowPrivacy(false)} className="flex-1">
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, acceptPrivacy: true }));
+                    setShowPrivacy(false);
+                  }} 
+                  className="flex-1"
+                >
+                  Accept Policy
+                </Button>
+              </div>
             </div>
           </div>
         </div>

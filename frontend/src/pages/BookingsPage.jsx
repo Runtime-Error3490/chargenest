@@ -78,17 +78,17 @@ export default function BookingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Loading size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Bookings</h1>
           <Button onClick={() => navigate('/search')}>
             Find Chargers
           </Button>
@@ -108,7 +108,7 @@ export default function BookingsPage() {
               className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors whitespace-nowrap ${
                 filter === tab.id
                   ? 'bg-green-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
               {tab.label}
@@ -117,7 +117,7 @@ export default function BookingsPage() {
         </div>
 
         {error && (
-          <div className="p-5 bg-red-50 text-red-700 rounded-lg mb-6">
+          <div className="p-5 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg mb-6 border border-red-200 dark:border-red-800">
             {error}
           </div>
         )}
@@ -125,8 +125,8 @@ export default function BookingsPage() {
         {sortedBookings.length === 0 ? (
           <Card className="text-center py-16 p-6">
             <div className="text-6xl mb-4">📅</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No bookings yet</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No bookings yet</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               {filter === 'all' 
                 ? "You haven't made any bookings yet."
                 : `No ${filter} bookings found.`}
@@ -149,7 +149,7 @@ export default function BookingsPage() {
                 >
                   <div className="flex gap-5">
                     {/* Charger Image */}
-                    <div className="flex-shrink-0 w-24 h-24 bg-gray-200 rounded-lg overflow-hidden">
+                    <div className="flex-shrink-0 w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
                       {booking.charger?.photos?.[0] ? (
                         <img
                           src={booking.charger.photos[0]}
@@ -165,10 +165,10 @@ export default function BookingsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <h3 className="font-semibold text-gray-900">
+                          <h3 className="font-semibold text-gray-900 dark:text-white">
                             {booking.charger?.name || 'Charging Session'}
                           </h3>
-                          <p className="text-sm text-gray-600 truncate">
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                             {booking.charger?.address}
                           </p>
                         </div>
@@ -179,17 +179,17 @@ export default function BookingsPage() {
 
                       <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-500">Start</span>
-                          <p className="font-medium">{formatDateTime(booking.startTime)}</p>
+                          <span className="text-gray-500 dark:text-gray-400">Start</span>
+                          <p className="font-medium text-gray-900 dark:text-white">{formatDateTime(booking.startTime)}</p>
                         </div>
                         <div>
-                          <span className="text-gray-500">End</span>
-                          <p className="font-medium">{formatDateTime(booking.endTime)}</p>
+                          <span className="text-gray-500 dark:text-gray-400">End</span>
+                          <p className="font-medium text-gray-900 dark:text-white">{formatDateTime(booking.endTime)}</p>
                         </div>
                       </div>
 
                       <div className="mt-3 flex items-center justify-between">
-                        <span className="text-lg font-semibold text-gray-900">
+                        <span className="text-lg font-semibold text-gray-900 dark:text-white">
                           ₹{booking.totalAmount?.toFixed(2)}
                         </span>
                         

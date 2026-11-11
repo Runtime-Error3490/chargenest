@@ -7,6 +7,10 @@ export function Footer() {
   const isClient = isAuthenticated && hasRole('driver');
   const isHost = isAuthenticated && hasRole('host');
 
+  // Determine if user has only one role (client only or host only)
+  const isClientOnly = isClient && !isHost;
+  const isHostOnly = isHost && !isClient;
+
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -66,7 +70,69 @@ export function Footer() {
           ) : isAuthenticated ? (
             /* Logged-in User Footer Links (Client/Host/Both) */
             <>
-              {(isClient || !isHost) && (
+              {/* For client-only users, show Resources in column 3 and For Clients in column 4 */}
+              {isClientOnly && (
+                <div>
+                  <h3 className="text-white font-semibold mb-4">Resources</h3>
+                  <ul className="space-y-2">
+                    <li>
+                      <Link to="/team" className="hover:text-white transition-colors">Our Team</Link>
+                    </li>
+                    <li>
+                      <Link to="/#how-it-works" className="hover:text-white transition-colors">How It Works</Link>
+                    </li>
+                    <li>
+                      <Link to="/#faq" className="hover:text-white transition-colors">FAQ</Link>
+                    </li>
+                    <li>
+                      <Link to="/register" className="hover:text-white transition-colors">Become a Host</Link>
+                    </li>
+                  </ul>
+                </div>
+              )}
+              
+              {/* For host-only users, show For Hosts in column 3 and Resources in column 4 */}
+              {isHostOnly && (
+                <>
+                  <div>
+                    <h3 className="text-white font-semibold mb-4">For Hosts</h3>
+                    <ul className="space-y-2">
+                      <li>
+                        <Link to="/host/chargers/new" className="hover:text-white transition-colors">List Your Charger</Link>
+                      </li>
+                      <li>
+                        <Link to="/host/dashboard" className="hover:text-white transition-colors">Host Dashboard</Link>
+                      </li>
+                      <li>
+                        <Link to="/host/bookings" className="hover:text-white transition-colors">Manage Bookings</Link>
+                      </li>
+                      <li>
+                        <Link to="/wallet" className="hover:text-white transition-colors">Wallet & Payouts</Link>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold mb-4">Resources</h3>
+                    <ul className="space-y-2">
+                      <li>
+                        <Link to="/team" className="hover:text-white transition-colors">Our Team</Link>
+                      </li>
+                      <li>
+                        <Link to="/#how-it-works" className="hover:text-white transition-colors">How It Works</Link>
+                      </li>
+                      <li>
+                        <Link to="/#faq" className="hover:text-white transition-colors">FAQ</Link>
+                      </li>
+                      <li>
+                        <Link to="/host-policy" className="hover:text-white transition-colors">Host Policy</Link>
+                      </li>
+                    </ul>
+                  </div>
+                </>
+              )}
+
+              {/* For client-only users, show For Clients in column 4 (rightmost) */}
+              {isClientOnly && (
                 <div>
                   <h3 className="text-white font-semibold mb-4">For Clients</h3>
                   <ul className="space-y-2">
@@ -85,21 +151,45 @@ export function Footer() {
                   </ul>
                 </div>
               )}
-              {isHost && (
-                <div>
-                  <h3 className="text-white font-semibold mb-4">For Hosts</h3>
-                  <ul className="space-y-2">
-                    <li>
-                      <Link to="/host/chargers/new" className="hover:text-white transition-colors">List Your Charger</Link>
-                    </li>
-                    <li>
-                      <Link to="/host/dashboard" className="hover:text-white transition-colors">Host Dashboard</Link>
-                    </li>
-                    <li>
-                      <Link to="/host/bookings" className="hover:text-white transition-colors">Manage Bookings</Link>
-                    </li>
-                  </ul>
-                </div>
+
+              {/* For users with both roles, show both columns */}
+              {isClient && isHost && (
+                <>
+                  <div>
+                    <h3 className="text-white font-semibold mb-4">For Clients</h3>
+                    <ul className="space-y-2">
+                      <li>
+                        <Link to="/search" className="hover:text-white transition-colors">Find Chargers</Link>
+                      </li>
+                      <li>
+                        <Link to="/chat" className="hover:text-white transition-colors">AI Concierge</Link>
+                      </li>
+                      <li>
+                        <Link to="/bookings" className="hover:text-white transition-colors">My Bookings</Link>
+                      </li>
+                      <li>
+                        <Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="text-white font-semibold mb-4">For Hosts</h3>
+                    <ul className="space-y-2">
+                      <li>
+                        <Link to="/host/chargers/new" className="hover:text-white transition-colors">List Your Charger</Link>
+                      </li>
+                      <li>
+                        <Link to="/host/dashboard" className="hover:text-white transition-colors">Host Dashboard</Link>
+                      </li>
+                      <li>
+                        <Link to="/host/bookings" className="hover:text-white transition-colors">Manage Bookings</Link>
+                      </li>
+                      <li>
+                        <Link to="/wallet" className="hover:text-white transition-colors">Wallet & Payouts</Link>
+                      </li>
+                    </ul>
+                  </div>
+                </>
               )}
             </>
           ) : (

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { 
   Zap, Menu, X, User, LogOut, MapPin, Calendar, 
   MessageSquare, Settings, Shield, LayoutDashboard,
-  Plus, ChevronDown, Sun, Moon, Wallet
+  Plus, ChevronDown, Sun, Moon, Wallet, HelpCircle
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -51,7 +51,7 @@ export function Navbar() {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo */}
@@ -60,7 +60,7 @@ export function Navbar() {
               <img src="/logo-icon.svg" alt="ChargeNest" className="w-8 h-8" />
               <span className="text-xl font-bold">
                 <span className="text-primary-600">Charge</span>
-                <span className="text-gray-900">Nest</span>
+                <span className="text-gray-900 dark:text-white">Nest</span>
               </span>
             </Link>
           </div>
@@ -75,8 +75,8 @@ export function Navbar() {
                   to="/admin/dashboard" 
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                     location.pathname.startsWith('/admin') 
-                      ? 'bg-purple-50 text-purple-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' 
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
@@ -90,8 +90,8 @@ export function Navbar() {
                   to="/host/dashboard" 
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                     location.pathname.startsWith('/host') 
-                      ? 'bg-accent-50 text-accent-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400' 
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
@@ -101,8 +101,8 @@ export function Navbar() {
                   to="/host/chargers" 
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                     isActive('/host/chargers') 
-                      ? 'bg-accent-50 text-accent-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400' 
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <Zap className="w-4 h-4" />
@@ -112,8 +112,8 @@ export function Navbar() {
                   to="/host/bookings" 
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                     isActive('/host/bookings') 
-                      ? 'bg-accent-50 text-accent-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400' 
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <Calendar className="w-4 h-4" />
@@ -123,8 +123,8 @@ export function Navbar() {
                   to="/host/chargers/new" 
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                     isActive('/host/chargers/new') 
-                      ? 'bg-primary-50 text-primary-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' 
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <Plus className="w-4 h-4" />
@@ -139,8 +139,8 @@ export function Navbar() {
                   to="/search" 
                   className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                     isActive('/search') 
-                      ? 'bg-primary-50 text-primary-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' 
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <MapPin className="w-4 h-4" />
@@ -152,8 +152,8 @@ export function Navbar() {
                     to="/chat" 
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                       isActive('/chat') 
-                        ? 'bg-primary-50 text-primary-700' 
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400' 
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -167,8 +167,8 @@ export function Navbar() {
                     to="/host/dashboard" 
                     className={`flex items-center gap-1.5 px-3 py-2 rounded-lg transition-colors ${
                       location.pathname.startsWith('/host') 
-                        ? 'bg-accent-50 text-accent-700' 
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                        ? 'bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400' 
+                        : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}
                   >
                     <Settings className="w-4 h-4" />
@@ -186,23 +186,23 @@ export function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary-600" />
+                  <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/50 rounded-full flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                   </div>
-                  <span className="hidden sm:block text-sm font-medium text-gray-700">
+                  <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300">
                     {user?.name?.split(' ')[0]}
                   </span>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                  <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                 </button>
 
                 {/* Dropdown */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-[60]">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-2 z-[60]">
+                    <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{user?.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{user?.email}</p>
                       <div className="flex gap-1 mt-1">
                         {(() => {
                           const roles = user?.roles || [];
@@ -219,21 +219,21 @@ export function Navbar() {
                           }
                           if (isClient && isHost) {
                             return (
-                              <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded">
+                              <span className="text-xs bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 px-2 py-0.5 rounded">
                                 Client + Host
                               </span>
                             );
                           }
                           if (isClient) {
                             return (
-                              <span className="text-xs bg-primary-50 text-primary-700 px-2 py-0.5 rounded">
+                              <span className="text-xs bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 px-2 py-0.5 rounded">
                                 Client
                               </span>
                             );
                           }
                           if (isHost) {
                             return (
-                              <span className="text-xs bg-accent-50 text-accent-700 px-2 py-0.5 rounded">
+                              <span className="text-xs bg-accent-50 dark:bg-accent-900/30 text-accent-700 dark:text-accent-400 px-2 py-0.5 rounded">
                                 Host
                               </span>
                             );
@@ -258,7 +258,7 @@ export function Navbar() {
                       <>
                         <Link 
                           to="/host/dashboard" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <LayoutDashboard className="w-4 h-4" />
@@ -267,7 +267,7 @@ export function Navbar() {
 
                         <Link 
                           to="/host/chargers" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <Zap className="w-4 h-4" />
@@ -276,7 +276,7 @@ export function Navbar() {
 
                         <Link 
                           to="/host/bookings" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <Calendar className="w-4 h-4" />
@@ -285,7 +285,7 @@ export function Navbar() {
 
                         <Link 
                           to="/host/chargers/new" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <Plus className="w-4 h-4" />
@@ -294,7 +294,7 @@ export function Navbar() {
 
                         <Link 
                           to="/wallet" 
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <Wallet className="w-4 h-4" />
@@ -309,7 +309,7 @@ export function Navbar() {
                           <>
                             <Link 
                               to="/dashboard" 
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                               onClick={() => setUserMenuOpen(false)}
                             >
                               <LayoutDashboard className="w-4 h-4" />
@@ -318,7 +318,7 @@ export function Navbar() {
 
                             <Link 
                               to="/bookings" 
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                               onClick={() => setUserMenuOpen(false)}
                             >
                               <Calendar className="w-4 h-4" />
@@ -327,7 +327,7 @@ export function Navbar() {
 
                             <Link 
                               to="/wallet" 
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                               onClick={() => setUserMenuOpen(false)}
                             >
                               <Wallet className="w-4 h-4" />
@@ -336,7 +336,7 @@ export function Navbar() {
 
                             <Link 
                               to="/settings/agent" 
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                               onClick={() => setUserMenuOpen(false)}
                             >
                               <Shield className="w-4 h-4" />
@@ -351,7 +351,7 @@ export function Navbar() {
                             <div className="border-t border-gray-100 my-1"></div>
                             <Link 
                               to="/host/dashboard" 
-                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                               onClick={() => setUserMenuOpen(false)}
                             >
                               <Settings className="w-4 h-4" />
@@ -378,7 +378,7 @@ export function Navbar() {
               <div className="flex items-center gap-2">
                 <Link 
                   to="/login" 
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 inline-flex items-center justify-center"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 inline-flex items-center justify-center"
                 >
                   Login
                 </Link>
@@ -404,7 +404,7 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-100 py-4 px-4 space-y-2 bg-white">
+        <div className="md:hidden border-t border-gray-100 dark:border-gray-700 py-4 px-4 space-y-2 bg-white dark:bg-gray-800">
           {/* Admin mobile menu */}
           {isAuthenticated && hasRole('admin') ? (
             <Link 

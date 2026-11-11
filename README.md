@@ -327,12 +327,30 @@ ev-charging-marketplace/
 
 ## 🗺️ Roadmap
 
+### Phase 1 - Current (MVP)
+- [x] Admin-based user verification
+- [x] Wallet deposit as trust mechanism
+- [x] MFA with TOTP (Google Authenticator)
+
+### Phase 2 - User Verification (Future)
+- [ ] Email verification with magic link on registration
+- [ ] Phone OTP verification (MSG91/Twilio for India)
+- [ ] Tiered verification levels (Email → Phone → ID)
+- [ ] Government ID verification for hosts (Aadhaar/PAN via Digio)
+
+### Phase 3 - Platform Growth
 - [ ] Hardware metering integration (smart plugs)
 - [ ] Percentage-based charging ("charge to 80%")
-- [ ] Native mobile apps
+- [ ] Native mobile apps (React Native)
 - [ ] Society/apartment approval workflows
 - [ ] External agent access via MCP server
 - [ ] Voice input for concierge
+
+### Phase 4 - Scale
+- [ ] Multi-city expansion
+- [ ] Fleet management for businesses
+- [ ] Subscription plans for frequent users
+- [ ] Integration with vehicle APIs (Tesla, Tata, etc.)
 
 ---
 
