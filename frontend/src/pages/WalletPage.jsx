@@ -5,6 +5,11 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
+import { 
+  Wallet, IndianRupee, CreditCard, Lock, TrendingUp, TrendingDown, 
+  Clock, CheckCircle, AlertCircle, XCircle, ArrowUpRight, ArrowDownLeft,
+  Plus, RefreshCw, ExternalLink, Info, Sparkles
+} from 'lucide-react';
 
 const TOPUP_PRESETS = [500, 1000, 2500, 5000];
 const TOPUP_MIN = 1;
@@ -12,6 +17,27 @@ const TOPUP_MAX = 100000;
 
 const money = (value, currency = 'INR') =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(value || 0);
+
+// Get transaction icon and color based on type
+const getTransactionStyle = (type, amount) => {
+  const isCredit = amount > 0 || type === 'top_up' || type === 'credit' || type === 'payout_received';
+  if (isCredit) {
+    return {
+      icon: ArrowDownLeft,
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
+      iconColor: 'text-green-600 dark:text-green-400',
+      amountColor: 'text-green-600 dark:text-green-400',
+      prefix: '+'
+    };
+  }
+  return {
+    icon: ArrowUpRight,
+    bgColor: 'bg-red-100 dark:bg-red-900/30',
+    iconColor: 'text-red-600 dark:text-red-400',
+    amountColor: 'text-red-600 dark:text-red-400',
+    prefix: '-'
+  };
+};
 
 export default function WalletPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -27,14 +53,16 @@ export default function WalletPage() {
 
   // Same rules as the backend: 1 to 100000, at most 2 decimals
   const amountError = (() => {
-    if (amount === '') return 'Enter an amount';
+    if (amount === '') return null; // Don't show error for empty (handled by disabled button)
     const value = Number(amount);
     if (!Number.isFinite(value)) return 'Enter a valid number';
-    if (value < TOPUP_MIN) return `Minimum top-up is ${TOPUP_MIN}`;
-    if (value > TOPUP_MAX) return `Maximum top-up is ${TOPUP_MAX.toLocaleString('en-IN')}`;
-    if (!/^\d+(\.\d{1,2})?$/.test(amount)) return 'Use at most 2 decimal places';
+    if (value < TOPUP_MIN) return `Minimum is ₹${TOPUP_MIN}`;
+    if (value > TOPUP_MAX) return `Maximum is ₹${TOPUP_MAX.toLocaleString('en-IN')}`;
+    if (!/^\d+(\.\d{1,2})?$/.test(amount)) return 'Max 2 decimal places';
     return null;
   })();
+
+  const isValidAmount = amount !== '' && !amountError;
 
   const load = useCallback(async () => {
     const [walletData, invoiceList] = await Promise.all([
@@ -54,7 +82,7 @@ export default function WalletPage() {
           setNotice('Top-up cancelled. No money was taken.');
         } else if (orderId) {
           const result = await walletService.completeTopUp(orderId);
-          setNotice(result.credited === false ? 'This top-up was already added.' : 'Money added to your wallet.');
+          setNotice(result.credited === false ? 'This top-up was already added.' : '🎉 Money added to your wallet!');
         }
         if (orderId || searchParams.get('cancelled')) setSearchParams({}, { replace: true });
         await load();
@@ -70,7 +98,7 @@ export default function WalletPage() {
 
   const handleTopUp = async () => {
     setTouched(true);
-    if (amountError) return;
+    if (!isValidAmount) return;
     const value = Number(amount);
     try {
       setBusy(true);
@@ -95,7 +123,7 @@ export default function WalletPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Loading size="lg" />
       </div>
     );
@@ -105,83 +133,185 @@ export default function WalletPage() {
   const currency = wallet?.currency || 'INR';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4 space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Wallet</h1>
-          <p className="text-gray-600 mt-1">Funded with PayPal. Used to pay for charging.</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="max-w-4xl mx-auto px-4 space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+            <Wallet className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Wallet</h1>
+            <p className="text-gray-600 dark:text-gray-400">Manage your ChargeNest balance</p>
+          </div>
         </div>
 
-        {error && <div className="p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>}
-        {notice && <div className="p-4 bg-green-50 text-green-700 rounded-lg">{notice}</div>}
+        {/* Alerts */}
+        {error && (
+          <div className="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-xl">
+            <XCircle className="w-5 h-5 flex-shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
+        {notice && (
+          <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 rounded-xl">
+            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+            <p>{notice}</p>
+          </div>
+        )}
 
         {wallet?.paypalMock && (
-          <div className="p-4 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
-            <strong>PayPal mock mode.</strong> No PayPal credentials are set, so payments are simulated.
-            Any valid amount is accepted and added to your wallet. No real PayPal account is used.
+          <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 rounded-xl">
+            <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium">PayPal Mock Mode</p>
+              <p className="mt-1 text-blue-700 dark:text-blue-400">No PayPal credentials configured. Payments are simulated — any valid amount is instantly added.</p>
+            </div>
           </div>
         )}
 
         {wallet && !wallet.depositMet && (
-          <div className="p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg">
-            <p className="font-medium">
-              Add {money(wallet.shortfall, currency)} to get started.
-            </p>
-            <p className="text-sm mt-1">
-              Your wallet needs {money(wallet.minBalance, currency)} before you can book or list a charger.{' '}
-              {money(wallet.deposit, currency)} of it stays as a damage deposit. The other{' '}
-              {money(wallet.minBalance - wallet.deposit, currency)} is yours to spend on bookings.
-            </p>
+          <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl">
+            <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-300">
+                Add {money(wallet.shortfall, currency)} to get started
+              </p>
+              <p className="text-sm mt-1 text-amber-700 dark:text-amber-400">
+                Your wallet needs {money(wallet.minBalance, currency)} before you can book or list a charger.
+                {money(wallet.deposit, currency)} stays as a damage deposit.
+              </p>
+            </div>
           </div>
         )}
 
-        <Card className="p-6">
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-sm text-gray-500">Balance</p>
-              <p className="text-2xl font-bold text-gray-900">{money(wallet?.balance, currency)}</p>
+        {/* Balance Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Total Balance */}
+          <Card className="p-5 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Balance</span>
+              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                <IndianRupee className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Held for bookings</p>
-              <p className="text-2xl font-bold text-gray-900">{money(wallet?.held, currency)}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Spendable</p>
-              <p className="text-2xl font-bold text-green-700">{money(wallet?.spendable, currency)}</p>
-            </div>
-          </div>
-          {wallet?.pendingPayout > 0 && (
-            <p className="mt-3 text-center text-sm text-gray-600">
-              {money(wallet.pendingPayout, currency)} in earnings will reach your balance after the payout delay.
-            </p>
-          )}
-          <div className="mt-4 text-center">
-            <Badge variant={wallet?.depositMet ? 'success' : 'warning'}>
-              {wallet?.depositMet
-                ? `${money(wallet.deposit, currency)} damage deposit is locked`
-                : `Damage deposit: ${money(wallet?.deposit, currency)} (not yet funded)`}
-            </Badge>
-          </div>
-        </Card>
+            <p className="text-3xl font-bold text-gray-900 dark:text-white">{money(wallet?.balance, currency)}</p>
+          </Card>
 
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Add money with PayPal</h2>
-          <div className="flex flex-wrap gap-2 mb-4">
-            {TOPUP_PRESETS.map(preset => (
-              <button
-                key={preset}
-                onClick={() => { setAmount(String(preset)); setTouched(false); setError(null); }}
-                className={`px-3 py-1 rounded-lg text-sm ${
-                  Number(amount) === preset ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {money(preset, currency)}
-              </button>
-            ))}
+          {/* Held */}
+          <Card className="p-5 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-orange-200 dark:border-orange-800">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-orange-600 dark:text-orange-400">On Hold</span>
+              <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/50 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{money(wallet?.held, currency)}</p>
+            <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Reserved for bookings</p>
+          </Card>
+
+          {/* Spendable */}
+          <Card className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-medium text-green-600 dark:text-green-400">Available to Spend</span>
+              <div className="w-8 h-8 bg-green-100 dark:bg-green-900/50 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-green-700 dark:text-green-300">{money(wallet?.spendable, currency)}</p>
+            <p className="text-xs text-green-600 dark:text-green-400 mt-1">Ready for booking</p>
+          </Card>
+        </div>
+
+        {/* Deposit Status */}
+        {wallet && (
+          <Card className="p-4 flex items-center justify-between bg-white dark:bg-gray-800">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                wallet.depositMet 
+                  ? 'bg-green-100 dark:bg-green-900/30' 
+                  : 'bg-amber-100 dark:bg-amber-900/30'
+              }`}>
+                <Lock className={`w-5 h-5 ${
+                  wallet.depositMet 
+                    ? 'text-green-600 dark:text-green-400' 
+                    : 'text-amber-600 dark:text-amber-400'
+                }`} />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900 dark:text-white">Damage Deposit</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {wallet.depositMet 
+                    ? `${money(wallet.deposit, currency)} securely locked` 
+                    : `${money(wallet.deposit, currency)} required`}
+                </p>
+              </div>
+            </div>
+            <Badge variant={wallet.depositMet ? 'success' : 'warning'} className="text-xs">
+              {wallet.depositMet ? '✓ Funded' : 'Pending'}
+            </Badge>
+          </Card>
+        )}
+
+        {wallet?.pendingPayout > 0 && (
+          <Card className="p-4 flex items-center gap-3 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800">
+            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="font-medium text-purple-800 dark:text-purple-300">Earnings Pending</p>
+              <p className="text-sm text-purple-700 dark:text-purple-400">
+                {money(wallet.pendingPayout, currency)} will be available after payout delay
+              </p>
+            </div>
+          </Card>
+        )}
+
+        {/* Add Money Section */}
+        <Card className="p-6 bg-white dark:bg-gray-800">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+              <Plus className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Add Money</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Top up your wallet with PayPal</p>
+            </div>
           </div>
-          <div className="flex gap-3 items-start">
-            <div className="flex-1">
+
+          {/* Quick Amount Buttons */}
+          <div className="mb-5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Quick select
+            </label>
+            <div className="grid grid-cols-4 gap-3">
+              {TOPUP_PRESETS.map(preset => (
+                <button
+                  key={preset}
+                  onClick={() => { setAmount(String(preset)); setTouched(false); setError(null); }}
+                  className={`py-3 px-4 rounded-xl text-sm font-medium transition-all ${
+                    Number(amount) === preset 
+                      ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30 scale-105' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-102'
+                  }`}
+                >
+                  ₹{preset.toLocaleString('en-IN')}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Amount Input */}
+          <div className="mb-5">
+            <label htmlFor="topup-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Or enter custom amount
+            </label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <span className="text-gray-500 dark:text-gray-400 text-lg font-medium">₹</span>
+              </div>
               <input
+                id="topup-amount"
                 type="number"
                 inputMode="decimal"
                 min={TOPUP_MIN}
@@ -190,58 +320,94 @@ export default function WalletPage() {
                 value={amount}
                 onChange={(e) => { setAmount(e.target.value); setError(null); }}
                 onBlur={() => setTouched(true)}
-                placeholder={`Amount (${TOPUP_MIN} to ${TOPUP_MAX.toLocaleString('en-IN')})`}
+                placeholder="Enter amount"
                 aria-label="Top-up amount"
                 aria-invalid={touched && !!amountError}
-                aria-describedby="topup-amount-error"
-                className={`w-full rounded-lg shadow-sm focus:ring-green-500 ${
+                aria-describedby={amountError ? "topup-amount-error" : undefined}
+                className={`w-full pl-10 pr-4 py-3.5 text-lg font-medium rounded-xl border-2 transition-colors bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-0 ${
                   touched && amountError
-                    ? 'border-red-400 focus:border-red-500'
-                    : 'border-gray-300 focus:border-green-500'
+                    ? 'border-red-400 dark:border-red-500 focus:border-red-500'
+                    : amount && !amountError
+                    ? 'border-green-400 dark:border-green-500 focus:border-green-500'
+                    : 'border-gray-200 dark:border-gray-600 focus:border-primary-500 dark:focus:border-primary-400'
                 }`}
               />
-              {touched && amountError && (
-                <p id="topup-amount-error" role="alert" className="text-sm text-red-600 mt-1">
-                  {amountError}
-                </p>
+              {amount && !amountError && (
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                </div>
               )}
             </div>
-            <Button onClick={handleTopUp} disabled={busy || !!amountError}>
-              {busy ? <Loading size="sm" /> : 'Pay with PayPal'}
-            </Button>
+            {touched && amountError && (
+              <p id="topup-amount-error" role="alert" className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400 mt-2">
+                <AlertCircle className="w-4 h-4" />
+                {amountError}
+              </p>
+            )}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Min: ₹{TOPUP_MIN} • Max: ₹{TOPUP_MAX.toLocaleString('en-IN')}
+            </p>
           </div>
-          <p className="text-xs text-gray-500 mt-3">
+
+          {/* Pay Button */}
+          <Button 
+            onClick={handleTopUp} 
+            disabled={busy || !isValidAmount}
+            className="w-full py-3.5 text-base font-medium"
+          >
+            {busy ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loading size="sm" />
+                Processing...
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                {isValidAmount ? `Pay ₹${Number(amount).toLocaleString('en-IN')} with PayPal` : 'Enter amount to continue'}
+              </span>
+            )}
+          </Button>
+
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
             {wallet?.paypalMock
-              ? 'Mock mode: you are sent straight back here and the amount is added.'
-              : 'Sandbox mode: use a PayPal sandbox buyer account. No real money moves.'}
+              ? '🧪 Mock mode: Amount is added instantly without PayPal redirect.'
+              : '🔒 Secure payment via PayPal. Sandbox mode — no real money moves.'}
           </p>
         </Card>
 
+        {/* Invoices */}
         {invoices.length > 0 && (
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Invoices</h2>
+          <Card className="p-6 bg-white dark:bg-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pending Invoices</h2>
             <div className="space-y-3">
               {invoices.map(invoice => (
-                <div key={invoice.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={invoice.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                   <div className="min-w-0">
-                    <p className="text-gray-900 truncate">{invoice.reason || 'Invoice'}</p>
-                    <p className="text-sm text-gray-600">{money(invoice.amount, invoice.currency || currency)}</p>
+                    <p className="font-medium text-gray-900 dark:text-white truncate">{invoice.reason || 'Invoice'}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{money(invoice.amount, invoice.currency || currency)}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge size="sm">{invoice.status}</Badge>
+                    <Badge size="sm" variant={invoice.status === 'paid' ? 'success' : 'warning'}>
+                      {invoice.status}
+                    </Badge>
                     {invoice.payUrl && (
                       <a
                         href={invoice.payUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-green-700 hover:underline"
+                        className="p-2 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                        title="Open invoice"
                       >
-                        Open
+                        <ExternalLink className="w-4 h-4" />
                       </a>
                     )}
-                    <Button size="sm" variant="outline" onClick={() => handleRefreshInvoice(invoice.id)}>
-                      Refresh
-                    </Button>
+                    <button 
+                      onClick={() => handleRefreshInvoice(invoice.id)}
+                      className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                      title="Refresh status"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -249,22 +415,57 @@ export default function WalletPage() {
           </Card>
         )}
 
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent activity</h2>
+        {/* Transaction History */}
+        <Card className="p-6 bg-white dark:bg-gray-800">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h2>
+            {data?.transactions?.length > 0 && (
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {data.transactions.length} transaction{data.transactions.length !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
           {data?.transactions?.length ? (
-            <div className="divide-y">
-              {data.transactions.map(t => (
-                <div key={t.id} className="flex justify-between py-2 text-sm">
-                  <div>
-                    <p className="text-gray-900">{t.note || t.type}</p>
-                    <p className="text-xs text-gray-400">{new Date(t.createdAt).toLocaleString('en-IN')}</p>
+            <div className="space-y-3">
+              {data.transactions.map(t => {
+                const style = getTransactionStyle(t.type, t.amount);
+                const Icon = style.icon;
+                return (
+                  <div key={t.id} className="flex items-center gap-4 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${style.bgColor}`}>
+                      <Icon className={`w-5 h-5 ${style.iconColor}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 dark:text-white truncate">
+                        {t.note || t.type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {new Date(t.createdAt).toLocaleString('en-IN', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <p className={`font-semibold ${style.amountColor}`}>
+                      {style.prefix}{money(Math.abs(t.amount), currency)}
+                    </p>
                   </div>
-                  <p className="text-gray-900">{money(t.amount, currency)}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <p className="text-gray-600 text-center py-6">No activity yet</p>
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="font-medium text-gray-900 dark:text-white mb-1">No activity yet</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Your transactions will appear here
+              </p>
+            </div>
           )}
         </Card>
       </div>
