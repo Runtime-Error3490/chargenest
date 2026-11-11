@@ -9,7 +9,7 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
 import WalletBanner from '../components/WalletBanner';
-import { HelpCircle, Wallet, ArrowRight, Sparkles, MapPin, MessageSquare, Calendar, ChevronRight } from 'lucide-react';
+import { HelpCircle, Wallet, ArrowRight, Sparkles, MapPin, MessageSquare, Calendar, ChevronRight, LayoutDashboard, Settings } from 'lucide-react';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -117,7 +117,7 @@ export default function DashboardPage() {
         <WalletBanner />
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Welcome back, {user?.name?.split(' ')[0] || 'Driver'}! 👋
@@ -126,16 +126,10 @@ export default function DashboardPage() {
               Here's what's happening with your EV charging
             </p>
           </div>
-          <div className="flex gap-3">
-            {isHost && (
-              <Button variant="outline" onClick={() => navigate('/host/dashboard')}>
-                Host Dashboard
-              </Button>
-            )}
-            <Button onClick={() => navigate('/search')}>
-              Find Chargers
-            </Button>
-          </div>
+          <Button onClick={() => navigate('/search')}>
+            <MapPin className="w-4 h-4 mr-2" />
+            Find Chargers
+          </Button>
         </div>
 
         {/* New User Onboarding Card */}
@@ -313,18 +307,18 @@ export default function DashboardPage() {
               )}
             </Card>
 
-            {/* Quick Actions */}
+            {/* Quick Actions - Only show useful secondary actions */}
             <Card className="mt-6 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <button
-                  onClick={() => navigate('/search')}
-                  className="p-5 bg-green-50 dark:bg-green-900/30 rounded-xl text-center hover:bg-green-100 dark:hover:bg-green-900/50 transition-all hover:scale-105"
+                  onClick={() => navigate('/chat')}
+                  className="p-5 bg-purple-50 dark:bg-purple-900/30 rounded-xl text-center hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-all hover:scale-105"
                 >
-                  <div className="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <MapPin className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <span className="text-sm font-medium text-green-800 dark:text-green-300">Find Chargers</span>
+                  <span className="text-sm font-medium text-purple-800 dark:text-purple-300">AI Concierge</span>
                 </button>
                 <button
                   onClick={() => navigate('/bookings')}
@@ -336,23 +330,35 @@ export default function DashboardPage() {
                   <span className="text-sm font-medium text-blue-800 dark:text-blue-300">My Bookings</span>
                 </button>
                 <button
-                  onClick={() => navigate('/chat')}
-                  className="p-5 bg-purple-50 dark:bg-purple-900/30 rounded-xl text-center hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-all hover:scale-105"
-                >
-                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-800 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <MessageSquare className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <span className="text-sm font-medium text-purple-800 dark:text-purple-300">AI Concierge</span>
-                </button>
-                <button
                   onClick={() => navigate('/wallet')}
-                  className="p-5 bg-orange-50 dark:bg-orange-900/30 rounded-xl text-center hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all hover:scale-105"
+                  className="p-5 bg-green-50 dark:bg-green-900/30 rounded-xl text-center hover:bg-green-100 dark:hover:bg-green-900/50 transition-all hover:scale-105"
                 >
-                  <div className="w-10 h-10 bg-orange-100 dark:bg-orange-800 rounded-lg flex items-center justify-center mx-auto mb-2">
-                    <Wallet className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-lg flex items-center justify-center mx-auto mb-2">
+                    <Wallet className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
-                  <span className="text-sm font-medium text-orange-800 dark:text-orange-300">Wallet</span>
+                  <span className="text-sm font-medium text-green-800 dark:text-green-300">Wallet</span>
                 </button>
+                {isHost ? (
+                  <button
+                    onClick={() => navigate('/host/dashboard')}
+                    className="p-5 bg-accent-50 dark:bg-accent-900/30 rounded-xl text-center hover:bg-accent-100 dark:hover:bg-accent-900/50 transition-all hover:scale-105"
+                  >
+                    <div className="w-10 h-10 bg-accent-100 dark:bg-accent-800 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <LayoutDashboard className="w-5 h-5 text-accent-600 dark:text-accent-400" />
+                    </div>
+                    <span className="text-sm font-medium text-accent-800 dark:text-accent-300">Host Dashboard</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => navigate('/settings/agent')}
+                    className="p-5 bg-orange-50 dark:bg-orange-900/30 rounded-xl text-center hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-all hover:scale-105"
+                  >
+                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-800 rounded-lg flex items-center justify-center mx-auto mb-2">
+                      <Settings className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <span className="text-sm font-medium text-orange-800 dark:text-orange-300">Agent Settings</span>
+                  </button>
+                )}
               </div>
             </Card>
           </div>

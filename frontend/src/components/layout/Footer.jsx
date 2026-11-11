@@ -85,7 +85,7 @@ export function Footer() {
                       <Link to="/#faq" className="hover:text-white transition-colors">FAQ</Link>
                     </li>
                     <li>
-                      <Link to="/register" className="hover:text-white transition-colors">Become a Host</Link>
+                      <Link to="/#payment-security" className="hover:text-white transition-colors">Payment Security</Link>
                     </li>
                   </ul>
                 </div>
