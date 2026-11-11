@@ -865,7 +865,7 @@ export default function BookingDetailPage() {
               onChange={(e) => setDisputeDescription(e.target.value)}
               rows={4}
               placeholder="Please describe the issue in detail..."
-              className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 p-4"
             />
           </div>
 
@@ -930,7 +930,7 @@ export default function BookingDetailPage() {
               onChange={(e) => setReviewComment(e.target.value)}
               rows={4}
               placeholder="Share your experience..."
-              className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 p-4"
             />
           </div>
 

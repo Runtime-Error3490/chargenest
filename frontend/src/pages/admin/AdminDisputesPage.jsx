@@ -269,7 +269,7 @@ export default function AdminDisputesPage() {
                           onChange={(e) => setResolution(prev => ({ ...prev, adminNotes: e.target.value }))}
                           rows={3}
                           placeholder="Document your reasoning for this decision..."
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
 

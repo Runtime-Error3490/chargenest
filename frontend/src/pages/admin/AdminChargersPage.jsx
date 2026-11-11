@@ -476,7 +476,7 @@ export default function AdminChargersPage() {
                   value={blockReason}
                   onChange={(e) => setBlockReason(e.target.value)}
                   rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-red-500 focus:border-red-500"
                   placeholder="e.g., Low rating, multiple complaints, safety concerns..."
                 />
               </div>
