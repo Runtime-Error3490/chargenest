@@ -239,7 +239,7 @@ function UserList() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+            <div className="flex items-baseline gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
               <Link to="/admin/dashboard" className="hover:text-primary-600">Admin</Link>
               <span>/</span>
               <span>Users</span>
