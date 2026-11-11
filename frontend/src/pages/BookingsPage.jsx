@@ -67,8 +67,8 @@ export default function BookingsPage() {
     return new Date(a.startTime) - new Date(b.startTime);
   });
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-IN', {
+    const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
@@ -190,7 +190,7 @@ export default function BookingsPage() {
 
                       <div className="mt-3 flex items-center justify-between">
                         <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                          ₹{booking.totalAmount?.toFixed(2)}
+                                                    ${booking.totalAmount?.toFixed(2)}
                         </span>
                         
                         {/* Quick Actions */}

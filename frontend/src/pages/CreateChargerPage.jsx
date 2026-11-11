@@ -372,7 +372,7 @@ export default function CreateChargerPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price per Hour (₹) *
+                                        Price per Hour ($) *
                   </label>
                   <Input
                     type="number"
@@ -563,7 +563,7 @@ export default function CreateChargerPage() {
                   </div>
                   <div>
                     <span className="text-gray-500">Price:</span>
-                    <span className="ml-2 font-medium">₹{formData.pricePerHour}/hr</span>
+                                        <span className="ml-2 font-medium">${formData.pricePerHour}/hr</span>
                   </div>
                   <div>
                     <span className="text-gray-500">Platform fee:</span>
@@ -622,10 +622,10 @@ export default function CreateChargerPage() {
               <div className="bg-green-50 rounded-lg p-4">
                 <h4 className="font-medium text-green-900 mb-2">Potential Earnings</h4>
                 <p className="text-sm text-green-800">
-                  At ₹{formData.pricePerHour}/hr with 2 bookings per day:
+                                    At ${formData.pricePerHour}/hr with 2 bookings per day:
                 </p>
                 <p className="text-2xl font-bold text-green-700 mt-1">
-                  ~₹{Math.round(formData.pricePerHour * 4 * 30 * 0.93).toLocaleString()}/month
+                  ~${Math.round(formData.pricePerHour * 4 * 30 * 0.93).toLocaleString()}/month
                 </p>
                 <p className="text-xs text-green-600 mt-1">
                   *After 7% platform fee. Actual earnings depend on demand.

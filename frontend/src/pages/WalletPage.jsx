@@ -6,22 +6,38 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
 import { 
-  Wallet, IndianRupee, CreditCard, Lock, TrendingUp, TrendingDown, 
+  Wallet, DollarSign, CreditCard, Lock, TrendingUp, TrendingDown, 
   Clock, CheckCircle, AlertCircle, XCircle, ArrowUpRight, ArrowDownLeft,
   Plus, RefreshCw, ExternalLink, Info, Sparkles
 } from 'lucide-react';
 
-const TOPUP_PRESETS = [500, 1000, 2500, 5000];
+const TOPUP_PRESETS = [50, 100, 250, 500];
 const TOPUP_MIN = 1;
-const TOPUP_MAX = 100000;
+const TOPUP_MAX = 10000;
 
-const money = (value, currency = 'INR') =>
-  new Intl.NumberFormat('en-IN', { style: 'currency', currency }).format(value || 0);
+const money = (value, currency = 'USD') =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value || 0);
 
 // Get transaction icon and color based on type
+// Debits: hold, payment, fee, withdrawal, debit
+// Credits: top_up, credit, payout_received, refund, release
 const getTransactionStyle = (type, amount) => {
-  const isCredit = amount > 0 || type === 'top_up' || type === 'credit' || type === 'payout_received';
-  if (isCredit) {
+  const typeStr = (type || '').toLowerCase();
+  // Explicit debit types
+  const isDebit = typeStr.includes('hold') || typeStr.includes('held') || 
+                  typeStr.includes('payment') || typeStr.includes('fee') || 
+                  typeStr.includes('withdrawal') || typeStr.includes('debit') ||
+                  typeStr.includes('charge') || typeStr.includes('booking');
+  // Explicit credit types
+  const isCredit = typeStr.includes('top_up') || typeStr.includes('topup') ||
+                   typeStr.includes('credit') || typeStr.includes('payout') ||
+                   typeStr.includes('refund') || typeStr.includes('release') ||
+                   typeStr.includes('earning');
+  
+  // If type doesn't match, fall back to amount sign
+  const showAsCredit = isCredit || (!isDebit && amount > 0);
+  
+  if (showAsCredit) {
     return {
       icon: ArrowDownLeft,
       bgColor: 'bg-green-100 dark:bg-green-900/30',
@@ -51,13 +67,13 @@ export default function WalletPage() {
   const [amount, setAmount] = useState('');
   const [touched, setTouched] = useState(false);
 
-  // Same rules as the backend: 1 to 100000, at most 2 decimals
+  // Same rules as the backend: 1 to 10000, at most 2 decimals
   const amountError = (() => {
     if (amount === '') return null; // Don't show error for empty (handled by disabled button)
     const value = Number(amount);
     if (!Number.isFinite(value)) return 'Enter a valid number';
-    if (value < TOPUP_MIN) return `Minimum is ₹${TOPUP_MIN}`;
-    if (value > TOPUP_MAX) return `Maximum is ₹${TOPUP_MAX.toLocaleString('en-IN')}`;
+    if (value < TOPUP_MIN) return `Minimum is $${TOPUP_MIN}`;
+    if (value > TOPUP_MAX) return `Maximum is $${TOPUP_MAX.toLocaleString('en-US')}`;
     if (!/^\d+(\.\d{1,2})?$/.test(amount)) return 'Max 2 decimal places';
     return null;
   })();
@@ -129,8 +145,8 @@ export default function WalletPage() {
     );
   }
 
-  const wallet = data?.wallet;
-  const currency = wallet?.currency || 'INR';
+    const wallet = data?.wallet;
+  const currency = wallet?.currency || 'USD';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -295,7 +311,7 @@ export default function WalletPage() {
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-102'
                   }`}
                 >
-                  ₹{preset.toLocaleString('en-IN')}
+                  ${preset.toLocaleString('en-US')}
                 </button>
               ))}
             </div>
@@ -308,7 +324,7 @@ export default function WalletPage() {
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-gray-500 dark:text-gray-400 text-lg font-medium">₹</span>
+                                <span className="text-gray-500 dark:text-gray-400 text-lg font-medium">$</span>
               </div>
               <input
                 id="topup-amount"
@@ -344,8 +360,8 @@ export default function WalletPage() {
                 {amountError}
               </p>
             )}
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Min: ₹{TOPUP_MIN} • Max: ₹{TOPUP_MAX.toLocaleString('en-IN')}
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Min: ${TOPUP_MIN} • Max: ${TOPUP_MAX.toLocaleString('en-US')}
             </p>
           </div>
 
@@ -363,7 +379,7 @@ export default function WalletPage() {
             ) : (
               <span className="flex items-center justify-center gap-2">
                 <CreditCard className="w-5 h-5" />
-                {isValidAmount ? `Pay ₹${Number(amount).toLocaleString('en-IN')} with PayPal` : 'Enter amount to continue'}
+                {isValidAmount ? `Pay $${Number(amount).toLocaleString('en-US')} with PayPal` : 'Enter amount to continue'}
               </span>
             )}
           </Button>
@@ -440,7 +456,7 @@ export default function WalletPage() {
                         {t.note || t.type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(t.createdAt).toLocaleString('en-IN', {
+                                                {new Date(t.createdAt).toLocaleString('en-US', {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',

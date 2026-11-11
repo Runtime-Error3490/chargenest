@@ -73,10 +73,10 @@ export default function HostChargersPage() {
     return true;
   });
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
+    const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'INR',
+      currency: 'USD',
       maximumFractionDigits: 0,
     }).format(amount);
   };

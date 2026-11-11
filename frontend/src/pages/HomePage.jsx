@@ -106,7 +106,7 @@ export default function HomePage() {
     {
       icon: MessageSquare,
       title: 'AI That Understands You',
-      description: '"Find a charger near me under ₹300" — our AI concierge handles the rest.',
+            description: '"Find a charger near me under $30" — our AI concierge handles the rest.',
     },
     {
       icon: Lock,
@@ -169,7 +169,7 @@ export default function HomePage() {
     {
       name: 'Rajesh K.',
       role: 'Host, Indiranagar',
-      text: 'Made ₹6,200 last month just from my home charger. The PayPal payouts are automatic — I don\'t have to do anything!',
+            text: 'Made $75 last month just from my home charger. The PayPal payouts are automatic — I don\'t have to do anything!',
       rating: 5,
       avatar: 'RK',
       type: 'host'
@@ -286,7 +286,7 @@ export default function HomePage() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-base mb-1">You</p>
                           <p className="text-base text-primary-100 leading-relaxed">
-                            "Find me a charger near Koramangala, max ₹500"
+                            "Find me a charger near Koramangala, max $50"
                             {showTyping && !showResponse && <span className="typing-cursor" />}
                           </p>
                         </div>
@@ -312,7 +312,7 @@ export default function HomePage() {
                               <p className="text-base text-primary-200 mt-1">HSR Layout • 1.2 km away</p>
                             </div>
                             <div className="text-right flex-shrink-0">
-                              <p className="font-bold text-2xl text-accent-300">₹260</p>
+                                                            <p className="font-bold text-2xl text-accent-300">$26</p>
                               <p className="text-sm text-primary-300">for 2 hours</p>
                             </div>
                           </div>
@@ -534,7 +534,7 @@ export default function HomePage() {
                 For Home Charger Owners
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-                Your Idle Charger Could Earn You ₹5,000–15,000/Month*
+                                Your Idle Charger Could Earn You $60–180/Month*
               </h2>
               <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
                 Your charger sits unused most of the day. Join our beta program, share it with EV owners nearby, and 
@@ -575,7 +575,7 @@ export default function HomePage() {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-primary-100 text-sm">This Month's Earnings</p>
-                      <p className="text-4xl font-bold mt-1">₹8,450</p>
+                                            <p className="text-4xl font-bold mt-1">$102</p>
                     </div>
                     <div className="bg-white/20 px-3 py-1 rounded-full text-sm font-medium">
                       ↑ 23% vs last month

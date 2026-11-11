@@ -84,7 +84,7 @@ export default function AdminDashboardPage() {
           />
           <StatCard
             title="Platform Earnings"
-            value={`₹${overview.platformEarnings.toLocaleString()}`}
+                        value={`$${overview.platformEarnings.toLocaleString()}`}
             icon={DollarSign}
             change={growth.revenue.percentChange}
             changeLabel="vs last month"
@@ -120,19 +120,19 @@ export default function AdminDashboardPage() {
                 <div className="p-6 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-500">This Month</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    ₹{growth.revenue.thisMonth.toLocaleString()}
+                                        ${growth.revenue.thisMonth.toLocaleString()}
                   </p>
                 </div>
                 <div className="p-6 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-500">Last Month</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    ₹{growth.revenue.lastMonth.toLocaleString()}
+                                        ${growth.revenue.lastMonth.toLocaleString()}
                   </p>
                 </div>
                 <div className="p-6 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-500">Total Revenue</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    ₹{overview.totalRevenue.toLocaleString()}
+                                        ${overview.totalRevenue.toLocaleString()}
                   </p>
                 </div>
               </div>

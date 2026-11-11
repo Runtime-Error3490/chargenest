@@ -8,7 +8,7 @@ import { Card, CardBody, Button, Input, Select } from '../../components/ui';
 import api from '../../services/api';
 import { exportToCSV } from '../../utils/export';
 
-const fmtINR = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtUSD = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function UserDetail({ id }) {
   const [user, setUser] = useState(null);
@@ -98,8 +98,8 @@ function UserDetail({ id }) {
               <Stat label="Bookings" value={user.stats.totalBookings} />
               <Stat label="Chargers" value={user.stats.totalChargers} />
               <Stat label="Disputes" value={user.stats.totalDisputes} />
-              <Stat label="Spent" value={fmtINR(user.stats.totalSpent)} />
-              <Stat label="Earned" value={fmtINR(user.stats.totalEarned)} />
+                            <Stat label="Spent" value={fmtUSD(user.stats.totalSpent)} />
+              <Stat label="Earned" value={fmtUSD(user.stats.totalEarned)} />
             </div>
 
             <Card>
@@ -116,7 +116,7 @@ function UserDetail({ id }) {
                           <p className="text-gray-500">{b.date ? new Date(b.date).toLocaleString() : '—'}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{fmtINR(b.amount)}</p>
+                                                    <p className="font-medium">{fmtUSD(b.amount)}</p>
                           <p className="text-gray-500 capitalize">{String(b.status).replace('_', ' ')}</p>
                         </div>
                       </div>

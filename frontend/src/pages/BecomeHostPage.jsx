@@ -102,7 +102,7 @@ export default function BecomeHostPage() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Earn Extra Income</h3>
             <p className="text-gray-600">
-              Hosts earn an average of ₹5,000-15,000 per month by sharing their charger during idle hours.
+                            Hosts earn an average of $60-180 per month by sharing their charger during idle hours.
             </p>
           </Card>
 

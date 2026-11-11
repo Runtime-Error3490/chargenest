@@ -186,8 +186,8 @@ export default function AgentSettingsPage() {
     }
   };
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-IN', {
+    const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'short',
       timeStyle: 'short',
     });
@@ -314,11 +314,11 @@ export default function AgentSettingsPage() {
           <Card className="mb-6 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending Limit</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Most the AI can spend each month. Spent this month: ₹{spentThisMonth.toLocaleString()}. Zero means no limit.
+                            Most the AI can spend each month. Spent this month: ${spentThisMonth.toLocaleString()}. Zero means no limit.
             </p>
             
             <div className="flex items-center gap-4">
-              <span className="text-gray-600">₹</span>
+                            <span className="text-gray-600">$</span>
               <input
                 type="number"
                 value={spendingLimit}
@@ -341,7 +341,7 @@ export default function AgentSettingsPage() {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  ₹{amount.toLocaleString()}
+                                    ${amount.toLocaleString()}
                 </button>
               ))}
             </div>

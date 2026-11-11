@@ -60,8 +60,8 @@ export default function AdminBookingsPage() {
 
   const totalPages = Math.ceil(pagination.total / pagination.limit);
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
+    const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -207,7 +207,7 @@ export default function AdminBookingsPage() {
                             {getStatusBadge(booking.status)}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
-                            ₹{(booking.totalAmount || 0).toLocaleString()}
+                                                        ${(booking.totalAmount || 0).toLocaleString()}
                           </td>
                           <td className="px-4 py-3 text-center">
                             {getPaymentStatusBadge(booking.paymentStatus)}
@@ -296,7 +296,7 @@ export default function AdminBookingsPage() {
                         <CreditCard className="w-3 h-3" /> Amount
                       </label>
                       <p className="text-2xl font-bold text-gray-900">
-                        ₹{(selectedBooking.totalAmount || 0).toLocaleString()}
+                                                ${(selectedBooking.totalAmount || 0).toLocaleString()}
                       </p>
                     </div>
 

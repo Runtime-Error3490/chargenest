@@ -75,17 +75,17 @@ export default function HostBookingsPage() {
     return booking.status === filter;
   });
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-IN', {
+    const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'INR',
+      currency: 'USD',
       maximumFractionDigits: 0,
     }).format(amount);
   };

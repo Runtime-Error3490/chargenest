@@ -194,7 +194,7 @@ export default function AdminDisputesPage() {
                         </div>
                         <div>
                           <span className="text-gray-500">Amount:</span>
-                          <p className="text-gray-900">₹{selectedDispute.booking.totalAmount}</p>
+                                                    <p className="text-gray-900">${selectedDispute.booking.totalAmount}</p>
                         </div>
                         <div>
                           <span className="text-gray-500">Date:</span>
@@ -219,7 +219,7 @@ export default function AdminDisputesPage() {
                         <div className="text-sm text-blue-800">
                           <p><strong>Decision:</strong> {selectedDispute.aiAnalysis.decision.replace('_', ' ')}</p>
                           {selectedDispute.aiAnalysis.refundAmount > 0 && (
-                            <p><strong>Refund Amount:</strong> ₹{selectedDispute.aiAnalysis.refundAmount}</p>
+                                                        <p><strong>Refund Amount:</strong> ${selectedDispute.aiAnalysis.refundAmount}</p>
                           )}
                           <p><strong>Confidence:</strong> {(selectedDispute.aiAnalysis.confidence * 100).toFixed(0)}%</p>
                           {selectedDispute.aiAnalysis.reasoning && (
@@ -251,7 +251,7 @@ export default function AdminDisputesPage() {
 
                       {resolution.decision !== 'release_to_host' && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Refund Amount (₹)</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Refund Amount ($)</label>
                           <input
                             type="number"
                             value={resolution.refundAmount}

@@ -108,7 +108,7 @@ export default function AdminSettingsPage() {
                   description="Minimum amount hosts can withdraw from their earnings"
                   value={editedConfig.minWithdrawalAmount}
                   type="number"
-                  prefix="₹"
+                                    prefix="$"
                   onChange={(val) => setEditedConfig(prev => ({ ...prev, minWithdrawalAmount: parseFloat(val) }))}
                   onSave={() => handleSave('minWithdrawalAmount', editedConfig.minWithdrawalAmount)}
                   saving={saving}

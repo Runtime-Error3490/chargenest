@@ -45,9 +45,9 @@ const STATUS_CONFIG = {
 
 // One plain line about where the money is, from the booking's payment and status
 function describePayment(booking) {
-  const p = booking.payment;
+    const p = booking.payment;
   if (!p?.status) return null;
-  const amount = (n) => `₹${Number(n).toFixed(2)}`;
+  const amount = (n) => `$${Number(n).toFixed(2)}`;
   const green = 'bg-green-50 text-green-800';
   const amber = 'bg-amber-50 text-amber-800';
   const gray = 'bg-gray-100 text-gray-700';
@@ -127,8 +127,8 @@ export default function BookingDetailPage() {
     fetchBooking();
   }, [id, isAuthenticated, navigate]);
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-IN', {
+    const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'full',
       timeStyle: 'short',
     });
@@ -459,17 +459,17 @@ export default function BookingDetailPage() {
             <Card className="p-8">
               <h3 className="font-semibold text-gray-900 mb-4">Payment Summary</h3>
               <div className="space-y-3">
-                <div className="flex justify-between text-sm">
+                                <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Charging fee</span>
-                  <span>₹{(booking.totalAmount * 0.93).toFixed(2)}</span>
+                  <span>${(booking.totalAmount * 0.93).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Platform fee (7%)</span>
-                  <span>₹{(booking.totalAmount * 0.07).toFixed(2)}</span>
+                  <span>${(booking.totalAmount * 0.07).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-lg pt-3 border-t">
                   <span>Total</span>
-                  <span>₹{booking.totalAmount.toFixed(2)}</span>
+                  <span>${booking.totalAmount.toFixed(2)}</span>
                 </div>
               </div>
               
@@ -667,7 +667,7 @@ export default function BookingDetailPage() {
           {getCancellationFee() > 0 && (
             <div className="p-4 bg-yellow-50 rounded-lg">
               <p className="text-yellow-800 font-medium">
-                Cancellation fee: ₹{getCancellationFee().toFixed(2)}
+                                Cancellation fee: ${getCancellationFee().toFixed(2)}
               </p>
               <p className="text-sm text-yellow-700 mt-1">
                 This fee will be deducted from your refund.

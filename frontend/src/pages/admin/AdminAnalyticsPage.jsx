@@ -128,13 +128,13 @@ function RevenueAnalytics({ data }) {
         <Card>
           <CardBody>
             <p className="text-sm text-gray-500">Total Revenue</p>
-            <p className="text-3xl font-bold text-gray-900">₹{summary.totalRevenue.toLocaleString()}</p>
+                        <p className="text-3xl font-bold text-gray-900">${summary.totalRevenue.toLocaleString()}</p>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
             <p className="text-sm text-gray-500">Platform Fees (7%)</p>
-            <p className="text-3xl font-bold text-green-600">₹{summary.totalPlatformFees.toLocaleString()}</p>
+                        <p className="text-3xl font-bold text-green-600">${summary.totalPlatformFees.toLocaleString()}</p>
           </CardBody>
         </Card>
         <Card>
@@ -162,7 +162,7 @@ function RevenueAnalytics({ data }) {
                       style={{ width: `${(item.revenue / maxRevenue) * 100}%`, minWidth: item.revenue > 0 ? '60px' : '0' }}
                     >
                       {item.revenue > 0 && (
-                        <span className="text-xs text-white font-medium">₹{item.revenue.toLocaleString()}</span>
+                                                <span className="text-xs text-white font-medium">${item.revenue.toLocaleString()}</span>
                       )}
                     </div>
                   </div>
@@ -191,7 +191,7 @@ function RevenueAnalytics({ data }) {
                     <span className="font-medium text-gray-900">{host.host.name}</span>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900">₹{host.totalEarnings.toLocaleString()}</p>
+                                        <p className="font-semibold text-gray-900">${host.totalEarnings.toLocaleString()}</p>
                     <p className="text-xs text-gray-500">{host.bookings} bookings</p>
                   </div>
                 </div>
@@ -231,7 +231,7 @@ function GeographicAnalytics({ data }) {
                     <td className="py-3 font-medium text-gray-900">{city.city}</td>
                     <td className="py-3 text-right text-gray-700">{city.chargers}</td>
                     <td className="py-3 text-right text-gray-700">{city.bookings}</td>
-                    <td className="py-3 text-right text-gray-700">₹{city.revenue.toLocaleString()}</td>
+                                        <td className="py-3 text-right text-gray-700">${city.revenue.toLocaleString()}</td>
                     <td className="py-3 text-right">
                       {city.avgRating ? (
                         <span className="flex items-center justify-end gap-1">

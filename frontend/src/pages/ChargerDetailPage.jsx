@@ -294,9 +294,9 @@ export default function ChargerDetailPage() {
                   <div className="text-2xl font-bold text-green-600">{display.powerKw} kW</div>
                   <div className="text-sm text-gray-600">Power Output</div>
                 </div>
-                <div className="text-center p-6 bg-gray-50 rounded-lg">
+                                <div className="text-center p-6 bg-gray-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
-                    {display.hourlyRate ? `₹${display.hourlyRate}/hr` : (display.packages?.[0] ? `₹${display.packages[0].price}` : 'N/A')}
+                    {display.hourlyRate ? `$${display.hourlyRate}/hr` : (display.packages?.[0] ? `$${display.packages[0].price}` : 'N/A')}
                   </div>
                   <div className="text-sm text-gray-600">{display.hourlyRate ? 'Host rate' : 'Starting Price'}</div>
                 </div>
@@ -406,7 +406,7 @@ export default function ChargerDetailPage() {
                     <p className="font-medium text-gray-900">{display.host.name}</p>
                     {display.host.memberSince && (
                       <p className="text-sm text-gray-600">
-                        Member since {new Date(display.host.memberSince).toLocaleDateString('en-IN', { 
+                                                Member since {new Date(display.host.memberSince).toLocaleDateString('en-US', { 
                           month: 'long', 
                           year: 'numeric' 
                         })}
@@ -442,7 +442,7 @@ export default function ChargerDetailPage() {
                     {display.packages?.length > 0 && (
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          {display.hourlyRate ? `Select Duration (₹${display.hourlyRate} per hour)` : 'Select Package'}
+                                                    {display.hourlyRate ? `Select Duration ($${display.hourlyRate} per hour)` : 'Select Package'}
                         </label>
                         <div className="space-y-2">
                           {display.packages.map(pkg => (
@@ -460,8 +460,8 @@ export default function ChargerDetailPage() {
                                   <div className="font-medium">{pkg.name}</div>
                                   <div className="text-xs text-gray-500">{pkg.durationMin} minutes</div>
                                 </div>
-                                <div className="text-lg font-bold text-green-600">
-                                  ₹{pkg.price}
+                                                                <div className="text-lg font-bold text-green-600">
+                                  ${pkg.price}
                                 </div>
                               </div>
                             </button>
@@ -523,17 +523,17 @@ export default function ChargerDetailPage() {
                     {/* Price Breakdown */}
                     {selectedPackage && (
                       <div className="border-t pt-4 mb-4 space-y-2">
-                        <div className="flex justify-between text-sm">
+                                                <div className="flex justify-between text-sm">
                           <span className="text-gray-600">{selectedPackage.name}</span>
-                          <span>₹{pricing.basePrice}</span>
+                          <span>${pricing.basePrice}</span>
                         </div>
-                        <div className="flex justify-between text-sm">
+                                                <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Platform fee (7%)</span>
-                          <span>₹{pricing.platformFee}</span>
+                          <span>${pricing.platformFee}</span>
                         </div>
                         <div className="flex justify-between font-semibold pt-2 border-t">
                           <span>Total</span>
-                          <span>₹{pricing.total}</span>
+                          <span>${pricing.total}</span>
                         </div>
                       </div>
                     )}
@@ -607,7 +607,7 @@ export default function ChargerDetailPage() {
               </div>
               <div className="flex justify-between font-semibold pt-2 border-t mt-2">
                 <span>Total</span>
-                <span>₹{pricing.total}</span>
+                                <span>${pricing.total}</span>
               </div>
             </div>
           </div>

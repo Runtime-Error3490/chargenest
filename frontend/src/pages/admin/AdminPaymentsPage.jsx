@@ -70,8 +70,8 @@ export default function AdminPaymentsPage() {
       'Driver': 'driverName',
       'Host': 'hostName',
       'Charger': 'chargerName',
-      'Amount (₹)': 'amount',
-      'Platform Fee (₹)': 'platformFee',
+            'Amount ($)': 'amount',
+      'Platform Fee ($)': 'platformFee',
       'Status': 'status',
       'PayPal ID': 'paypalOrderId',
     });
@@ -102,26 +102,26 @@ export default function AdminPaymentsPage() {
             <Card>
               <CardBody>
                 <p className="text-sm text-gray-500">Gross Revenue</p>
-                <p className="text-2xl font-bold text-gray-900">₹{summary.grossRevenue.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-gray-900">${summary.grossRevenue.toLocaleString()}</p>
                 <p className="text-xs text-gray-400 mt-1">{summary.transactions} transactions</p>
               </CardBody>
             </Card>
             <Card>
               <CardBody>
                 <p className="text-sm text-gray-500">Platform Fees (7%)</p>
-                <p className="text-2xl font-bold text-green-600">₹{summary.platformFees.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-green-600">${summary.platformFees.toLocaleString()}</p>
               </CardBody>
             </Card>
             <Card>
               <CardBody>
                 <p className="text-sm text-gray-500">Host Payouts</p>
-                <p className="text-2xl font-bold text-blue-600">₹{summary.hostPayouts.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-blue-600">${summary.hostPayouts.toLocaleString()}</p>
               </CardBody>
             </Card>
             <Card>
               <CardBody>
                 <p className="text-sm text-gray-500">Refunds</p>
-                <p className="text-2xl font-bold text-red-600">₹{summary.refunds.amount.toLocaleString()}</p>
+                                <p className="text-2xl font-bold text-red-600">${summary.refunds.amount.toLocaleString()}</p>
                 <p className="text-xs text-gray-400 mt-1">{summary.refunds.count} refunds</p>
               </CardBody>
             </Card>
@@ -190,10 +190,10 @@ export default function AdminPaymentsPage() {
                       <td className="px-6 py-4 text-sm text-gray-900">{payment.host}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{payment.charger}</td>
                       <td className="px-6 py-4 text-sm text-gray-900 text-right font-medium">
-                        ₹{(payment.capturedAmount || payment.authorizedAmount || 0).toLocaleString()}
+                                                ${(payment.capturedAmount || payment.authorizedAmount || 0).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 text-sm text-green-600 text-right">
-                        {payment.platformFee ? `₹${payment.platformFee.toLocaleString()}` : '-'}
+                        {payment.platformFee ? `$${payment.platformFee.toLocaleString()}` : '-'}
                       </td>
                       <td className="px-6 py-4 text-center">
                         {getStatusBadge(payment.status)}

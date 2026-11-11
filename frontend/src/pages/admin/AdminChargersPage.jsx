@@ -384,15 +384,15 @@ export default function AdminChargersPage() {
                       <div className="bg-blue-50 rounded-lg p-3">
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-gray-600">Total Revenue</span>
-                          <span className="font-bold text-blue-700">₹{chargerDetails.revenue.total.toFixed(2)}</span>
+                                                    <span className="font-bold text-blue-700">${chargerDetails.revenue.total.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-gray-600">Platform Fees</span>
-                          <span className="font-medium text-gray-700">₹{chargerDetails.revenue.platformFees.toFixed(2)}</span>
+                          <span className="font-medium text-gray-700">${chargerDetails.revenue.platformFees.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Host Payouts</span>
-                          <span className="font-medium text-gray-700">₹{chargerDetails.revenue.hostPayouts.toFixed(2)}</span>
+                          <span className="font-medium text-gray-700">${chargerDetails.revenue.hostPayouts.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>

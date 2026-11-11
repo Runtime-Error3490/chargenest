@@ -93,8 +93,8 @@ export default function DashboardPage() {
     fetchDashboardData();
   }, [isAuthenticated, navigate, user]);
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-IN', {
+    const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
@@ -200,8 +200,8 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Available Balance</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    ₹{parseFloat(walletBalance.available || 0).toLocaleString()}
+                                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    ${parseFloat(walletBalance.available || walletBalance.spendable || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               </div>
@@ -223,7 +223,7 @@ export default function DashboardPage() {
             <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">Active/Upcoming</div>
           </Card>
           <Card className="text-center p-6 hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate('/wallet')}>
-            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">₹{stats.totalSpent.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">${stats.totalSpent.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400 mt-2">Total Spent</div>
           </Card>
           <Card className="text-center p-6">
@@ -401,7 +401,7 @@ export default function DashboardPage() {
                           {charger.kwTier?.replace('kW', '')} kW
                         </span>
                         <span className="text-sm font-medium text-green-600 dark:text-green-400">
-                          ₹{charger.lowestPrice || charger.packages?.[0]?.price || '--'}/session
+                                                    ${charger.lowestPrice || charger.packages?.[0]?.price || '--'}/session
                         </span>
                       </div>
                     </div>
@@ -488,7 +488,7 @@ export default function DashboardPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-lg">🤖</span>
-                  <span>Try "Find me a charger under ₹300" in AI Concierge</span>
+                                    <span>Try "Find me a charger under $30" in AI Concierge</span>
                 </li>
               </ul>
             </Card>

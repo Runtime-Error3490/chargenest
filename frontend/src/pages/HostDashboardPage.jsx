@@ -82,17 +82,17 @@ export default function HostDashboardPage() {
     fetchHostData();
   }, [isAuthenticated, navigate, user]);
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-IN', {
+    const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'INR',
+      currency: 'USD',
       maximumFractionDigits: 0,
     }).format(amount);
   };
@@ -278,7 +278,7 @@ export default function HostDashboardPage() {
                             {formatDateTime(booking.startTime)}
                           </td>
                           <td className="py-3 font-medium">
-                            ₹{booking.totalAmount?.toFixed(0)}
+                                                        ${booking.totalAmount?.toFixed(0)}
                           </td>
                           <td className="py-3">
                             <Badge

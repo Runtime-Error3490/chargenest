@@ -69,8 +69,8 @@ export default function BookingConfirmPage() {
     authorize();
   }, [booking, id, navigate, searchParams]);
 
-  const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleString('en-IN', {
+    const formatDateTime = (dateString) => {
+    return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
@@ -209,17 +209,17 @@ export default function BookingConfirmPage() {
             
             {/* Price Breakdown */}
             <div className="space-y-3 mb-6">
-              <div className="flex justify-between text-sm">
+                            <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Charging fee</span>
-                <span>₹{(booking.totalAmount * 0.93).toFixed(2)}</span>
+                <span>${(booking.totalAmount * 0.93).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Platform fee (7%)</span>
-                <span>₹{(booking.totalAmount * 0.07).toFixed(2)}</span>
+                <span>${(booking.totalAmount * 0.07).toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-semibold text-lg pt-3 border-t">
                 <span>Total</span>
-                <span>₹{booking.totalAmount.toFixed(2)}</span>
+                <span>${booking.totalAmount.toFixed(2)}</span>
               </div>
             </div>
 

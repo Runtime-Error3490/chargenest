@@ -188,8 +188,8 @@ How can I help you today?`,
     }
   };
 
-  const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString('en-IN', {
+    const formatTime = (date) => {
+    return new Date(date).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
     });

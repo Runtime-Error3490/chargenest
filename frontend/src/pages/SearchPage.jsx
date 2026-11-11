@@ -292,7 +292,7 @@ export default function SearchPage() {
             <NumberFilter
               label="Maximum price per hour"
               placeholder="Max"
-              unit="₹/hr"
+                            unit="$/hr"
               max={10000}
               value={filters.maxPrice}
               onChange={(v) => handleFilterChange('maxPrice', v)}
@@ -394,7 +394,7 @@ export default function SearchPage() {
                               {charger.powerKw} kW
                             </span>
                             <span className="text-sm text-gray-600">
-                              {charger.lowestPrice > 0 ? `₹${charger.lowestPrice}` : 'Free'}
+                                                            {charger.lowestPrice > 0 ? `$${charger.lowestPrice}` : 'Free'}
                               {charger.packages?.[0] && ` / ${charger.packages[0].durationMin}min`}
                             </span>
                             {charger.rating > 0 && (
@@ -477,7 +477,7 @@ export default function SearchPage() {
                       <div className="flex items-center gap-2 mt-2">
                         <span className="font-medium">{charger.powerKw} kW</span>
                         <span className="text-gray-400">•</span>
-                        <span>₹{charger.lowestPrice}</span>
+                                                <span>${charger.lowestPrice}</span>
                       </div>
                       <Button
                         size="sm"
