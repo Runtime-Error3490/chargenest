@@ -525,6 +525,8 @@
 /* Tab container with sliding indicator */
 .tab-slider-container {
   position: relative;
+  min-width: 420px;
+  padding: 0.5rem;
 }
 
 /* The sliding background indicator */
@@ -535,19 +537,18 @@
   border-radius: 0.5rem;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
+  width: calc(50% - 0.5rem);
 }
 
 /* Position for driver tab (left) */
 .tab-slider-indicator.driver {
   left: 0.5rem;
-  width: calc(50% - 0.5rem);
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
 }
 
 /* Position for host tab (right) */
 .tab-slider-indicator.host {
-  left: calc(50% + 0.25rem);
-  width: calc(50% - 0.75rem);
+  left: calc(50%);
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
@@ -584,12 +585,15 @@
   z-index: 1;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
   border-radius: 0.5rem;
   font-weight: 500;
   transition: all 0.3s ease;
   color: #4b5563;
+  width: 50%;
+  min-width: 180px;
 }
 
 .tab-slider-btn.active {

@@ -398,15 +398,9 @@ export default function HomePage() {
             </p>
             
             {/* Toggle Tabs with Sliding Indicator */}
-            <div className="mt-8 inline-flex items-center bg-white dark:bg-gray-700 rounded-xl p-2 shadow-md tab-slider-container relative">
+            <div className="mt-8 inline-flex items-center bg-white dark:bg-gray-700 rounded-xl shadow-md tab-slider-container relative">
               {/* Sliding indicator */}
-              <div 
-                className={`tab-slider-indicator ${activeTab}`}
-                style={{
-                  left: activeTab === 'driver' ? '0.5rem' : 'calc(50% + 0.5rem)',
-                  width: 'calc(50% - 0.57rem)',
-                }}
-              />
+              <div className={`tab-slider-indicator ${activeTab}`} />
               
               <button
                 onClick={() => setActiveTab('driver')}
