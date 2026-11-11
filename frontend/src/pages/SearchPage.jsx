@@ -151,7 +151,7 @@ const POWER_PRESETS = [7, 11, 22, 50];
 
 const AMENITY_ICONS = {
   wifi: Wifi,
-  restroom: () => <span className="text-sm">🚻</span>,
+  restroom: null, // Will use emoji fallback
   cafe: Coffee,
   parking: Car,
   security: Shield,
@@ -363,7 +363,7 @@ export default function SearchPage() {
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
-                    {Icon && (typeof Icon === 'function' ? <Icon className="w-3 h-3" /> : Icon)}
+                    {Icon && <Icon className="w-3 h-3" />}
                     {amenity}
                   </button>
                 );
@@ -413,7 +413,7 @@ export default function SearchPage() {
                           : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
                       }`}
                     >
-                      {Icon && (typeof Icon === 'function' ? <Icon className="w-3 h-3" /> : Icon)}
+                      {Icon && <Icon className="w-3 h-3" />}
                       {amenity}
                     </button>
                   );
@@ -528,7 +528,7 @@ export default function SearchPage() {
                                     key={idx}
                                     className="flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-full capitalize"
                                   >
-                                    {Icon && (typeof Icon === 'function' ? <Icon className="w-3 h-3" /> : Icon)}
+                                    {Icon && <Icon className="w-3 h-3" />}
                                     {amenity}
                                   </span>
                                 );
