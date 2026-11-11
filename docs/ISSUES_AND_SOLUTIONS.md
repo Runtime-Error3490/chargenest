@@ -718,6 +718,20 @@ cd frontend && npm run build
 
 ---
 
+### 37. PayPal Returned to localhost After Deploying to Render
+
+**Problem:** A wallet top-up on Render sent the user back to `http://localhost:5173/wallet`. The return link was built from `FRONTEND_URL`, which defaulted to localhost when unset, so the top-up was never captured.
+
+**Fix:**
+- The site address is now worked out from the request (`getSiteUrl()` in `config/index.js`, set per request by `siteUrlMiddleware`). It uses the browser's `Origin` if it is this server's own address (or any localhost port in development), else the request's host. A foreign Origin is ignored.
+- CORS uses the same rule (`isAllowedOrigin`): the site's own address always passes. No setting is needed.
+- `FRONTEND_URL` is only an override. `RENDER_EXTERNAL_URL` is used when there is no request (background jobs).
+- Used by wallet top-up, booking payment and the agent's booking and top-up tools.
+- `render.yaml` no longer asks for `FRONTEND_URL`. New `SEED_DEMO_DATA=true` makes the container load demo users and chargers on start (the Render database starts empty). Set it to `false` after the first deploy.
+- Tests: `backend/tests/siteUrl.test.js`.
+
+---
+
 ### Debugging Tips
 
 1. **API not responding:** Check if backend is running on port 4000

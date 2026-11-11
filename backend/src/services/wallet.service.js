@@ -1,5 +1,5 @@
 import { prisma } from '../utils/prisma.js';
-import { config } from '../config/index.js';
+import { config, getSiteUrl } from '../config/index.js';
 import { paypalService } from './paypal.service.js';
 import { ValidationError, ForbiddenError, ConflictError } from '../utils/errors.js';
 
@@ -139,7 +139,7 @@ export const walletService = {
   /**
    * Step 1 of a top-up: create a PayPal order the user must approve.
    */
-  async startTopUp(userId, amount, frontendUrl = config.frontendUrl) {
+  async startTopUp(userId, amount, frontendUrl = getSiteUrl()) {
     const value = round2(amount);
     if (!(value > 0)) {
       throw new ValidationError('Top-up amount must be greater than zero');

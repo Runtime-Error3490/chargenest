@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { prisma } from '../utils/prisma.js';
-import { config } from '../config/index.js';
+import { config, getSiteUrl } from '../config/index.js';
 import { aiService } from './ai.service.js';
 import { chargerService, rankChargers } from './charger.service.js';
 import { bookingService } from './booking.service.js';
@@ -444,7 +444,7 @@ async function runTool(agent, userId, toolName, args, mandate = null) {
         mandateId: mandate?.id ?? null,
         bookedByAgent: true,
         fundingSource: 'wallet',
-        frontendUrl: config.frontendUrl,
+        frontendUrl: getSiteUrl(),
       });
 
       if (mandate) {

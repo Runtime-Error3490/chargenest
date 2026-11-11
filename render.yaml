@@ -37,9 +37,7 @@ services:
         generateValue: true
       - key: KYA_KEY_SECRET
         generateValue: true
-      # Your Render URL, e.g. https://chargenest.onrender.com (used for CORS and PayPal return links)
-      - key: FRONTEND_URL
-        sync: false
+      # FRONTEND_URL is not needed: the site address is read from each request.
       # PayPal sandbox (US business app)
       - key: PAYPAL_CLIENT_ID
         sync: false
@@ -49,6 +47,10 @@ services:
         sync: false
       - key: PAYPAL_MODE
         value: sandbox
+      # Loads the demo users and chargers on start (demo_driver@example.com / REDACTED_PASSWORD). It re-creates the demo
+      # bookings every time, so set it to "false" after the first successful deploy.
+      - key: SEED_DEMO_DATA
+        value: "true"
       - key: DEFAULT_CURRENCY
         value: USD
       # AI concierge: "mock" needs no key. Use openrouter or openai and add a key below for a real model.

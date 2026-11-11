@@ -5,7 +5,7 @@ import { bookingService } from '../services/booking.service.js';
 import { validateBody, validateQuery } from '../middleware/validate.js';
 import { authenticate, requireRole } from '../middleware/auth.js';
 import { successResponse, paginatedResponse } from '../utils/apiResponse.js';
-import { config } from '../config/index.js';
+import { getSiteUrl } from '../config/index.js';
 import { createAuditLog, AuditActions } from '../services/audit.service.js';
 
 const router = Router();
@@ -61,7 +61,7 @@ router.post('/', authenticate, requireRole('driver'), validateBody(createBooking
       durationMin: req.body.durationMin,
       scheduledStart: req.body.scheduledStart,
       fundingSource: req.body.fundingSource,
-      frontendUrl: config.frontendUrl,
+      frontendUrl: getSiteUrl(),
     });
 
     // Audit log for booking creation

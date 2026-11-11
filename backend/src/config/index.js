@@ -1,12 +1,58 @@
 import dotenv from 'dotenv';
+import { AsyncLocalStorage } from 'node:async_hooks';
 
 dotenv.config();
+
+// ---------------------------------------------------------------------------
+// Where the website lives, for PayPal return links and CORS.
+//
+// No setting is needed: it is worked out from the request that is being served, so it is right on
+// Render, on a custom domain and on localhost. FRONTEND_URL is only an override (for example when the
+// website and the API are on different addresses in production).
+// ---------------------------------------------------------------------------
+const requestContext = new AsyncLocalStorage();
+const isLocalHost = (host = '') => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/.test(host);
+
+/** The address of the website for the request being served: FRONTEND_URL, else the browser's own origin. */
+export function getSiteUrl() {
+  const explicit = process.env.FRONTEND_URL;
+  if (explicit) return explicit.replace(/\/+$/, '');
+
+  const ctx = requestContext.getStore();
+  if (ctx) {
+    // A browser sets Origin itself, so a visitor cannot make it point somewhere else.
+    // In production it must be this server's own address; in development any localhost port is fine
+    // (the Vite dev server runs on its own port).
+    const originHost = ctx.origin ? new URL(ctx.origin).host : null;
+    if (originHost && (originHost === ctx.host || (process.env.NODE_ENV !== 'production' && isLocalHost(originHost)))) {
+      return ctx.origin.replace(/\/+$/, '');
+    }
+    return `${ctx.protocol}://${ctx.host}`;
+  }
+  return (process.env.RENDER_EXTERNAL_URL || 'http://localhost:5173').replace(/\/+$/, '');
+}
+
+/** Express middleware: remembers the request's address so getSiteUrl() works anywhere below it. */
+export function siteUrlMiddleware(req, res, next) {
+  requestContext.run({ origin: req.get('origin'), host: req.get('host'), protocol: req.protocol }, next);
+}
+
+/** CORS check: the website's own address always passes, plus FRONTEND_URL, plus localhost in development. */
+export function isAllowedOrigin(origin, host) {
+  if (!origin) return true;
+  let originHost;
+  try { originHost = new URL(origin).host; } catch { return false; }
+  if (originHost === host) return true;
+  if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL.replace(/\/+$/, '')) return true;
+  return process.env.NODE_ENV !== 'production' && isLocalHost(originHost);
+}
 
 export const config = {
   // Server
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3001', 10),
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  // Fallback when there is no request (background jobs). Normally use getSiteUrl() instead.
+  frontendUrl: (process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:5173').replace(/\/+$/, ''),
 
   // Database
   databaseUrl: process.env.DATABASE_URL,

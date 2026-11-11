@@ -165,8 +165,10 @@ Concierge replies stream to the chat page. Set `AI_STREAMING=false` (backend) or
 `VITE_AI_STREAMING=false` (frontend) to switch that off.
 
 **Host on Render:** `render.yaml` is a Blueprint for the Docker web service plus a Postgres database.
-Render > New > Blueprint, pick the repo, then fill the secret values it asks for (`FRONTEND_URL`,
-PayPal keys, an AI key). The device mock is always off in production.
+Render > New > Blueprint, pick the repo, then fill the secret values it asks for (PayPal keys, an AI key).
+No site address setting is needed: PayPal return links and CORS use the address the browser called.
+`FRONTEND_URL` is only an override. `SEED_DEMO_DATA=true` loads the demo users on start; set it to
+`false` after the first deploy. The device mock is always off in production.
 
 `./setup.sh` is an alternative that uses its own database name (`evcharge`).
 

@@ -5,7 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 
-import { config, validateConfig } from './config/index.js';
+import { config, validateConfig, isAllowedOrigin, siteUrlMiddleware } from './config/index.js';
 import { prisma } from './utils/prisma.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -48,13 +48,14 @@ if (process.env.TRUST_PROXY) {
 // so helmet's default CSP is turned off only when this server also serves the frontend.
 app.use(helmet(serveFrontend ? { contentSecurityPolicy: false } : undefined));
 
-// CORS
-app.use(cors({
-  origin: config.frontendUrl,
+// CORS: the website's own address is always allowed, so no setting is needed
+app.use((req, res, next) => cors({
+  origin: (origin, cb) => cb(null, isAllowedOrigin(origin, req.get('host')) ? (origin || true) : false),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+})(req, res, next));
+app.use(siteUrlMiddleware);
 
 // Rate limiting (relaxed for development)
 const limiter = rateLimit({
