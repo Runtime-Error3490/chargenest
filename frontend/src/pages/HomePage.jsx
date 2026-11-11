@@ -85,7 +85,8 @@ export default function HomePage() {
   }, [hash]);
 
   // Redirect logged-in users to appropriate dashboard
-  if (isAuthenticated) {
+  // BUT if they came with a hash (like /#how-it-works), let them see the page
+  if (isAuthenticated && !hash) {
     if (hasRole('admin')) {
       return <Navigate to="/admin/dashboard" replace />;
     }
