@@ -896,56 +896,78 @@ export default function BookingDetailPage() {
       <Modal
         isOpen={showReviewModal}
         onClose={() => setShowReviewModal(false)}
-        title={reviewLabel}
+        title=""
       >
-        <div className="space-y-4">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="text-center">
+            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-yellow-500/25">
+              <Star className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">{reviewLabel}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Your feedback helps our community!</p>
+          </div>
+
           {reviewError && (
-            <p className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded-lg" role="alert">{reviewError}</p>
+            <p className="p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded-xl border border-red-200 dark:border-red-800" role="alert">{reviewError}</p>
           )}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Rating
+          
+          {/* Star Rating */}
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 text-center">
+              How was your experience?
             </label>
-            <div className="flex gap-2">
+            <div className="flex justify-center gap-3">
               {[1, 2, 3, 4, 5].map(star => (
                 <button
                   key={star}
                   onClick={() => setReviewRating(star)}
-                  className={`text-3xl transition-colors ${
-                    star <= reviewRating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'
+                  className={`text-4xl transition-all duration-200 hover:scale-110 ${
+                    star <= reviewRating 
+                      ? 'text-yellow-400 drop-shadow-lg' 
+                      : 'text-gray-300 dark:text-gray-600 hover:text-yellow-300'
                   }`}
                 >
                   ★
                 </button>
               ))}
             </div>
+            <p className="text-center mt-3 text-sm font-medium text-gray-600 dark:text-gray-400">
+              {reviewRating === 0 && 'Tap a star to rate'}
+              {reviewRating === 1 && 'Poor 😞'}
+              {reviewRating === 2 && 'Fair 😐'}
+              {reviewRating === 3 && 'Good 🙂'}
+              {reviewRating === 4 && 'Great 😊'}
+              {reviewRating === 5 && 'Excellent! 🤩'}
+            </p>
           </div>
 
+          {/* Comment */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Comment (optional)
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Share your experience (optional)
             </label>
             <textarea
               value={reviewComment}
               onChange={(e) => setReviewComment(e.target.value)}
               rows={4}
-              placeholder="Share your experience..."
-              className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 p-4"
+              placeholder="What did you like? What could be improved?"
+              className="w-full rounded-xl border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 p-4"
             />
           </div>
 
           <div className="flex gap-3">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 dark:border-gray-600 dark:text-gray-300"
               onClick={() => setShowReviewModal(false)}
             >
               Cancel
             </Button>
             <Button
-              className="flex-1"
+              className="flex-1 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 shadow-lg shadow-yellow-500/25"
               onClick={handleReview}
-              disabled={actionLoading}
+              disabled={actionLoading || reviewRating === 0}
             >
               {actionLoading ? <Loading size="sm" /> : 'Submit Review'}
             </Button>

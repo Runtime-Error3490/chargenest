@@ -12,6 +12,7 @@ import Loading from '../components/ui/Loading';
 import Modal from '../components/ui/Modal';
 import StarRating from '../components/ui/StarRating';
 import ImageCarousel from '../components/ui/ImageCarousel';
+import { Star, MessageSquare } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers
@@ -359,33 +360,74 @@ export default function ChargerDetailPage() {
             </Card>
 
             {/* Reviews */}
-            <Card className="p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">
-                Reviews ({display.reviews?.length || 0})
-              </h3>
+            <Card className="p-6 dark:bg-gray-800">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center">
+                    <Star className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">
+                      Reviews
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {display.reviews?.length || 0} reviews from drivers
+                    </p>
+                  </div>
+                </div>
+                {display.rating > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                    <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                    <span className="font-bold text-yellow-700 dark:text-yellow-400">
+                      {display.rating.toFixed(1)}
+                    </span>
+                  </div>
+                )}
+              </div>
               {!display.reviews?.length ? (
-                <p className="text-gray-600 text-center py-8">No reviews yet</p>
+                <div className="text-center py-10">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <MessageSquare className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">No reviews yet</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Be the first to review this charger!</p>
+                </div>
               ) : (
                 <div className="space-y-4">
                   {display.reviews.map((review, idx) => (
-                    <div key={idx} className="border-b pb-4 last:border-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                            <span className="text-green-700 font-medium">
+                    <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
+                            <span className="text-white font-semibold">
                               {review.driver?.name?.[0] || 'U'}
                             </span>
                           </div>
-                          <span className="font-medium">{review.driver?.name || 'Anonymous'}</span>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {review.driver?.name || 'Anonymous'}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {new Date(review.createdAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </p>
+                          </div>
                         </div>
-                        <StarRating rating={review.rating} size="sm" readonly />
+                        <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                          <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
+                            {review.rating}
+                          </span>
+                        </div>
                       </div>
                       {review.reviewText && (
-                        <p className="text-gray-600">{review.reviewText}</p>
+                        <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">
+                          "{review.reviewText}"
+                        </p>
                       )}
-                      <p className="text-xs text-gray-400 mt-2">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </p>
                     </div>
                   ))}
                 </div>
