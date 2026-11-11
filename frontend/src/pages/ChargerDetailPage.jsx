@@ -12,7 +12,7 @@ import Loading from '../components/ui/Loading';
 import Modal from '../components/ui/Modal';
 import StarRating from '../components/ui/StarRating';
 import ImageCarousel from '../components/ui/ImageCarousel';
-import { Star, MessageSquare } from 'lucide-react';
+import { Star, MessageSquare, Calendar, Clock, FileText, AlertTriangle, Zap } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default markers
@@ -607,74 +607,112 @@ export default function ChargerDetailPage() {
           setShowBookingModal(false);
           setBookingError(null);
         }}
-        title="Book Charging Session"
+        title=""
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
-            </label>
-            <input
-              type="date"
-              min={getMinDate()}
-              max={getMaxDate()}
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-            />
+        <div className="space-y-5">
+          {/* Header */}
+          <div className="text-center pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-green-500/25">
+              <Zap className="w-7 h-7 text-white" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Book Charging Session</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{display.name}</p>
           </div>
 
+          {/* Date Picker */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Time
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <span className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-green-500" />
+                Select Date
+              </span>
             </label>
-            <input
-              type="time"
-              value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-            />
+            <div className="relative">
+              <input
+                type="date"
+                min={getMinDate()}
+                max={getMaxDate()}
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 p-4 text-lg font-medium cursor-pointer hover:border-green-400 transition-colors"
+              />
+            </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h4 className="font-medium mb-2">Booking Summary</h4>
-            <div className="text-sm space-y-1">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Charger</span>
-                <span>{display.name}</span>
+          {/* Time Picker */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <span className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-500" />
+                Select Start Time
+              </span>
+            </label>
+            <div className="relative">
+              <input
+                type="time"
+                value={selectedTime}
+                onChange={(e) => setSelectedTime(e.target.value)}
+                className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 focus:ring-green-500 p-4 text-lg font-medium cursor-pointer hover:border-green-400 transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Booking Summary */}
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-600">
+            <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-500" />
+              Booking Summary
+            </h4>
+            <div className="text-sm space-y-2">
+              <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                <span className="text-gray-500 dark:text-gray-400">Package</span>
+                <span className="font-medium text-gray-900 dark:text-white">{selectedPackage?.name} ({selectedPackage?.durationMin} min)</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Package</span>
-                <span>{selectedPackage?.name} ({selectedPackage?.durationMin} min)</span>
-              </div>
-              <div className="flex justify-between font-semibold pt-2 border-t mt-2">
-                <span>Total</span>
-                                <span>${pricing.total}</span>
+              {selectedDate && (
+                <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                  <span className="text-gray-500 dark:text-gray-400">Date</span>
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+              )}
+              {selectedTime && (
+                <div className="flex justify-between py-2 border-b border-gray-200 dark:border-gray-600">
+                  <span className="text-gray-500 dark:text-gray-400">Time</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{selectedTime}</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-3 mt-2">
+                <span className="font-semibold text-gray-900 dark:text-white">Total</span>
+                <span className="text-xl font-bold text-green-600 dark:text-green-400">${pricing.total}</span>
               </div>
             </div>
           </div>
 
           {bookingError && (
-            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-              {bookingError}
-              {needsWallet && (
-                <button onClick={() => navigate('/wallet')} className="ml-2 font-medium underline">
-                  Add money
-                </button>
-              )}
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl text-sm flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                {bookingError}
+                {needsWallet && (
+                  <button onClick={() => navigate('/wallet')} className="ml-2 font-medium underline">
+                    Add money
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 dark:border-gray-600 dark:text-gray-300"
               onClick={() => setShowBookingModal(false)}
             >
               Cancel
             </Button>
             <Button
-              className="flex-1"
+              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25"
               onClick={handleBooking}
               disabled={bookingLoading || !selectedDate || !selectedTime}
             >
