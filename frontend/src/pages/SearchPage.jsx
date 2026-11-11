@@ -26,7 +26,6 @@ import {
   Filter,
   SlidersHorizontal,
   ChevronRight,
-  Plug,
   DollarSign,
   Gauge,
   Sparkles
@@ -113,10 +112,9 @@ function FilterInput({ label, value, onChange, placeholder, unit, icon: Icon, mi
         className={`
           flex items-center gap-2 rounded-xl px-3 h-11 transition-all duration-200
           ${hasValue 
-            ? `bg-gradient-to-r ${gradient} text-white shadow-md` 
-            : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500'
+            ? `bg-gradient-to-r ${gradient} text-white shadow-md border-0` 
+            : `bg-white dark:bg-gray-800 border-2 ${isFocused ? 'border-green-500 dark:border-green-400 shadow-md shadow-green-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-green-400 dark:hover:border-green-500'}`
           }
-          ${isFocused && !hasValue ? 'border-green-500 dark:border-green-400 shadow-md shadow-green-500/20' : ''}
           ${hint ? 'border-red-400 dark:border-red-500' : ''}
         `}
       >
@@ -322,42 +320,18 @@ export default function SearchPage() {
               </div>
             </div>
 
-            {/* Connector Type - Enhanced */}
-            <div className="flex-shrink-0">
-              <div className={`
-                flex items-center gap-2 rounded-xl px-3 h-11 transition-all duration-200 cursor-pointer
-                ${filters.connectorType 
-                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
-                  : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 hover:border-purple-400'
-                }
-              `}>
-                <Plug className={`w-4 h-4 ${filters.connectorType ? 'text-white/80' : 'text-gray-400'}`} />
-                <select
-                  value={filters.connectorType}
-                  onChange={(e) => handleFilterChange('connectorType', e.target.value)}
-                  className={`
-                    bg-transparent text-sm font-medium outline-none border-0 cursor-pointer appearance-none pr-6
-                    ${filters.connectorType 
-                      ? 'text-white' 
-                      : 'text-gray-700 dark:text-gray-300'
-                    }
-                  `}
-                  style={{ backgroundImage: 'none' }}
-                >
-                  <option value="" className="text-gray-900">All Plugs</option>
-                  {connectorTypes.map(type => (
-                    <option key={type} value={type} className="text-gray-900">{type}</option>
-                  ))}
-                </select>
-                {filters.connectorType && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleFilterChange('connectorType', ''); }}
-                    className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
-                  >
-                    <X className="w-3 h-3 text-white" />
-                  </button>
-                )}
-              </div>
+            {/* Connector Type - Using Select component */}
+            <div className="flex-shrink-0 w-44">
+              <Select
+                value={filters.connectorType}
+                onChange={(value) => handleFilterChange('connectorType', value)}
+                placeholder="All Connectors"
+                options={[
+                  { value: '', label: 'All Connectors' },
+                  ...connectorTypes.map(type => ({ value: type, label: type }))
+                ]}
+                size="sm"
+              />
             </div>
 
             {/* Min Power - Enhanced */}
