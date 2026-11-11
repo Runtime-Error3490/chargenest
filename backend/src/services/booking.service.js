@@ -767,6 +767,8 @@ export const bookingService = {
         capturedAmount: booking.payment?.capturedAmount ? parseFloat(booking.payment.capturedAmount) : null,
       },
       hasDispute: !!booking.dispute,
+      // Lets the page show the device simulator (demo tool) when the backend has it turned on
+      deviceMock: config.device.mock,
       isDriver,
       isHost,
       createdAt: booking.createdAt,

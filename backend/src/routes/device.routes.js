@@ -53,7 +53,7 @@ router.post('/register', authenticate, validateBody(registerSchema), async (req,
 
 /**
  * POST /api/device/mock/simulate
- * Plays a device scenario for a booking. Only when DEVICE_MOCK=true (never in production).
+ * Plays a device scenario for a booking. Only when DEVICE_MOCK=true (in production also needs DEMO_MODE=true).
  */
 router.post('/mock/simulate', authenticate, validateBody(simulateSchema), async (req, res, next) => {
   try {

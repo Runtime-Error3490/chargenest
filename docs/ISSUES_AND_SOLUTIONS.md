@@ -732,6 +732,18 @@ cd frontend && npm run build
 
 ---
 
+### 38. Hosted Demo Could Not Finish a Booking or Show Payment Status
+
+**Problem:** On Render a booking stayed "Confirmed" forever. The booking page showed only the amounts, never whether the payment was held or paid. The device simulator card was dev-server only, and the backend forced the mock off in production.
+
+**Fix:**
+- The booking page has a payment line from the booking's payment: held, paid, partly refunded, refunded or failed (`describePayment()` in `BookingDetailPage.jsx`).
+- `DEMO_MODE=true` (with `DEVICE_MOCK=true`) turns the device mock on in production. It is set in `render.yaml` and off by default. With it on, any logged-in driver can settle their own booking, so remove both for a real launch.
+- The booking API returns `deviceMock`, and the page shows the simulator card from it, so no frontend setting is needed.
+- Not fixed: the old Start Charging and End Session buttons still check `confirmed` and `active`, which the backend never sends.
+
+---
+
 ### Debugging Tips
 
 1. **API not responding:** Check if backend is running on port 4000

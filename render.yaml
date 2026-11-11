@@ -62,6 +62,11 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      # Note: the device mock is always off when NODE_ENV=production.
+      # Device simulator on the booking page, so a hosted demo can finish a booking without hardware.
+      # Without DEMO_MODE the mock stays off in production. Remove both for a real launch.
+      - key: DEVICE_MOCK
+        value: "true"
+      - key: DEMO_MODE
+        value: "true"
       - key: WALLET_MOCK_CREDIT
         value: "0"

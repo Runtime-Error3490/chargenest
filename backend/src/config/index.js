@@ -144,8 +144,9 @@ export const config = {
 
   // Charger hardware that proves sessions with signed events
   device: {
-    // Mock endpoint that plays a device (never active in production)
-    mock: process.env.DEVICE_MOCK === 'true' && process.env.NODE_ENV !== 'production',
+    // Mock endpoint that plays a device. Never active in production, unless DEMO_MODE=true is set on purpose
+    // (a hosted demo with no real hardware): then anyone logged in can settle their own booking.
+    mock: process.env.DEVICE_MOCK === 'true' && (process.env.NODE_ENV !== 'production' || process.env.DEMO_MODE === 'true'),
     // A session shorter than this counts as failed (full refund)
     minSessionMinutes: parseFloat(process.env.MIN_SESSION_MINUTES || '5'),
     // Energy below this over a long enough session counts as a meter fault (full refund)

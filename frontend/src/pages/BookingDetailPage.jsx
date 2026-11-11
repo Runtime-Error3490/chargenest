@@ -43,6 +43,31 @@ const STATUS_CONFIG = {
   disputed: { label: 'Disputed', variant: 'warning', color: 'orange' },
 };
 
+// One plain line about where the money is, from the booking's payment and status
+function describePayment(booking) {
+  const p = booking.payment;
+  if (!p?.status) return null;
+  const amount = (n) => `₹${Number(n).toFixed(2)}`;
+  const green = 'bg-green-50 text-green-800';
+  const amber = 'bg-amber-50 text-amber-800';
+  const gray = 'bg-gray-100 text-gray-700';
+  switch (p.status) {
+    case 'authorized':
+      return { label: `Payment held: ${amount(p.authorizedAmount ?? booking.totalAmount)}`, detail: 'Taken from your wallet and kept safe. It is paid to the host when the session is done.', className: amber };
+    case 'captured':
+      return { label: `Paid: ${amount(p.capturedAmount ?? booking.totalAmount)}`, detail: 'The session is complete and the host has been paid.', className: green };
+    case 'partially_refunded':
+      return { label: `Paid ${amount(p.capturedAmount)}, rest refunded`, detail: 'The unused part went back to your wallet.', className: green };
+    case 'refunded':
+    case 'voided':
+      return { label: 'Refunded', detail: 'The held amount went back to your wallet.', className: gray };
+    case 'failed':
+      return { label: 'Payment failed', detail: null, className: 'bg-red-50 text-red-800' };
+    default:
+      return { label: 'Waiting for payment', detail: null, className: amber };
+  }
+}
+
 const DEVICE_SCENARIOS = [
   { value: 'success', label: 'Success: unlock, charge, end' },
   { value: 'short_session', label: 'Too short: ends after 1 minute' },
@@ -267,6 +292,7 @@ export default function BookingDetailPage() {
   const statusConfig = STATUS_CONFIG[booking.status] || STATUS_CONFIG.pending;
   const timeUntilStart = getTimeUntilStart();
   const isUpcoming = booking.status === 'confirmed' && timeUntilStart;
+  const paymentLine = describePayment(booking);
   const canCancel = ['pending', 'confirmed'].includes(booking.status);
   const canStartSession = booking.status === 'confirmed' && !timeUntilStart;
   const canEndSession = booking.status === 'active';
@@ -447,6 +473,13 @@ export default function BookingDetailPage() {
                 </div>
               </div>
               
+              {paymentLine && (
+                <div className={`mt-4 rounded-lg px-3 py-2 text-sm ${paymentLine.className}`} role="status">
+                  <span className="font-medium">{paymentLine.label}</span>
+                  {paymentLine.detail && <span className="block text-xs opacity-80">{paymentLine.detail}</span>}
+                </div>
+              )}
+
               {booking.status === 'pending' && (
                 <Button
                   className="w-full mt-4"
@@ -457,8 +490,8 @@ export default function BookingDetailPage() {
               )}
             </Card>
 
-            {/* Demo only: plays the charger hardware (backend needs DEVICE_MOCK=true) */}
-            {import.meta.env.DEV && booking.status === 'authorized' && (
+            {/* Demo only: plays the charger hardware. Shown when the backend has DEVICE_MOCK on (and DEMO_MODE in production) */}
+            {booking.deviceMock && booking.status === 'authorized' && (
               <Card className="p-8 border-dashed">
                 <h3 className="font-semibold text-gray-900 mb-1">Simulate charger device</h3>
                 <p className="text-sm text-gray-500 mb-4">
@@ -480,7 +513,7 @@ export default function BookingDetailPage() {
               </Card>
             )}
 
-            {import.meta.env.DEV && simResult && (
+            {booking.deviceMock && simResult && (
               <Card className="p-8">
                 <h3 className="font-semibold text-gray-900 mb-2">Device result: {simResult.scenario}</h3>
                 <ul className="text-sm text-gray-700 space-y-1">

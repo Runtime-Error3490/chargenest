@@ -221,7 +221,7 @@ export const deviceService = {
    * hardware uses. Never available in production.
    */
   async simulate(userId, { bookingId, scenario, durationMin, energyKwh }) {
-    if (!config.device.mock) throw new ForbiddenError('Device mock is off. Set DEVICE_MOCK=true');
+    if (!config.device.mock) throw new ForbiddenError('Device mock is off. Set DEVICE_MOCK=true (and DEMO_MODE=true in production)');
 
     const booking = await prisma.booking.findUnique({ where: { id: bookingId }, include: bookingInclude });
     if (!booking) throw new NotFoundError('Booking');
