@@ -22,6 +22,7 @@ import agentRoutes from './routes/agent.routes.js';
 import webhookRoutes from './routes/webhook.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import deviceRoutes from './routes/device.routes.js';
+import publicRoutes from './routes/public.routes.js';
 import { startJobs } from './services/device.service.js';
 
 // Validate configuration
@@ -108,6 +109,7 @@ app.use('/uploads', (req, res, next) => {
 }, express.static(UPLOAD_ROOT, { maxAge: '7d', index: false }));
 
 // API routes
+app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/chargers', chargerRoutes);

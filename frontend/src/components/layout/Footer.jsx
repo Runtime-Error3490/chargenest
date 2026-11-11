@@ -129,7 +129,13 @@ export function Footer() {
                     <Link to="/#how-it-works" className="hover:text-white transition-colors">How It Works</Link>
                   </li>
                   <li>
-                    <Link to="/host/register" className="hover:text-white transition-colors">Become a Host</Link>
+                    <Link to="/#payment-security" className="hover:text-white transition-colors">Payment Security</Link>
+                  </li>
+                  <li>
+                    <Link to="/#faq" className="hover:text-white transition-colors">FAQ</Link>
+                  </li>
+                  <li>
+                    <Link to="/register" className="hover:text-white transition-colors">Become a Host</Link>
                   </li>
                 </ul>
               </div>
@@ -139,21 +145,17 @@ export function Footer() {
 
         {/* Bottom Section */}
         <div className="border-t border-gray-800 mt-8 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex flex-col md:flex-row items-center gap-4 text-sm text-gray-500">
-              <p>© 2026 ChargeNest. Built for PayPal AI Hackathon.</p>
-              <div className="flex gap-4">
-                <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-                <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
-                <Link to="/host-policy" className="hover:text-white transition-colors">Host Policy</Link>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-gray-500">Built by:</span>
-              <Link to="/team" className="text-gray-300 hover:text-white transition-colors">
-                Nandini A Choukimath & Shaleen Shukla
-              </Link>
-            </div>
+          <div className="flex flex-wrap items-center justify-start gap-x-6 gap-y-2 text-sm text-gray-500">
+            <span>© 2026 ChargeNest. Built for PayPal AI Hackathon.</span>
+            <span className="flex items-center gap-4">
+              <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+              <Link to="/host-policy" className="hover:text-white transition-colors">Host Policy</Link>
+            </span>
+            <span className="flex items-center gap-2 ml-auto">
+              <span>Built by:</span>
+              <Link to="/team" className="text-gray-300 hover:text-white transition-colors">Nandini A Choukimath & Shaleen Shukla</Link>
+            </span>
           </div>
         </div>
       </div>

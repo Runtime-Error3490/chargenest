@@ -2,10 +2,58 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles */
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  @apply bg-gray-50 text-gray-900;
+/* ===========================================
+   CUSTOM BASE STYLES - HCI Optimized
+   =========================================== */
+
+@layer base {
+  /* Better default font sizing for readability */
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+    @apply bg-gray-50 text-gray-900;
+  }
+  
+  /* Improved heading hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 700;
+  }
+  
+  h1 { @apply text-4xl md:text-5xl; }
+  h2 { @apply text-3xl md:text-4xl; }
+  h3 { @apply text-2xl md:text-3xl; }
+  h4 { @apply text-xl md:text-2xl; }
+  
+  /* Better paragraph spacing */
+  p {
+    @apply leading-relaxed;
+  }
+  
+  /* Focus states for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2;
+  }
+  
+  /* Ensure minimum touch target size (44x44px per WCAG) */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Inline links don't need min size */
+  p a, span a, li a {
+    min-height: auto;
+    min-width: auto;
+  }
 }
 
 /* Leaflet map fixes */
@@ -33,12 +81,15 @@ body {
   @apply bg-gray-400;
 }
 
-/* Form input styles */
+/* ===========================================
+   COMPONENT STYLES
+   =========================================== */
+
 @layer components {
   .input {
-    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg 
+    @apply w-full px-4 py-3 text-base border border-gray-300 rounded-xl 
            focus:ring-2 focus:ring-primary-500 focus:border-primary-500 
-           outline-none transition-all;
+           outline-none transition-all placeholder:text-gray-400;
   }
 
   .input-error {
@@ -46,15 +97,18 @@ body {
   }
 
   .btn {
-    @apply px-4 py-2.5 rounded-lg font-medium transition-all 
+    @apply px-5 py-3 rounded-xl font-semibold 
            inline-flex items-center justify-center gap-2
            disabled:opacity-50 disabled:cursor-not-allowed
-           whitespace-nowrap;
+           whitespace-nowrap text-base
+           transition-all duration-300 ease-out
+           hover:-translate-y-0.5 hover:shadow-lg
+           active:translate-y-0 active:shadow-md;
   }
 
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 
-           active:bg-primary-800;
+    @apply bg-primary-600 text-white hover:bg-primary-500 
+           active:bg-primary-700 shadow-md;
   }
 
   .btn-secondary {
@@ -63,22 +117,22 @@ body {
   }
 
   .btn-outline {
-    @apply border border-gray-300 text-gray-700 hover:bg-gray-50 
+    @apply border-2 border-gray-300 text-gray-700 hover:bg-gray-50 
            active:bg-gray-100;
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700 
-           active:bg-red-800;
+    @apply bg-red-600 text-white hover:bg-red-500 
+           active:bg-red-700;
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100;
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100;
   }
 
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full 
-           text-xs font-medium;
+    @apply inline-flex items-center px-3 py-1 rounded-full 
+           text-sm font-medium;
   }
 
   .badge-green {
@@ -100,6 +154,16 @@ body {
   .badge-gray {
     @apply bg-gray-100 text-gray-800;
   }
+  
+  /* Section spacing utility */
+  .section {
+    @apply py-16 md:py-24;
+  }
+  
+  /* Container utility */
+  .container-narrow {
+    @apply max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
 }
 
 /* Loading spinner */
@@ -110,7 +174,7 @@ body {
 
 /* Chat message styles */
 .chat-message {
-  @apply max-w-[80%] rounded-2xl px-4 py-2;
+  @apply max-w-[80%] rounded-2xl px-4 py-3;
 }
 
 .chat-message-user {
@@ -141,23 +205,25 @@ body {
    when <html class="dark"> is set. .dark .x beats .x on specificity.
    =========================================== */
 .dark { color-scheme: dark; }
-.dark body { background-color: #0b1120; color: #e5e7eb; }
+.dark body { background-color: #0a0f1a; color: #e5e7eb; }
 
 /* Surfaces */
 .dark .bg-white { background-color: #111827; }
-.dark .bg-gray-50 { background-color: #0b1120; }
+.dark .bg-gray-50 { background-color: #0a0f1a; }
 .dark .bg-gray-100 { background-color: #1f2937; }
 .dark .bg-gray-200 { background-color: #374151; }
+.dark .bg-gray-900 { background-color: #030712; }
 .dark .hover\:bg-gray-50:hover,
 .dark .hover\:bg-gray-100:hover { background-color: #1f2937; }
 .dark .hover\:bg-gray-200:hover { background-color: #374151; }
 
-/* Text */
+/* Text - improved contrast for dark mode */
 .dark .text-gray-900,
-.dark .text-gray-800 { color: #f3f4f6; }
-.dark .text-gray-700 { color: #d1d5db; }
-.dark .text-gray-600 { color: #9ca3af; }
+.dark .text-gray-800 { color: #f9fafb; }
+.dark .text-gray-700 { color: #e5e7eb; }
+.dark .text-gray-600 { color: #d1d5db; }
 .dark .text-gray-500 { color: #9ca3af; }
+.dark .text-gray-400 { color: #9ca3af; }
 .dark .hover\:text-gray-900:hover { color: #ffffff; }
 
 /* Borders */
@@ -171,47 +237,422 @@ body {
 .dark .divide-y > :not([hidden]) ~ :not([hidden]) { border-color: #1f2937; }
 
 /* Tinted info boxes: keep the hue, drop the brightness */
-.dark .bg-green-50, .dark .bg-primary-50 { background-color: rgba(34, 197, 94, 0.12); }
-.dark .bg-green-100, .dark .bg-primary-100 { background-color: rgba(34, 197, 94, 0.2); }
-.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.12); }
-.dark .bg-yellow-50, .dark .bg-accent-50 { background-color: rgba(234, 179, 8, 0.12); }
-.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.12); }
-.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.2); }
-.dark .bg-purple-50 { background-color: rgba(168, 85, 247, 0.12); }
-.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.2); }
+.dark .bg-green-50, .dark .bg-primary-50 { background-color: rgba(34, 197, 94, 0.15); }
+.dark .bg-green-100, .dark .bg-primary-100 { background-color: rgba(34, 197, 94, 0.25); }
+.dark .bg-red-50 { background-color: rgba(239, 68, 68, 0.15); }
+.dark .bg-red-100 { background-color: rgba(239, 68, 68, 0.25); }
+.dark .bg-yellow-50, .dark .bg-accent-50 { background-color: rgba(234, 179, 8, 0.15); }
+.dark .bg-yellow-100, .dark .bg-accent-100 { background-color: rgba(234, 179, 8, 0.25); }
+.dark .bg-blue-50 { background-color: rgba(59, 130, 246, 0.15); }
+.dark .bg-blue-100 { background-color: rgba(59, 130, 246, 0.25); }
+.dark .bg-purple-50 { background-color: rgba(168, 85, 247, 0.15); }
+.dark .bg-purple-100 { background-color: rgba(168, 85, 247, 0.25); }
 .dark .text-green-900, .dark .text-green-800, .dark .text-green-700,
 .dark .text-primary-700 { color: #86efac; }
 .dark .text-red-800, .dark .text-red-700 { color: #fca5a5; }
+.dark .text-red-600 { color: #f87171; }
 .dark .text-yellow-800, .dark .text-yellow-700, .dark .text-accent-700 { color: #fde047; }
 .dark .text-blue-900, .dark .text-blue-800, .dark .text-blue-700 { color: #93c5fd; }
 .dark .text-purple-700 { color: #d8b4fe; }
 .dark .border-green-200, .dark .border-red-200, .dark .border-yellow-200,
-.dark .border-blue-200 { border-color: rgba(255, 255, 255, 0.12); }
+.dark .border-blue-200 { border-color: rgba(255, 255, 255, 0.15); }
 
-/* Form controls (many pages use bare <input>/<textarea>) */
+/* Form controls */
 .dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 .dark textarea,
-.dark select { background-color: #111827; color: #f3f4f6; border-color: #374151; }
+.dark select { 
+  background-color: #1f2937; 
+  color: #f3f4f6; 
+  border-color: #374151; 
+}
 .dark input::placeholder,
 .dark textarea::placeholder { color: #6b7280; }
+.dark input:focus, .dark textarea:focus, .dark select:focus {
+  border-color: #22c55e;
+}
 
 /* Component classes */
 .dark .card { background-color: #111827; border-color: #1f2937; }
-.dark .btn-outline { border-color: #374151; color: #e5e7eb; }
-.dark .btn-outline:hover { background-color: #1f2937; }
+.dark .btn-outline { border-color: #4b5563; color: #e5e7eb; }
+.dark .btn-outline:hover { background-color: #374151; border-color: #6b7280; }
 .dark .btn-secondary { background-color: #1f2937; color: #e5e7eb; }
+.dark .btn-secondary:hover { background-color: #374151; }
+.dark .btn-primary { background-color: #22c55e; color: #052e16; }
+.dark .btn-primary:hover { background-color: #4ade80; color: #052e16; }
+.dark .btn-danger { background-color: #dc2626; color: #1f1f1f; }
+.dark .btn-danger:hover { background-color: #ef4444; color: #1f1f1f; }
 .dark .chat-message-agent { background-color: #1f2937; color: #f3f4f6; }
-.dark .shadow-sm, .dark .shadow, .dark .shadow-lg { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
+.dark .shadow-sm, .dark .shadow, .dark .shadow-lg { 
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05); 
+}
+.dark .btn:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
 
 /* Scrollbar */
 .dark ::-webkit-scrollbar-track { background-color: #111827; }
 .dark ::-webkit-scrollbar-thumb { background-color: #374151; }
+.dark ::-webkit-scrollbar-thumb:hover { background-color: #4b5563; }
 
 /* Map tiles: dim instead of glaring white */
 .dark .leaflet-tile-pane { filter: brightness(0.75) contrast(1.1) saturate(0.8); }
 .dark .leaflet-popup-content-wrapper,
 .dark .leaflet-popup-tip { background-color: #111827; color: #f3f4f6; }
 
+/* Dark mode gradient sections - keep vibrant */
+.dark .bg-gradient-to-br.from-primary-600,
+.dark .bg-primary-600 { 
+  /* Keep green backgrounds in dark mode */ 
+}
+
+/* Smooth theme transitions */
 @media (prefers-reduced-motion: no-preference) {
-  html.theme-transition * { transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease; }
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after { 
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important; 
+  }
+}
+
+/* ===========================================
+   ANIMATIONS - AI Concierge Demo Card
+   =========================================== */
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Slide up animation */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Float animation for the card */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-8px) rotate(-3deg); }
+}
+
+/* Typing cursor blink */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Typing animation */
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* Pulse glow for accent elements */
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(34, 197, 94, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); }
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-fade-in-delay-1 {
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out 0.3s forwards;
+}
+
+.animate-fade-in-delay-2 {
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out 0.6s forwards;
+}
+
+.animate-fade-in-delay-3 {
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out 0.9s forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+/* Typing effect container */
+.typing-effect {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typing 2s steps(40, end) forwards;
+}
+
+.typing-cursor::after {
+  content: '|';
+  animation: blink 1s step-end infinite;
+  margin-left: 2px;
+  color: currentColor;
+}
+
+/* Demo card specific styles */
+.demo-card-wrapper {
+  perspective: 1000px;
+}
+
+.demo-card {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+.demo-card:hover {
+  transform: translateY(-5px) rotateX(2deg) rotateY(-2deg);
+}
+
+/* Message bubble animations */
+.message-bubble {
+  transition: all 0.3s ease;
+}
+
+.message-bubble:hover {
+  transform: scale(1.02);
+}
+
+/* Gradient text animation */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-text-animated {
+  background: linear-gradient(90deg, #22c55e, #4ade80, #86efac, #4ade80, #22c55e);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShift 3s ease infinite;
+}
+
+/* Status indicator pulse */
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+}
+
+.status-pulse {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+/* Step icon bounce forward animation */
+@keyframes bounceForward {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(8px); }
+}
+
+.animate-bounce-forward {
+  animation: bounceForward 1s ease-in-out infinite;
+}
+
+/* Dashed line animation flowing forward */
+@keyframes dashFlow {
+  0% { stroke-dashoffset: 20; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes lineGrow {
+  0% { width: 0; opacity: 0; }
+  100% { width: 80%; opacity: 1; }
+}
+
+.animate-dash-flow {
+  animation: dashFlow 1s linear infinite;
+}
+
+/* Arrow pulse on connector lines */
+@keyframes arrowPulse {
+  0%, 100% { opacity: 0.5; transform: translateX(0); }
+  50% { opacity: 1; transform: translateX(5px); }
+}
+
+.step-connector {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.step-connector::after {
+  content: '›';
+  position: absolute;
+  right: -8px;
+  top: -8px;
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1;
+  color: rgb(34 197 94 / 0.7);
+  animation: arrowPulse 1.5s ease-in-out infinite;
+}
+
+.dark .step-connector::after {
+  color: rgb(255 255 255 / 0.5);
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, 
+    rgba(255,255,255,0) 0%, 
+    rgba(255,255,255,0.2) 50%, 
+    rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* ===========================================
+   TAB SLIDER ANIMATION - Smooth Flow Effect
+   =========================================== */
+
+/* Tab container with sliding indicator */
+.tab-slider-container {
+  position: relative;
+}
+
+/* The sliding background indicator */
+.tab-slider-indicator {
+  position: absolute;
+  top: 0.5rem;
+  bottom: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+/* Position for driver tab (left) */
+.tab-slider-indicator.driver {
+  left: 0.5rem;
+  width: calc(50% - 0.5rem);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+}
+
+/* Position for host tab (right) */
+.tab-slider-indicator.host {
+  left: calc(50% + 0.25rem);
+  width: calc(50% - 0.75rem);
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* Morphing blob effect during transition */
+@keyframes tabMorph {
+  0% { border-radius: 0.5rem; }
+  50% { border-radius: 1.5rem; transform: scaleY(0.9); }
+  100% { border-radius: 0.5rem; }
+}
+
+.tab-slider-indicator.morphing {
+  animation: tabMorph 0.5s ease-in-out;
+}
+
+/* Shimmer effect on the indicator */
+.tab-slider-indicator::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Tab buttons */
+.tab-slider-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  color: #4b5563;
+}
+
+.tab-slider-btn.active {
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.tab-slider-btn:not(.active):hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode adjustments */
+.dark .tab-slider-btn {
+  color: #9ca3af;
+}
+
+.dark .tab-slider-btn.active {
+  color: #111827;
+}
+
+.dark .tab-slider-btn:not(.active):hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Glow effect on active indicator */
+.tab-slider-indicator.driver {
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.4);
+}
+
+.tab-slider-indicator.host {
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+}
+
+.dark .tab-slider-indicator.driver {
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.5);
+}
+
+.dark .tab-slider-indicator.host {
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5);
+}
+
+/* ===========================================
+   ACCESSIBILITY
+   =========================================== */
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .btn-primary {
+    @apply border-2 border-white;
+  }
+  .card {
+    @apply border-2;
+  }
 }

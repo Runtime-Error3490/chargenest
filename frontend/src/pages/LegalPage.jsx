@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom';
-import Card from '../components/ui/Card';
+import { Shield, FileText, Home, ChevronRight } from 'lucide-react';
 
 // Single source of legal text. Register modals and footer/host links all use these pages.
 // Each section body is a string or a list of strings (rendered as bullets).
 export const LEGAL_DOCUMENTS = {
   terms: {
     title: 'Terms of Service',
+    icon: FileText,
+    color: 'primary',
+    description: 'The rules and guidelines for using ChargeNest',
     sections: [
       ['1. Acceptance of Terms', 'By creating an account and using the ChargeNest marketplace, you agree to these Terms of Service. If you do not agree, please do not use our services.'],
       ['2. Service Description', 'ChargeNest is a peer-to-peer marketplace connecting EV drivers with home charger hosts. We facilitate bookings and payments but do not own or operate the charging equipment.'],
@@ -29,6 +32,9 @@ export const LEGAL_DOCUMENTS = {
   },
   privacy: {
     title: 'Privacy Policy',
+    icon: Shield,
+    color: 'blue',
+    description: 'How we collect, use, and protect your data',
     sections: [
       ['1. Information We Collect', 'We collect the personal information you provide at registration (name, email, phone), plus usage data and transaction history.'],
       ['2. How We Use Your Information', [
@@ -58,11 +64,14 @@ export const LEGAL_DOCUMENTS = {
         'Export your data in a portable format',
       ]],
       ['7. Security', 'We use encryption, secure authentication, and access controls to protect your data. MFA is strongly encouraged for all accounts.'],
-      ['8. Contact', 'For privacy questions: privacy@evcharge.com'],
+      ['8. Contact', 'For privacy questions: privacy@chargenest.com'],
     ],
   },
   'host-policy': {
     title: 'Host Policy',
+    icon: Home,
+    color: 'accent',
+    description: 'Guidelines and responsibilities for ChargeNest hosts',
     sections: [
       ['Your charger', 'List only chargers you own or have permission to share. Describe the connector, power and location honestly, and keep your listing up to date.'],
       ['Photos', 'Upload up to 5 clear, recent photos of your own charger and its location. Do not upload photos of people or images you do not own.'],
@@ -70,54 +79,132 @@ export const LEGAL_DOCUMENTS = {
       ['Availability and access', 'Honour confirmed bookings and share clear access instructions with drivers.'],
       ['Reviewing drivers', 'After a completed booking you can rate the driver once. Keep reviews honest and about the booking.'],
       ['Earnings', 'You receive the booking amount minus the 7% platform fee. Payouts are made through PayPal after a session is completed.'],
+      ['Liability', 'ChargeNest does not provide insurance coverage for your equipment. You are responsible for maintaining your own homeowner\'s or renter\'s insurance. ChargeNest is not liable for any damage to your charger or property during sessions.'],
     ],
+  },
+};
+
+const colorClasses = {
+  primary: {
+    bg: 'bg-primary-50 dark:bg-primary-900/20',
+    border: 'border-primary-200 dark:border-primary-800',
+    icon: 'bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400',
+    heading: 'text-primary-700 dark:text-primary-400',
+  },
+  blue: {
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    border: 'border-blue-200 dark:border-blue-800',
+    icon: 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400',
+    heading: 'text-blue-700 dark:text-blue-400',
+  },
+  accent: {
+    bg: 'bg-accent-50 dark:bg-accent-900/20',
+    border: 'border-accent-200 dark:border-accent-800',
+    icon: 'bg-accent-100 dark:bg-accent-900/50 text-accent-600 dark:text-accent-400',
+    heading: 'text-accent-700 dark:text-accent-400',
   },
 };
 
 // Renders a document's sections; shared by the full page and the Register modals
 export function LegalSections({ doc }) {
+  const document = LEGAL_DOCUMENTS[doc];
+  const colors = colorClasses[document.color];
+  
   return (
-    <div className="space-y-6">
-      {LEGAL_DOCUMENTS[doc].sections.map(([heading, body]) => (
-        <section key={heading}>
-          <h2 className="font-semibold text-gray-900 mb-1">{heading}</h2>
-          {Array.isArray(body) ? (
-            <ul className="list-disc pl-5 space-y-1 text-gray-600">
-              {body.map(item => <li key={item}>{item}</li>)}
-            </ul>
-          ) : (
-            <p className="text-gray-600">{body}</p>
-          )}
+    <div className="space-y-8">
+      {document.sections.map(([heading, body], index) => (
+        <section key={heading} className="group">
+          <div className="flex items-start gap-4">
+            <div className={`flex-shrink-0 w-8 h-8 rounded-lg ${colors.icon} flex items-center justify-center text-sm font-bold`}>
+              {index + 1}
+            </div>
+            <div className="flex-1">
+              <h2 className={`font-semibold text-lg mb-2 ${colors.heading}`}>{heading.replace(/^\d+\.\s*/, '')}</h2>
+              {Array.isArray(body) ? (
+                <ul className="space-y-2">
+                  {body.map(item => (
+                    <li key={item} className="flex items-start gap-2 text-gray-600 dark:text-gray-300">
+                      <ChevronRight className="w-4 h-4 mt-1 flex-shrink-0 text-gray-400" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{body}</p>
+              )}
+            </div>
+          </div>
         </section>
       ))}
-      <p className="text-xs text-gray-400 pt-4 border-t">
-        Last updated: November 2026 · Version 1.0. Demo text: have it reviewed by legal counsel before launch.
-      </p>
+      <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Last updated: November 2026 · Version 1.0
+        </p>
+      </div>
     </div>
   );
 }
 
 export default function LegalPage({ doc }) {
+  const document = LEGAL_DOCUMENTS[doc];
+  const colors = colorClasses[document.color];
+  const Icon = document.icon;
   const others = Object.entries(LEGAL_DOCUMENTS).filter(([key]) => key !== doc);
   const paths = { terms: '/terms', privacy: '/privacy', 'host-policy': '/host-policy' };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4">
-        <Link to="/" className="text-sm text-gray-600 hover:text-gray-900">&larr; Back to home</Link>
-        <h1 className="text-2xl font-bold text-gray-900 mt-4 mb-6">{LEGAL_DOCUMENTS[doc].title}</h1>
-        <Card className="p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Breadcrumb */}
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors mb-8">
+          <span>←</span>
+          <span>Back to home</span>
+        </Link>
+        
+        {/* Header */}
+        <div className={`rounded-2xl ${colors.bg} border ${colors.border} p-8 mb-8`}>
+          <div className="flex items-center gap-4 mb-4">
+            <div className={`w-14 h-14 rounded-xl ${colors.icon} flex items-center justify-center`}>
+              <Icon className="w-7 h-7" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{document.title}</h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">{document.description}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 md:p-10">
           <LegalSections doc={doc} />
-        </Card>
-        <p className="text-sm text-gray-500 mt-6">
-          See also:{' '}
-          {others.map(([key, d], i) => (
-            <span key={key}>
-              {i > 0 && ' · '}
-              <Link to={paths[key]} className="text-green-600 hover:underline">{d.title}</Link>
-            </span>
-          ))}
-        </p>
+        </div>
+
+        {/* Other Documents */}
+        <div className="mt-8">
+          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Other Legal Documents</h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            {others.map(([key, d]) => {
+              const OtherIcon = d.icon;
+              const otherColors = colorClasses[d.color];
+              return (
+                <Link 
+                  key={key} 
+                  to={paths[key]} 
+                  className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all"
+                >
+                  <div className={`w-10 h-10 rounded-lg ${otherColors.icon} flex items-center justify-center`}>
+                    <OtherIcon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 dark:text-white">{d.title}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{d.description}</p>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
