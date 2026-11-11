@@ -7,46 +7,87 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
 import Modal from '../components/ui/Modal';
+import {
+  Bot,
+  MessageCircle,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  Zap,
+  ZapOff,
+  Eye,
+  MessageSquare,
+  CheckCircle,
+  Sparkles,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  Search,
+  Calendar,
+  CreditCard,
+  AlertTriangle,
+  Clock,
+  Activity,
+  Settings,
+  ArrowLeft
+} from 'lucide-react';
 
-// Mandate levels with descriptions
+// Mandate levels with descriptions and icons
 const MANDATE_LEVELS = [
   {
     level: 0,
     name: 'Off',
     description: 'AI agent is completely disabled. No autonomous actions.',
     actions: [],
+    icon: ZapOff,
+    color: 'from-gray-400 to-gray-500',
+    bgColor: 'bg-gray-100 dark:bg-gray-800',
   },
   {
     level: 1,
     name: 'Inform Only',
     description: 'AI can only provide information and suggestions. No actions taken.',
     actions: ['Search chargers', 'Answer questions', 'Provide recommendations'],
+    icon: Eye,
+    color: 'from-blue-400 to-blue-500',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
   },
   {
     level: 2,
     name: 'Ask First',
     description: 'AI requires your approval before taking any action.',
     actions: ['All Level 1 actions', 'Book chargers (with approval)', 'Cancel bookings (with approval)', 'Submit disputes (with approval)'],
+    icon: MessageSquare,
+    color: 'from-purple-400 to-purple-500',
+    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
   },
   {
     level: 3,
     name: 'Act & Report',
     description: 'AI can take routine actions automatically and reports back.',
     actions: ['All Level 2 actions', 'Auto-book within budget', 'Auto-cancel free cancellations', 'Report after action'],
+    icon: Zap,
+    color: 'from-orange-400 to-orange-500',
+    bgColor: 'bg-orange-50 dark:bg-orange-900/20',
   },
   {
     level: 4,
     name: 'Full Autonomy',
     description: 'AI handles all booking operations with minimal oversight.',
     actions: ['All Level 3 actions', 'Make payments within limit', 'Handle disputes automatically', 'Manage charger preferences'],
+    icon: Sparkles,
+    color: 'from-green-400 to-emerald-500',
+    bgColor: 'bg-green-50 dark:bg-green-900/20',
   },
 ];
 
-// Action categories for fine-grained control
+// Action categories for fine-grained control with icons
 const ACTION_CATEGORIES = [
   {
     id: 'search',
     name: 'Search & Discovery',
+    icon: Search,
+    color: 'text-blue-500',
     actions: [
       { id: 'search_chargers', name: 'Search for chargers', defaultLevel: 1 },
       { id: 'view_charger', name: 'View charger details', defaultLevel: 1 },
@@ -56,6 +97,8 @@ const ACTION_CATEGORIES = [
   {
     id: 'booking',
     name: 'Booking Management',
+    icon: Calendar,
+    color: 'text-purple-500',
     actions: [
       { id: 'create_booking', name: 'Create bookings', defaultLevel: 2 },
       { id: 'modify_booking', name: 'Modify bookings', defaultLevel: 2 },
@@ -66,6 +109,8 @@ const ACTION_CATEGORIES = [
   {
     id: 'payment',
     name: 'Payment & Billing',
+    icon: CreditCard,
+    color: 'text-green-500',
     actions: [
       { id: 'view_payment', name: 'View payment history', defaultLevel: 1 },
       { id: 'make_payment', name: 'Make payments', defaultLevel: 2 },
@@ -77,6 +122,8 @@ const ACTION_CATEGORIES = [
   {
     id: 'dispute',
     name: 'Disputes & Support',
+    icon: AlertTriangle,
+    color: 'text-orange-500',
     actions: [
       { id: 'create_dispute', name: 'Create disputes', defaultLevel: 2 },
       { id: 'respond_dispute', name: 'Respond to disputes', defaultLevel: 2 },
@@ -117,14 +164,12 @@ export default function AgentSettingsPage() {
       try {
         setLoading(true);
         
-        // Fetch current mandate settings
         const settings = await agentService.getSettings();
         setMandateLevel(settings.level ?? 2);
         setCustomPermissions(settings.permissions || {});
         setSpendingLimit(settings.spendingLimit || 0);
         setSpentThisMonth(settings.spentThisMonth || 0);
 
-        // KYA identity card and recent agent actions
         setIdentity(await agentService.getIdentity());
         const logResponse = await agentService.getActivity({ limit: 10 });
         setAuditLog(logResponse.data || []);
@@ -142,7 +187,6 @@ export default function AgentSettingsPage() {
 
   const handleLevelChange = (level) => {
     if (level > mandateLevel) {
-      // Increasing autonomy - confirm first
       setPendingLevel(level);
       setShowConfirmModal(true);
     } else {
@@ -176,8 +220,6 @@ export default function AgentSettingsPage() {
       });
 
       setSuccess('Settings saved successfully!');
-      
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(err.message || 'Failed to save settings');
@@ -186,7 +228,7 @@ export default function AgentSettingsPage() {
     }
   };
 
-    const formatDateTime = (dateString) => {
+  const formatDateTime = (dateString) => {
     return new Date(dateString).toLocaleString('en-US', {
       dateStyle: 'short',
       timeStyle: 'short',
@@ -195,7 +237,7 @@ export default function AgentSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <Loading size="lg" />
       </div>
     );
@@ -204,277 +246,361 @@ export default function AgentSettingsPage() {
   const currentLevel = MANDATE_LEVELS.find(l => l.level === mandateLevel);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">AI Agent Settings</h1>
-            <p className="text-gray-600 mt-1">
-              Configure your AI concierge's autonomy level and permissions
-            </p>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/25">
+              <Settings className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Agent Settings</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-0.5">
+                Configure your AI concierge's autonomy and permissions
+              </p>
+            </div>
           </div>
-          <Button variant="outline" onClick={() => navigate('/chat')}>
+          <Button variant="outline" onClick={() => navigate('/chat')} className="flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" />
             Chat with Agent
           </Button>
         </div>
 
         {/* KYA identity card */}
-        <Card className="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-2xl">🛡️</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-green-900">Know Your Agent (KYA)</h3>
-                {identity && (
-                  <Badge variant={identity.kyaVerified ? 'success' : 'warning'}>
-                    {identity.kyaVerified ? 'Verified' : 'Not verified'}
-                  </Badge>
-                )}
+        <Card className="mb-6 overflow-hidden dark:bg-gray-800">
+          <div className="h-1 bg-gradient-to-r from-green-500 to-emerald-600"></div>
+          <div className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-green-500/20">
+                <ShieldCheck className="w-7 h-7 text-white" />
               </div>
-              <p className="text-sm text-green-800 mt-1">
-                Your agent has its own identity, linked to your account. Every action it takes is signed
-                with its key and checked against the permissions you set here.
-              </p>
-              {identity && (
-                <dl className="mt-3 text-xs text-green-900 space-y-1">
-                  <div className="flex gap-2"><dt className="font-medium">Agent ID:</dt><dd className="font-mono truncate">{identity.agentId}</dd></div>
-                  <div className="flex gap-2"><dt className="font-medium">Model:</dt><dd>{identity.provider} / {identity.model}</dd></div>
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {Object.entries(identity.checks || {}).map(([check, ok]) => (
-                      <span key={check} className={`px-2 py-0.5 rounded ${ok ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="font-bold text-lg text-gray-900 dark:text-white">Know Your Agent (KYA)</h3>
+                  {identity && (
+                    <Badge variant={identity.kyaVerified ? 'success' : 'warning'}>
+                      {identity.kyaVerified ? '✓ Verified' : 'Not verified'}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Your agent has its own identity, linked to your account. Every action it takes is signed
+                  with its key and checked against the permissions you set here.
+                </p>
+                {identity && (
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Agent ID</p>
+                      <p className="font-mono text-sm text-gray-900 dark:text-white truncate">{identity.agentId}</p>
+                    </div>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Model</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{identity.provider} / {identity.model}</p>
+                    </div>
+                  </div>
+                )}
+                {identity?.checks && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    {Object.entries(identity.checks).map(([check, ok]) => (
+                      <span key={check} className={`px-3 py-1 rounded-full text-xs font-medium ${ok ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'}`}>
                         {ok ? '✓' : '✕'} {check}
                       </span>
                     ))}
                   </div>
-                </dl>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </Card>
 
         {/* Mandate Level Selection */}
-        <Card className="mb-6 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Autonomy Level</h2>
-          
-          <div className="space-y-3">
-            {MANDATE_LEVELS.map((level) => (
-              <button
-                key={level.level}
-                onClick={() => handleLevelChange(level.level)}
-                className={`w-full text-left p-6 rounded-lg border-2 transition-all ${
-                  mandateLevel === level.level
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                      mandateLevel === level.level
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {level.level}
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-gray-900">{level.name}</h3>
-                      <p className="text-sm text-gray-600">{level.description}</p>
-                    </div>
-                  </div>
-                  {mandateLevel === level.level && (
-                    <Badge variant="success">Active</Badge>
-                  )}
-                </div>
+        <Card className="mb-6 dark:bg-gray-800">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Autonomy Level</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Choose how much control your AI has</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              {MANDATE_LEVELS.map((level) => {
+                const Icon = level.icon;
+                const isSelected = mandateLevel === level.level;
                 
-                {level.actions.length > 0 && mandateLevel === level.level && (
-                  <div className="mt-3 pl-13">
-                    <p className="text-xs text-gray-500 mb-2">Enabled actions:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {level.actions.map((action, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs"
-                        >
-                          {action}
-                        </span>
-                      ))}
+                return (
+                  <button
+                    key={level.level}
+                    onClick={() => handleLevelChange(level.level)}
+                    className={`w-full text-left p-5 rounded-xl border-2 transition-all duration-200 ${
+                      isSelected
+                        ? `border-transparent ${level.bgColor} ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ring-green-500`
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-md'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${level.color} flex items-center justify-center shadow-md`}>
+                          <Icon className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                              L{level.level}
+                            </span>
+                            <h3 className="font-semibold text-gray-900 dark:text-white">{level.name}</h3>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{level.description}</p>
+                        </div>
+                      </div>
+                      {isSelected && (
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-6 h-6 text-green-500" />
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </button>
-            ))}
+                    
+                    {level.actions.length > 0 && isSelected && (
+                      <div className="mt-4 pl-16">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Enabled actions:</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {level.actions.map((action, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2.5 py-1 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium shadow-sm"
+                            >
+                              {action}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </Card>
 
         {/* Spending Limit */}
         {mandateLevel >= 3 && (
-          <Card className="mb-6 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending Limit</h2>
-            <p className="text-sm text-gray-600 mb-4">
-                            Most the AI can spend each month. Spent this month: ${spentThisMonth.toLocaleString()}. Zero means no limit.
-            </p>
-            
-            <div className="flex items-center gap-4">
-                            <span className="text-gray-600">$</span>
-              <input
-                type="number"
-                value={spendingLimit}
-                onChange={(e) => setSpendingLimit(Math.max(0, parseInt(e.target.value) || 0))}
-                className="flex-1 rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
-                min="0"
-                step="500"
-              />
-              <span className="text-gray-600">per month</span>
-            </div>
+          <Card className="mb-6 dark:bg-gray-800">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Spending Limit</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Spent this month: <span className="font-semibold text-green-600 dark:text-green-400">${spentThisMonth.toLocaleString()}</span>
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex-1 relative">
+                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="number"
+                    value={spendingLimit}
+                    onChange={(e) => setSpendingLimit(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-green-500 dark:focus:border-green-400 focus:ring-0 transition-colors"
+                    min="0"
+                    step="500"
+                  />
+                </div>
+                <span className="text-gray-500 dark:text-gray-400 font-medium">per month</span>
+              </div>
 
-            <div className="mt-4 flex gap-2">
-              {[1000, 2500, 5000, 10000].map(amount => (
+              <div className="flex flex-wrap gap-2">
+                {[500, 1000, 2500, 5000].map(amount => (
+                  <button
+                    key={amount}
+                    onClick={() => setSpendingLimit(amount)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                      spendingLimit === amount
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    ${amount.toLocaleString()}
+                  </button>
+                ))}
                 <button
-                  key={amount}
-                  onClick={() => setSpendingLimit(amount)}
-                  className={`px-3 py-1 rounded-lg text-sm ${
-                    spendingLimit === amount
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  onClick={() => setSpendingLimit(0)}
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    spendingLimit === 0
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
-                                    ${amount.toLocaleString()}
+                  No limit
                 </button>
-              ))}
+              </div>
             </div>
           </Card>
         )}
 
         {/* Advanced Permissions */}
-        <Card className="mb-6 p-6">
+        <Card className="mb-6 dark:bg-gray-800">
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="w-full flex items-center justify-between"
+            className="w-full p-6 flex items-center justify-between"
           >
-            <h2 className="text-lg font-semibold text-gray-900">Advanced Permissions</h2>
-            <svg
-              className={`w-5 h-5 text-gray-500 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Advanced Permissions</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Fine-tune individual action permissions</p>
+              </div>
+            </div>
+            {showAdvanced ? (
+              <ChevronUp className="w-5 h-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500" />
+            )}
           </button>
 
           {showAdvanced && (
-            <div className="mt-6 space-y-6">
-              {ACTION_CATEGORIES.map(category => (
-                <div key={category.id}>
-                  <h3 className="font-medium text-gray-900 mb-3">{category.name}</h3>
-                  <div className="space-y-2">
-                    {category.actions.map(action => {
-                      const isEnabled = customPermissions[action.id] ?? (mandateLevel >= action.defaultLevel);
-                      
-                      return (
-                        <label
-                          key={action.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
-                        >
-                          <div>
-                            <span className="text-gray-900">{action.name}</span>
-                            <span className="text-xs text-gray-500 ml-2">
-                              (Default: Level {action.defaultLevel}+)
-                            </span>
-                          </div>
-                          <div className="relative">
-                            <input
-                              type="checkbox"
-                              checked={isEnabled}
-                              onChange={() => togglePermission(action.id)}
-                              className="sr-only"
-                            />
-                            <div className={`w-11 h-6 rounded-full transition-colors ${
-                              isEnabled ? 'bg-green-600' : 'bg-gray-300'
-                            }`}>
-                              <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
-                                isEnabled ? 'translate-x-5' : 'translate-x-0.5'
-                              } mt-0.5`} />
+            <div className="px-6 pb-6 space-y-6">
+              {ACTION_CATEGORIES.map(category => {
+                const CategoryIcon = category.icon;
+                return (
+                  <div key={category.id} className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    <div className="flex items-center gap-2 mb-4">
+                      <CategoryIcon className={`w-5 h-5 ${category.color}`} />
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{category.name}</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {category.actions.map(action => {
+                        const isEnabled = customPermissions[action.id] ?? (mandateLevel >= action.defaultLevel);
+                        
+                        return (
+                          <label
+                            key={action.id}
+                            className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl cursor-pointer hover:shadow-sm transition-shadow"
+                          >
+                            <div>
+                              <span className="text-gray-900 dark:text-white font-medium">{action.name}</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                (Default: L{action.defaultLevel}+)
+                              </span>
                             </div>
-                          </div>
-                        </label>
-                      );
-                    })}
+                            <div className="relative">
+                              <input
+                                type="checkbox"
+                                checked={isEnabled}
+                                onChange={() => togglePermission(action.id)}
+                                className="sr-only"
+                              />
+                              <div className={`w-12 h-7 rounded-full transition-colors ${
+                                isEnabled ? 'bg-gradient-to-r from-green-500 to-emerald-600' : 'bg-gray-300 dark:bg-gray-600'
+                              }`}>
+                                <div className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-transform ${
+                                  isEnabled ? 'translate-x-6' : 'translate-x-1'
+                                } mt-1`} />
+                              </div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>
 
         {/* Save Button */}
-        {/* Shown here, next to the button, because the page is long and the top is off screen */}
         {error && (
-          <div role="alert" className="p-4 bg-red-50 text-red-700 rounded-lg mb-4">
+          <div role="alert" className="p-4 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 rounded-xl mb-4 flex items-center gap-3 border border-red-200 dark:border-red-800">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0" />
             {error}
           </div>
         )}
         {success && (
-          <div role="status" className="p-4 bg-green-50 text-green-700 rounded-lg mb-4">
+          <div role="status" className="p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-xl mb-4 flex items-center gap-3 border border-green-200 dark:border-green-800">
+            <CheckCircle className="w-5 h-5 flex-shrink-0" />
             {success}
           </div>
         )}
         <div className="flex justify-end gap-4 mb-8">
-          <Button variant="outline" onClick={() => navigate(-1)}>
+          <Button variant="outline" onClick={() => navigate(-1)} className="flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? <Loading size="sm" /> : 'Save Settings'}
+          <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg shadow-green-500/25">
+            {saving ? <Loading size="sm" /> : <CheckCircle className="w-4 h-4" />}
+            Save Settings
           </Button>
         </div>
 
         {/* Recent Activity */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Agent Activity</h2>
-          
-          {auditLog.length === 0 ? (
-            <p className="text-gray-600 text-center py-8">No recent activity</p>
-          ) : (
-            <div className="space-y-3">
-              {auditLog.slice(0, 10).map((entry, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    entry.status === 'success' ? 'bg-green-100 text-green-600' :
-                    entry.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                    'bg-red-100 text-red-600'
-                  }`}>
-                    {entry.status === 'success' ? '✓' : entry.status === 'pending' ? '⏳' : '✕'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-gray-900">{entry.action}</p>
-                    <p className="text-sm text-gray-600 truncate">{entry.description}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {formatDateTime(entry.timestamp)}
-                    </p>
-                  </div>
-                  <Badge size="sm" variant={
-                    entry.approvalRequired ? 'warning' : 'default'
-                  }>
-                    {entry.approvalRequired ? 'Manual' : 'Auto'}
-                  </Badge>
-                </div>
-              ))}
+        <Card className="dark:bg-gray-800">
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">Recent Agent Activity</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Track what your AI has been doing</p>
+              </div>
             </div>
-          )}
+            
+            {auditLog.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <Clock className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 dark:text-gray-400">No recent activity</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {auditLog.slice(0, 10).map((entry, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl hover:shadow-sm transition-shadow"
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      entry.status === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' :
+                      entry.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' :
+                      'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+                    }`}>
+                      {entry.status === 'success' ? <CheckCircle className="w-5 h-5" /> : 
+                       entry.status === 'pending' ? <Clock className="w-5 h-5" /> : 
+                       <AlertTriangle className="w-5 h-5" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 dark:text-white">{entry.action}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{entry.description}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDateTime(entry.timestamp)}
+                      </p>
+                    </div>
+                    <Badge size="sm" variant={entry.approvalRequired ? 'warning' : 'default'}>
+                      {entry.approvalRequired ? 'Manual' : 'Auto'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
 
-          {auditLog.length > 10 && (
-            <button
-              className="w-full mt-4 text-center text-green-600 hover:text-green-700 text-sm font-medium"
-            >
-              View All Activity
-            </button>
-          )}
+            {auditLog.length > 10 && (
+              <button className="w-full mt-4 py-3 text-center text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 text-sm font-semibold rounded-xl hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors">
+                View All Activity
+              </button>
+            )}
+          </div>
         </Card>
       </div>
 
@@ -488,29 +614,35 @@ export default function AgentSettingsPage() {
         title="Increase Agent Autonomy?"
       >
         <div className="space-y-4">
-          <div className="p-4 bg-yellow-50 rounded-lg">
-            <p className="text-yellow-800">
-              You're about to increase your AI agent's autonomy level from{' '}
-              <strong>{currentLevel?.name}</strong> to{' '}
-              <strong>{MANDATE_LEVELS.find(l => l.level === pendingLevel)?.name}</strong>.
-            </p>
+          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800">
+            <div className="flex items-center gap-3">
+              <ShieldAlert className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+              <p className="text-yellow-800 dark:text-yellow-200 font-medium">
+                You're increasing autonomy from{' '}
+                <strong>{currentLevel?.name}</strong> to{' '}
+                <strong>{MANDATE_LEVELS.find(l => l.level === pendingLevel)?.name}</strong>.
+              </p>
+            </div>
           </div>
 
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             At this level, the AI agent will be able to:
           </p>
           
-          <ul className="list-disc list-inside text-gray-600 space-y-1">
+          <ul className="space-y-2">
             {MANDATE_LEVELS.find(l => l.level === pendingLevel)?.actions.map((action, idx) => (
-              <li key={idx}>{action}</li>
+              <li key={idx} className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                {action}
+              </li>
             ))}
           </ul>
 
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             You can change this setting at any time. All actions will be logged for your review.
           </p>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <Button
               variant="outline"
               className="flex-1"
@@ -522,7 +654,7 @@ export default function AgentSettingsPage() {
               Cancel
             </Button>
             <Button
-              className="flex-1"
+              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600"
               onClick={confirmLevelChange}
             >
               Confirm Change

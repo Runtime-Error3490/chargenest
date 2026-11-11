@@ -7,15 +7,31 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import Badge from '../components/ui/Badge';
+import {
+  Bot,
+  Settings,
+  Send,
+  Sparkles,
+  MapPin,
+  Calendar,
+  XCircle,
+  AlertTriangle,
+  RefreshCw,
+  HelpCircle,
+  CheckCircle,
+  X,
+  Zap,
+  MessageCircle
+} from 'lucide-react';
 
-// Quick action suggestions
+// Quick action suggestions with icons
 const QUICK_ACTIONS = [
-  { label: 'Find nearby chargers', message: 'Help me find chargers near my location' },
-  { label: 'My bookings', message: 'Show me my upcoming bookings' },
-  { label: 'Cancel booking', message: 'I need to cancel a booking' },
-  { label: 'Report issue', message: 'I want to report an issue with my charging session' },
-  { label: 'Refund status', message: 'What is the status of my refund?' },
-  { label: 'How does it work?', message: 'Explain how this platform works' },
+  { label: 'Find nearby chargers', message: 'Help me find chargers near my location', icon: MapPin, color: 'from-blue-500 to-blue-600' },
+  { label: 'My bookings', message: 'Show me my upcoming bookings', icon: Calendar, color: 'from-purple-500 to-purple-600' },
+  { label: 'Cancel booking', message: 'I need to cancel a booking', icon: XCircle, color: 'from-red-500 to-red-600' },
+  { label: 'Report issue', message: 'I want to report an issue with my charging session', icon: AlertTriangle, color: 'from-orange-500 to-orange-600' },
+  { label: 'Refund status', message: 'What is the status of my refund?', icon: RefreshCw, color: 'from-green-500 to-green-600' },
+  { label: 'How does it work?', message: 'Explain how this platform works', icon: HelpCircle, color: 'from-indigo-500 to-indigo-600' },
 ];
 
 // Styles for the assistant's markdown. Raw HTML in a reply is not rendered.
@@ -24,8 +40,8 @@ const markdownComponents = {
   ul: (props) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
   ol: (props) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
   strong: (props) => <strong className="font-semibold" {...props} />,
-  a: (props) => <a className="text-green-700 underline" target="_blank" rel="noopener noreferrer" {...props} />,
-  code: (props) => <code className="bg-gray-100 rounded px-1 text-sm" {...props} />,
+  a: (props) => <a className="text-green-600 dark:text-green-400 underline" target="_blank" rel="noopener noreferrer" {...props} />,
+  code: (props) => <code className="bg-gray-100 dark:bg-gray-700 rounded px-1 text-sm" {...props} />,
   h1: (props) => <h3 className="font-semibold text-lg mb-2" {...props} />,
   h2: (props) => <h3 className="font-semibold text-lg mb-2" {...props} />,
   h3: (props) => <h3 className="font-semibold mb-1" {...props} />,
@@ -68,8 +84,6 @@ How can I help you today?`,
     const fetchAgentStatus = async () => {
       try {
         setAgentStatus(await agentService.getStatus());
-
-        // Check for pending approvals
         setPendingApprovals(await agentService.getApprovals());
       } catch (err) {
         console.error('Failed to fetch agent status:', err);
@@ -87,7 +101,6 @@ How can I help you today?`,
   const sendMessage = async (content) => {
     if (!content.trim()) return;
     
-    // Add user message
     const userMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -105,7 +118,6 @@ How can I help you today?`,
       const data = await agentService.chatStream(content.trim(), undefined, {}, {
         onText: (text) => {
           setStatus('');
-          // Read the flag now: React runs the updater later, after the flag has changed
           const hasReply = streamed;
           streamed = true;
           setMessages(prev => hasReply
@@ -115,7 +127,6 @@ How can I help you today?`,
         onStatus: setStatus,
       });
 
-      // Add the final assistant response (replaces any text that was streamed)
       const assistantMessage = {
         id: replyId,
         role: 'assistant',
@@ -128,7 +139,6 @@ How can I help you today?`,
         ? prev.map(m => (m.id === replyId ? assistantMessage : m))
         : [...prev, assistantMessage]));
 
-      // The agent needs the owner's confirmation before it acts
       if (data.pendingApprovals?.length) {
         setPendingApprovals(prev => [
           ...prev,
@@ -136,7 +146,6 @@ How can I help you today?`,
         ]);
       }
     } catch (err) {
-      // Add error message
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -155,7 +164,6 @@ How can I help you today?`,
   const handleApproval = async (approvalId, approved) => {
     try {
       setLoading(true);
-      // The backend runs the action when the owner approves, and returns the outcome
       const result = await agentService.respondToApproval(approvalId, approved);
       setPendingApprovals(prev => prev.filter(a => a.id !== approvalId));
       setMessages(prev => [...prev, {
@@ -188,7 +196,7 @@ How can I help you today?`,
     }
   };
 
-    const formatTime = (date) => {
+  const formatTime = (date) => {
     return new Date(date).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
@@ -196,34 +204,47 @@ How can I help you today?`,
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b sticky top-16 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-16 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-xl">🤖</span>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/25">
+                <Bot className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="font-semibold text-gray-900">AI Concierge</h1>
-                <p className="text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <h1 className="font-bold text-xl text-gray-900 dark:text-white">AI Concierge</h1>
+                  <Sparkles className="w-5 h-5 text-yellow-500" />
+                </div>
+                <div className="flex items-center gap-3 mt-0.5">
                   {agentStatus?.isActive ? (
-                    <span className="text-green-600">● Active</span>
+                    <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                      Active
+                    </span>
                   ) : (
-                    <span className="text-gray-400">● Standby</span>
+                    <span className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                      <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                      Standby
+                    </span>
                   )}
                   {agentStatus?.mandateLevel > 0 && (
-                    <span className="ml-2">Level: {agentStatus.mandateLevel}</span>
+                    <Badge variant="primary" className="text-xs">
+                      Level {agentStatus.mandateLevel}
+                    </Badge>
                   )}
-                </p>
+                </div>
               </div>
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/settings/agent')}
+              className="flex items-center gap-2"
             >
+              <Settings className="w-4 h-4" />
               Settings
             </Button>
           </div>
@@ -232,37 +253,53 @@ How can I help you today?`,
 
       {/* Pending Approvals */}
       {pendingApprovals.length > 0 && (
-        <div className="bg-yellow-50 border-b border-yellow-200">
-          <div className="max-w-4xl mx-auto px-4 py-3">
-            <p className="text-sm font-medium text-yellow-800 mb-2">
-              Actions waiting for your approval:
-            </p>
-            {pendingApprovals.map(approval => (
-              <div
-                key={approval.id}
-                className="flex items-center justify-between bg-white rounded-lg p-3 mb-2 shadow-sm"
-              >
-                <div>
-                  <Badge size="sm" variant="warning">{approval.action}</Badge>
-                  <p className="text-sm text-gray-700 mt-1">{approval.description}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleApproval(approval.id, false)}
-                  >
-                    Deny
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleApproval(approval.id, true)}
-                  >
-                    Approve
-                  </Button>
-                </div>
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-b border-yellow-200 dark:border-yellow-800">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
+                <AlertTriangle className="w-4 h-4 text-white" />
               </div>
-            ))}
+              <p className="font-semibold text-yellow-800 dark:text-yellow-200">
+                Actions waiting for your approval
+              </p>
+            </div>
+            <div className="space-y-2">
+              {pendingApprovals.map(approval => (
+                <div
+                  key={approval.id}
+                  className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-yellow-200 dark:border-yellow-800"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    </div>
+                    <div>
+                      <Badge size="sm" variant="warning">{approval.action}</Badge>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{approval.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleApproval(approval.id, false)}
+                      className="flex items-center gap-1"
+                    >
+                      <X className="w-4 h-4" />
+                      Deny
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproval(approval.id, true)}
+                      className="flex items-center gap-1 bg-gradient-to-r from-green-500 to-emerald-600"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Approve
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -275,13 +312,18 @@ How can I help you today?`,
               key={message.id}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
+              {message.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mr-3 flex-shrink-0 mt-1">
+                  <Bot className="w-4 h-4 text-white" />
+                </div>
+              )}
               <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                className={`max-w-[75%] rounded-2xl px-5 py-4 ${
                   message.role === 'user'
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20'
                     : message.isError
-                    ? 'bg-red-50 text-red-800 border border-red-200'
-                    : 'bg-white shadow-sm border'
+                    ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800'
+                    : 'bg-white dark:bg-gray-800 shadow-md border border-gray-100 dark:border-gray-700 text-gray-900 dark:text-gray-100'
                 }`}
               >
                 {message.role === 'assistant' && !message.isError ? (
@@ -290,21 +332,35 @@ How can I help you today?`,
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 )}
                 
-                <p className={`text-xs mt-2 ${
-                  message.role === 'user' ? 'text-green-200' : 'text-gray-400'
+                <p className={`text-xs mt-3 ${
+                  message.role === 'user' ? 'text-green-200' : 'text-gray-400 dark:text-gray-500'
                 }`}>
                   {formatTime(message.timestamp)}
                 </p>
               </div>
+              {message.role === 'user' && (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center ml-3 flex-shrink-0 mt-1">
+                  <span className="text-white font-semibold text-sm">
+                    {user?.name?.[0] || 'U'}
+                  </span>
+                </div>
+              )}
             </div>
           ))}
 
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-white shadow-sm border rounded-2xl px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Loading size="sm" />
-                  <span className="text-gray-500 text-sm">{status || 'Thinking...'}</span>
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mr-3 flex-shrink-0">
+                <Bot className="w-4 h-4 text-white" />
+              </div>
+              <div className="bg-white dark:bg-gray-800 shadow-md border border-gray-100 dark:border-gray-700 rounded-2xl px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                  </div>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">{status || 'Thinking...'}</span>
                 </div>
               </div>
             </div>
@@ -316,51 +372,65 @@ How can I help you today?`,
 
       {/* Quick Actions */}
       {messages.length <= 2 && (
-        <div className="bg-white border-t">
-          <div className="max-w-4xl mx-auto px-4 py-3">
-            <p className="text-xs text-gray-500 mb-2">Quick actions:</p>
-            <div className="flex flex-wrap gap-2">
-              {QUICK_ACTIONS.map((action, index) => (
-                <button
-                  key={index}
-                  onClick={() => sendMessage(action.message)}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-700 transition-colors"
-                >
-                  {action.label}
-                </button>
-              ))}
+        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-yellow-500" />
+              Quick actions
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {QUICK_ACTIONS.map((action, index) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => sendMessage(action.message)}
+                    className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-left transition-all hover:scale-[1.02] hover:shadow-md group"
+                  >
+                    <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow`}>
+                      <Icon className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{action.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
       )}
 
       {/* Input */}
-      <div className="bg-white border-t sticky bottom-0">
+      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 sticky bottom-0">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex gap-3">
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message..."
-              rows={1}
-              className="flex-1 resize-none rounded-xl border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 py-3 px-4"
-              disabled={loading}
-            />
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type your message..."
+                rows={1}
+                className="w-full resize-none rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm focus:border-green-500 dark:focus:border-green-400 focus:ring-0 py-3.5 px-4 pr-12 placeholder-gray-400 dark:placeholder-gray-500 transition-colors"
+                disabled={loading}
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <MessageCircle className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+              </div>
+            </div>
             <Button
               onClick={() => sendMessage(inputValue)}
               disabled={loading || !inputValue.trim()}
-              className="px-6"
+              className="px-5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/25 disabled:shadow-none"
             >
-              {loading ? <Loading size="sm" /> : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
+              {loading ? (
+                <Loading size="sm" />
+              ) : (
+                <Send className="w-5 h-5" />
               )}
             </Button>
           </div>
-          <p className="text-xs text-gray-400 mt-2 text-center">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">
             AI responses are generated. For critical issues, contact human support.
           </p>
         </div>
