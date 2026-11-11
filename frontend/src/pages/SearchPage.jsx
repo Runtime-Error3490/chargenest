@@ -25,7 +25,11 @@ import {
   X,
   Filter,
   SlidersHorizontal,
-  ChevronRight
+  ChevronRight,
+  Plug,
+  DollarSign,
+  Gauge,
+  Sparkles
 } from 'lucide-react';
 
 // Fix for default markers in react-leaflet
@@ -67,9 +71,10 @@ const kwTierToNumber = {
   'kW150': 150,
 };
 
-// Number filter: blocks negatives / exponent chars, clamps to max, shows inline hint
-function NumberFilter({ label, value, onChange, placeholder, unit, min = 0, max, step = 1 }) {
+// Enhanced filter input with icon and better styling
+function FilterInput({ label, value, onChange, placeholder, unit, icon: Icon, min = 0, max, step = 1, gradient }) {
   const [hint, setHint] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
   const handleChange = (e) => {
     const raw = e.target.value;
@@ -81,11 +86,11 @@ function NumberFilter({ label, value, onChange, placeholder, unit, min = 0, max,
     const num = Number(raw);
     if (Number.isNaN(num)) return;
     if (num < min) {
-      setHint(`Must be ${min} or more`);
+      setHint(`Min: ${min}`);
       return;
     }
     if (max !== undefined && num > max) {
-      setHint(`Max allowed is ${max}`);
+      setHint(`Max: ${max}`);
       onChange(String(max));
       return;
     }
@@ -96,20 +101,30 @@ function NumberFilter({ label, value, onChange, placeholder, unit, min = 0, max,
   const blockInvalidKeys = (e) => {
     if (['-', '+', 'e', 'E'].includes(e.key)) {
       e.preventDefault();
-      setHint('Enter a positive number');
     }
   };
 
+  const hasValue = value !== '';
+
   return (
-    <div className="relative flex-shrink-0">
+    <div className="relative flex-shrink-0 group">
       <label className="sr-only">{label}</label>
       <div
-        className={`flex items-center rounded-lg border bg-white dark:bg-gray-700 px-3 h-10 transition-colors focus-within:ring-2 ${
-          hint
-            ? 'border-red-400 focus-within:ring-red-200'
-            : 'border-gray-300 dark:border-gray-600 focus-within:border-green-500 focus-within:ring-green-200 dark:focus-within:ring-green-800'
-        }`}
+        className={`
+          flex items-center gap-2 rounded-xl px-3 h-11 transition-all duration-200
+          ${hasValue 
+            ? `bg-gradient-to-r ${gradient} text-white shadow-md` 
+            : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 hover:border-green-400 dark:hover:border-green-500'
+          }
+          ${isFocused && !hasValue ? 'border-green-500 dark:border-green-400 shadow-md shadow-green-500/20' : ''}
+          ${hint ? 'border-red-400 dark:border-red-500' : ''}
+        `}
       >
+        {Icon && (
+          <div className={`flex-shrink-0 ${hasValue ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
+            <Icon className="w-4 h-4" />
+          </div>
+        )}
         <input
           type="number"
           inputMode="decimal"
@@ -122,24 +137,34 @@ function NumberFilter({ label, value, onChange, placeholder, unit, min = 0, max,
           aria-invalid={!!hint}
           onKeyDown={blockInvalidKeys}
           onChange={handleChange}
-          onBlur={() => setHint('')}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => { setIsFocused(false); setHint(''); }}
           onWheel={(e) => e.target.blur()}
-          className="w-20 bg-transparent text-sm outline-none border-0 p-0 focus:ring-0 placeholder-gray-400 dark:placeholder-gray-500 text-gray-900 dark:text-white [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className={`
+            w-16 bg-transparent text-sm font-medium outline-none border-0 p-0 focus:ring-0
+            [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none
+            ${hasValue 
+              ? 'text-white placeholder-white/60' 
+              : 'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500'
+            }
+          `}
         />
-        <span className="text-xs text-gray-500 dark:text-gray-400 ml-1 whitespace-nowrap">{unit}</span>
-        {value !== '' && (
+        <span className={`text-xs font-medium whitespace-nowrap ${hasValue ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+          {unit}
+        </span>
+        {hasValue && (
           <button
             type="button"
             aria-label={`Clear ${label}`}
             onClick={() => { setHint(''); onChange(''); }}
-            className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-base leading-none"
+            className="ml-1 w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
           >
-            ×
+            <X className="w-3 h-3 text-white" />
           </button>
         )}
       </div>
       {hint && (
-        <p className="absolute left-0 top-11 text-xs text-red-600 whitespace-nowrap" role="alert">
+        <p className="absolute left-0 top-12 text-xs text-red-500 dark:text-red-400 whitespace-nowrap font-medium" role="alert">
           {hint}
         </p>
       )}
@@ -284,42 +309,69 @@ export default function SearchPage() {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex flex-wrap gap-4 items-center">
             {/* Search Header */}
-            <div className="flex items-center gap-2 mr-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                <Search className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-3 mr-4">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-green-500/25">
+                <Search className="w-6 h-6 text-white" />
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Find Chargers</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {filteredChargers.length} available
+                <p className="text-base font-semibold text-gray-900 dark:text-white">Find Chargers</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-green-500" />
+                  {filteredChargers.length} available near you
                 </p>
               </div>
             </div>
 
-            {/* Connector Type */}
-            <div className="flex-shrink-0 w-40">
-              <Select
-                value={filters.connectorType}
-                onChange={(value) => handleFilterChange('connectorType', value)}
-                placeholder="Connector"
-                options={[
-                  { value: '', label: 'All Connectors' },
-                  ...connectorTypes.map(type => ({ value: type, label: type }))
-                ]}
-                size="sm"
-              />
+            {/* Connector Type - Enhanced */}
+            <div className="flex-shrink-0">
+              <div className={`
+                flex items-center gap-2 rounded-xl px-3 h-11 transition-all duration-200 cursor-pointer
+                ${filters.connectorType 
+                  ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
+                  : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 hover:border-purple-400'
+                }
+              `}>
+                <Plug className={`w-4 h-4 ${filters.connectorType ? 'text-white/80' : 'text-gray-400'}`} />
+                <select
+                  value={filters.connectorType}
+                  onChange={(e) => handleFilterChange('connectorType', e.target.value)}
+                  className={`
+                    bg-transparent text-sm font-medium outline-none border-0 cursor-pointer appearance-none pr-6
+                    ${filters.connectorType 
+                      ? 'text-white' 
+                      : 'text-gray-700 dark:text-gray-300'
+                    }
+                  `}
+                  style={{ backgroundImage: 'none' }}
+                >
+                  <option value="" className="text-gray-900">All Plugs</option>
+                  {connectorTypes.map(type => (
+                    <option key={type} value={type} className="text-gray-900">{type}</option>
+                  ))}
+                </select>
+                {filters.connectorType && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleFilterChange('connectorType', ''); }}
+                    className="w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Min Power */}
+            {/* Min Power - Enhanced */}
             <div className="flex items-center gap-2">
-              <NumberFilter
+              <FilterInput
                 label="Minimum power"
                 placeholder="Min"
                 unit="kW"
+                icon={Gauge}
                 max={350}
                 step={0.1}
                 value={filters.minPower}
                 onChange={(v) => handleFilterChange('minPower', v)}
+                gradient="from-yellow-500 to-orange-500"
               />
               <div className="hidden md:flex gap-1">
                 {POWER_PRESETS.map(kw => (
@@ -327,11 +379,13 @@ export default function SearchPage() {
                     key={kw}
                     type="button"
                     onClick={() => handleFilterChange('minPower', String(filters.minPower) === String(kw) ? '' : String(kw))}
-                    className={`px-2 py-1 rounded-md text-xs font-medium transition-colors ${
-                      String(filters.minPower) === String(kw)
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
+                    className={`
+                      px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200
+                      ${String(filters.minPower) === String(kw)
+                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md shadow-orange-500/25 scale-105'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105'
+                      }
+                    `}
                   >
                     {kw}+
                   </button>
@@ -339,56 +393,67 @@ export default function SearchPage() {
               </div>
             </div>
 
-            {/* Max Price */}
-            <NumberFilter
-              label="Maximum price per hour"
+            {/* Max Price - Enhanced */}
+            <FilterInput
+              label="Maximum price"
               placeholder="Max"
               unit="$/hr"
+              icon={DollarSign}
               max={10000}
               value={filters.maxPrice}
               onChange={(v) => handleFilterChange('maxPrice', v)}
+              gradient="from-green-500 to-emerald-500"
             />
 
-            {/* Amenities Toggle */}
+            {/* Amenities Toggle - Enhanced */}
             <div className="hidden lg:flex flex-wrap gap-2">
               {amenityOptions.map(amenity => {
                 const Icon = AMENITY_ICONS[amenity];
+                const isActive = filters.amenities.includes(amenity);
                 return (
                   <button
                     key={amenity}
                     onClick={() => toggleAmenity(amenity)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all capitalize ${
-                      filters.amenities.includes(amenity)
-                        ? 'bg-green-600 text-white shadow-sm'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
+                    className={`
+                      flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 capitalize
+                      ${isActive
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/25 scale-105'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105'
+                      }
+                    `}
                   >
-                    {Icon && <Icon className="w-3 h-3" />}
+                    {Icon && <Icon className="w-3.5 h-3.5" />}
                     {amenity}
                   </button>
                 );
               })}
             </div>
 
-            {/* Mobile Filter Button */}
+            {/* Mobile Filter Button - Enhanced */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="lg:hidden flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+              className={`
+                lg:hidden flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-200
+                ${activeFilterCount > 0
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-md'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
+                }
+              `}
             >
               <SlidersHorizontal className="w-4 h-4" />
               Filters
               {activeFilterCount > 0 && (
-                <span className="w-5 h-5 rounded-full bg-green-600 text-white text-xs flex items-center justify-center">
+                <span className="w-5 h-5 rounded-full bg-white/20 text-white text-xs flex items-center justify-center font-bold">
                   {activeFilterCount}
                 </span>
               )}
             </button>
 
-            {/* Clear Filters */}
+            {/* Clear Filters - Enhanced */}
             {activeFilterCount > 0 && (
               <button
                 onClick={clearAllFilters}
-                className="text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium flex items-center gap-1"
+                className="text-sm text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 font-semibold flex items-center gap-1.5 px-3 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all"
               >
                 <X className="w-4 h-4" />
                 Clear all
@@ -396,24 +461,30 @@ export default function SearchPage() {
             )}
           </div>
 
-          {/* Mobile Amenities */}
+          {/* Mobile Amenities - Enhanced */}
           {showFilters && (
-            <div className="lg:hidden mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amenities</p>
+            <div className="lg:hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-500" />
+                Amenities
+              </p>
               <div className="flex flex-wrap gap-2">
                 {amenityOptions.map(amenity => {
                   const Icon = AMENITY_ICONS[amenity];
+                  const isActive = filters.amenities.includes(amenity);
                   return (
                     <button
                       key={amenity}
                       onClick={() => toggleAmenity(amenity)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all capitalize ${
-                        filters.amenities.includes(amenity)
-                          ? 'bg-green-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                      }`}
+                      className={`
+                        flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 capitalize
+                        ${isActive
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                        }
+                      `}
                     >
-                      {Icon && <Icon className="w-3 h-3" />}
+                      {Icon && <Icon className="w-3.5 h-3.5" />}
                       {amenity}
                     </button>
                   );

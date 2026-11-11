@@ -4,50 +4,41 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 // High-quality EV charging stock photos from Unsplash (free to use)
-// Using more realistic and diverse EV charging images
+// Using direct Unsplash Source URLs which are more reliable for production
 const stockPhotos = {
   homeCharger: [
-    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Tesla charging at home garage
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // EV plugged in residential
-    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Home wall charger setup
-    'https://images.unsplash.com/photo-1657469871408-903a644358a8?w=800&q=80', // Modern home charging
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=800&q=80', // Tesla charging
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80', // EV plugged in
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?auto=format&fit=crop&w=800&q=80', // Home wall charger
   ],
   cafeCharger: [
-    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Public charging station
-    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // EV charging point modern
-    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Tesla supercharger style
-    'https://images.unsplash.com/photo-1697577427168-7fa7a2b3e0e3?w=800&q=80', // Cafe parking charger
-    'https://images.unsplash.com/photo-1606220838315-056192d5e927?w=800&q=80', // Commercial EV station
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=800&q=80', // Public charging
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=800&q=80', // EV charging point
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?auto=format&fit=crop&w=800&q=80', // Supercharger style
   ],
   apartmentCharger: [
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80', // EV plugged in parking
-    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Parking garage charger
-    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Underground parking EV
-    'https://images.unsplash.com/photo-1633108069902-cd2a2f9db6ee?w=800&q=80', // Apartment complex charger
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80', // EV plugged in
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?auto=format&fit=crop&w=800&q=80', // Parking charger
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?auto=format&fit=crop&w=800&q=80', // Underground parking
   ],
   techParkCharger: [
-    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // Modern corporate charging
-    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Tech park fast charger
-    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Multiple charging bays
-    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Premium EV charging
-    'https://images.unsplash.com/photo-1606220838315-056192d5e927?w=800&q=80', // Corporate charging hub
-    'https://images.unsplash.com/photo-1697577427168-7fa7a2b3e0e3?w=800&q=80', // Business park station
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=800&q=80', // Modern charging
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=800&q=80', // Tech park charger
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?auto=format&fit=crop&w=800&q=80', // Multiple bays
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=800&q=80', // Premium charging
   ],
   residentialCharger: [
-    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?w=800&q=80', // Home setup evening
-    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Residential driveway
-    'https://images.unsplash.com/photo-1657469871408-903a644358a8?w=800&q=80', // Quiet neighborhood charger
+    'https://images.unsplash.com/photo-1647166545674-ce28ce93bdca?auto=format&fit=crop&w=800&q=80', // Home setup
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=800&q=80', // Residential
   ],
   mallCharger: [
-    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Shopping mall EV parking
-    'https://images.unsplash.com/photo-1606220838315-056192d5e927?w=800&q=80', // Retail charging station
-    'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&q=80', // Mall parking charger
-    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?w=800&q=80', // Multiple charger bays
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=800&q=80', // Mall parking
+    'https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=800&q=80', // Retail station
+    'https://images.unsplash.com/photo-1619317565003-5c85e5f0a4a8?auto=format&fit=crop&w=800&q=80', // Multiple chargers
   ],
   hotelCharger: [
-    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&q=80', // Hotel valet charging
-    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&q=80', // Premium hotel charger
-    'https://images.unsplash.com/photo-1697577427168-7fa7a2b3e0e3?w=800&q=80', // Boutique hotel station
+    'https://images.unsplash.com/photo-1593941707882-a5bba14938c7?auto=format&fit=crop&w=800&q=80', // Hotel charging
+    'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?auto=format&fit=crop&w=800&q=80', // Premium charger
   ],
 };
 
