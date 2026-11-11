@@ -187,10 +187,10 @@ Driver                    Frontend                   Backend                    
   │                          │                          │                          │
   │                          │      ┌──────────────────────────────────────┐      │
   │                          │      │  AI AGENT (LLM + Tools)              │      │
-  │                          │      │  - search_chargers(location, kW)     │      │
-  │                          │      │  - get_host_details(charger_id)      │      │
-  │                          │      │  - estimate_cost(charger, duration)  │      │
-  │                          │      │  - create_booking_hold(...)          │      │
+  │                          │      │  - search_chargers / recommend_...   │      │
+  │                          │      │  - get_charger_details, estimate_... │      │
+  │                          │      │  - create/cancel_booking (wallet)    │      │
+  │                          │      │  - raise_dispute, damage invoice     │      │
   │                          │      └──────────────────────────────────────┘      │
   │                          │                          │                          │
   │                          │                          │  3. Create Order         │

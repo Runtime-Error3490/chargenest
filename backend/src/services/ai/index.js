@@ -18,6 +18,7 @@ const factories = {
     ...cfg,
   }),
   openai: (cfg) => createOpenAICompatibleProvider({ name: 'openai', ...cfg }),
+  gemini: (cfg) => createOpenAICompatibleProvider({ name: 'gemini', ...cfg }),
   ollama: (cfg) => createOpenAICompatibleProvider({ name: 'ollama', ...cfg }),
   mock: () => createMockProvider(),
 };

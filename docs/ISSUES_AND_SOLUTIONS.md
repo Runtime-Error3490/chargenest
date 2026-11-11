@@ -657,6 +657,67 @@ cd frontend && npm run build
 - The AI concierge and the search page still read the stored packages.
 - Not done: hours-based limits from the host's availability.
 
+### 33. AI Concierge Could Only Search, Book and Raise Disputes
+
+**Problem:** The concierge had 5 tools. It could not show the wallet, bookings, disputes, invoices or device status, and could not cancel a booking or make a top-up link. It also knew nothing about the user's role, so every user saw every tool.
+
+**Solution:**
+- Added read tools `get_wallet`, `list_my_bookings`, `list_disputes`, `list_invoices` and `check_device_status`. They run without asking from autonomy level 1.
+- Added `cancel_booking` (asks first below level 3) and `top_up_wallet` (asks first below level 4). The second only creates a PayPal link; the user still pays on PayPal.
+- Added `TOOL_ROLES` and `toolAllowedForRoles` in `agentPolicy.js`. The tool list is cut by role, and a call to a tool outside the role is refused.
+- New permission switch `top_up_wallet` in `agentPolicy.js` and in `AgentSettingsPage.jsx`.
+- The mock provider answers the new tools, so the demo works with no model key.
+- Tests added in `backend/tests/agentPolicy.test.js`.
+- Not built yet: `modify_booking`, `request_refund`, dispute reply and accept, host invoice and withdraw. See `DECISIONS.md`.
+
+### 34. AI Concierge Could Not Recommend Chargers or Send Invoices
+
+**Problem:** The agent could list chargers by distance only, so it could not say which one was fastest, cheapest or best rated. A host's agent also could not bill a driver for damage.
+
+**Solution:**
+- New tool `recommend_chargers`. `rankChargers()` in `charger.service.js` scores each charger on power, distance, rating and price and returns the top 3. The driver's priority (`balanced`, `fastest`, `nearest`, `cheapest`, `best_rated`) sets the weights. The score is plain code, so the same input gives the same answer. The model only explains the picks.
+- New host tool `create_damage_invoice`. It uses `invoiceService.createDamageInvoice`, so the existing checks apply. The owner is asked at every autonomy level. A daily limit (`AGENT_MAX_INVOICES_PER_DAY`, default 5) is checked in code.
+- New permission switch `create_invoice` in `agentPolicy.js` and the agent settings page.
+- Tests: `backend/tests/rankChargers.test.js` and more cases in `agentPolicy.test.js`.
+- `raise_dispute` already existed and is unchanged.
+- Not done: travel plans from a source to a destination (phase 2).
+
+**Note:** this file already had two entries numbered #30 (session success, and the Docker image). They are old. I did not renumber them.
+
+### 35. Concierge Timed Out on Gemini, and Replies Were Not Streamed
+
+**Problem:** The chat page showed "The server took too long to respond". The Gemini model set earlier (`gemini-3.8-flash`) hung for over 2 minutes, so the page's 30 second limit hit first. The replies also arrived only when fully written.
+
+**Fix:**
+- Default Gemini model is now `gemini-3.1-flash-lite`, which answered in about 4 seconds. Set `AI_MODEL` to change the model for any provider.
+- New `POST /api/agent/chat/stream` sends server-sent events: `text`, `tool_start`, `tool_result`, `done`, `error`. `POST /api/agent/chat` is unchanged.
+- `openaiCompatible.js` has a `stream()` method that joins tool call pieces and keeps Gemini's tool call signature.
+- Retries only happen before any text has been sent.
+- The chat page uses the stream and falls back to the normal call if the stream fails before anything arrives.
+- Switches: `AI_STREAMING=false` (backend) and `VITE_AI_STREAMING=false` (frontend).
+- Tests: `backend/tests/aiStream.test.js`.
+
+**Follow-ups found while testing:**
+- The chat page showed nothing for a streamed reply. A "text started" flag was read inside a React update that ran later, so the message was never added. The page now reads the flag first (`ChatPage.jsx`).
+- Agent settings: the "saved" and error messages sat at the top of a long page, away from the Save button. They now show above the button (`AgentSettingsPage.jsx`).
+- Chat replies are rendered as markdown with `react-markdown` (lists, bold, links). Raw HTML is not rendered.
+- `render.yaml` added for hosting on Render (Docker web service plus Postgres).
+
+---
+
+### 36. Concierge Did Not Know the Driver's History
+
+**Problem:** Recommendations were the same for every driver. The agent had no idea what the driver booked before.
+
+**Fix:**
+- `summarizeDriverHistory()` in `agent.service.js` builds a small profile from the driver's last 30 completed or cancelled bookings: sessions, total and average spend, average session length, energy used, favourite connectors, power tiers and areas, usual time of day, recent chargers, cancellations.
+- It is built fresh on each chat, nothing is stored, and it reads only the driver's own bookings. Hosts get none.
+- The profile goes into the system prompt as context. The model is told to use it to tailor picks, not to read it out, and to ignore it if the driver asks for something else.
+- Tests: `backend/tests/driverProfile.test.js`.
+- Not done: ratings the driver gave, and using the profile inside `rankChargers()` scoring.
+
+---
+
 ### Debugging Tips
 
 1. **API not responding:** Check if backend is running on port 4000

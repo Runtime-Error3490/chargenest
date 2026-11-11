@@ -69,6 +69,8 @@ const ACTION_CATEGORIES = [
     actions: [
       { id: 'view_payment', name: 'View payment history', defaultLevel: 1 },
       { id: 'make_payment', name: 'Make payments', defaultLevel: 2 },
+      { id: 'top_up_wallet', name: 'Create wallet top-up links', defaultLevel: 2 },
+      { id: 'create_invoice', name: 'Send damage invoices (always asks you)', defaultLevel: 3 },
       { id: 'request_refund', name: 'Request refunds', defaultLevel: 2 },
     ],
   },
@@ -253,18 +255,6 @@ export default function AgentSettingsPage() {
           </div>
         </Card>
 
-        {error && (
-          <div className="p-5 bg-red-50 text-red-700 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="p-5 bg-green-50 text-green-700 rounded-lg mb-6">
-            {success}
-          </div>
-        )}
-
         {/* Mandate Level Selection */}
         <Card className="mb-6 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Autonomy Level</h2>
@@ -421,6 +411,17 @@ export default function AgentSettingsPage() {
         </Card>
 
         {/* Save Button */}
+        {/* Shown here, next to the button, because the page is long and the top is off screen */}
+        {error && (
+          <div role="alert" className="p-4 bg-red-50 text-red-700 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div role="status" className="p-4 bg-green-50 text-green-700 rounded-lg mb-4">
+            {success}
+          </div>
+        )}
         <div className="flex justify-end gap-4 mb-8">
           <Button variant="outline" onClick={() => navigate(-1)}>
             Cancel

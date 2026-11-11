@@ -2,11 +2,13 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../utils/prisma.js';
 import { config } from '../config/index.js';
 import { aiService } from './ai.service.js';
-import { chargerService } from './charger.service.js';
+import { chargerService, rankChargers } from './charger.service.js';
 import { bookingService } from './booking.service.js';
 import { disputeService } from './dispute.service.js';
 import { kyaService } from './kya.service.js';
-import { evaluateTool, normalizeSettings, DECISIONS, TOOL_ACTIONS } from './agentPolicy.js';
+import { walletService } from './wallet.service.js';
+import { invoiceService } from './invoice.service.js';
+import { evaluateTool, normalizeSettings, DECISIONS, TOOL_ACTIONS, toolAllowedForRoles } from './agentPolicy.js';
 import { MandateError, ValidationError, NotFoundError, ForbiddenError } from '../utils/errors.js';
 
 /**
@@ -94,6 +96,126 @@ const agentTools = [
           description: { type: 'string', description: 'Details of what happened' },
         },
         required: ['booking_id', 'reason'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_wallet',
+      description: 'Show the user wallet: balance, money held for bookings, pending host earnings and recent ledger rows',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_my_bookings',
+      description: 'List the user bookings (as a driver, or as a host for their chargers)',
+      parameters: {
+        type: 'object',
+        properties: {
+          as: { type: 'string', enum: ['driver', 'host'], description: 'Which side to list. Defaults to driver.' },
+          status: { type: 'string', description: 'Optional status filter, for example authorized or completed' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_disputes',
+      description: 'List the disputes the user is part of, with their status',
+      parameters: {
+        type: 'object',
+        properties: { status: { type: 'string', description: 'Optional status filter' } },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_invoices',
+      description: 'List invoices the user sent or received, with their payment status',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'check_device_status',
+      description: 'Show how the charger device reported a booking: session status, outcome, energy and device events',
+      parameters: {
+        type: 'object',
+        properties: { booking_id: { type: 'string', description: 'UUID of the booking' } },
+        required: ['booking_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'cancel_booking',
+      description: 'Cancel one of the user bookings. A cancellation fee may apply depending on how close the start time is; the rest returns to the wallet. ONLY call this when the user asks for it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          booking_id: { type: 'string', description: 'UUID of the booking' },
+          reason: { type: 'string', description: 'Why the user is cancelling' },
+        },
+        required: ['booking_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'top_up_wallet',
+      description: 'Create a PayPal link to add money to the wallet. The agent cannot pay: the user must open the link and approve it on PayPal.',
+      parameters: {
+        type: 'object',
+        properties: { amount: { type: 'number', description: 'Amount to add, between 1 and 100000, at most 2 decimals' } },
+        required: ['amount'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'recommend_chargers',
+      description: 'Recommend the best nearby chargers, ranked by power, distance, rating and price. Use this when the user asks which charger is best, fastest, nearest or cheapest. Explain the top picks in plain words using the returned numbers only.',
+      parameters: {
+        type: 'object',
+        properties: {
+          latitude: { type: 'number', description: 'Latitude coordinate' },
+          longitude: { type: 'number', description: 'Longitude coordinate' },
+          radius_km: { type: 'number', description: 'Search radius in kilometers', default: 10 },
+          priority: {
+            type: 'string',
+            enum: ['balanced', 'fastest', 'nearest', 'cheapest', 'best_rated'],
+            description: 'What matters most to the user. Use balanced if they did not say.',
+          },
+          connector_type: { type: 'string', enum: ['Type2', 'CCS2', 'CHAdeMO', 'Type1', 'GBT'] },
+          min_kw: { type: 'number', description: 'Minimum charging power in kW' },
+          max_price: { type: 'number', description: 'Maximum price per hour' },
+        },
+        required: ['latitude', 'longitude'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_damage_invoice',
+      description: 'HOST ONLY. Create and send a PayPal damage invoice to the driver of a finished booking. The owner must approve every time. ONLY call this when the host asks for it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          booking_id: { type: 'string', description: 'UUID of the finished booking on the host charger' },
+          amount: { type: 'number', description: 'Amount to bill, greater than 0' },
+          description: { type: 'string', description: 'What was damaged or what the bill is for, at least 10 characters' },
+        },
+        required: ['booking_id', 'amount', 'description'],
       },
     },
   },
@@ -203,6 +325,59 @@ async function quoteBooking(chargerId, packageId) {
   return { charger, package: charger.packages[0], total };
 }
 
+/**
+ * What we know about a driver from their past bookings, as plain facts the model can use
+ * to tailor recommendations. Built fresh from the database on each chat, nothing is stored.
+ * Only the driver's own data is read. Returns null when there is no history yet.
+ */
+export function summarizeDriverHistory(bookings) {
+  if (bookings.length === 0) return null;
+  const used = bookings.filter((b) => b.status === 'completed');
+  const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
+
+  const top = (values, n = 2) => {
+    const counts = new Map();
+    for (const v of values.filter(Boolean)) counts.set(v, (counts.get(v) || 0) + 1);
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([v]) => v);
+  };
+  const sum = (list, f) => list.reduce((t, b) => t + Number(f(b) || 0), 0);
+  const round = (n, places = 2) => Math.round(n * 10 ** places) / 10 ** places;
+
+  const spent = sum(used, (b) => b.totalAmount);
+  const minutes = sum(used, (b) => (new Date(b.scheduledEnd) - new Date(b.scheduledStart)) / 60000);
+  const kwh = sum(used, (b) => b.session?.energyKwh);
+  const dayPart = (h) => (h < 6 ? 'night' : h < 12 ? 'morning' : h < 17 ? 'afternoon' : h < 21 ? 'evening' : 'night');
+
+  return {
+    completedSessions: used.length,
+    cancelledBookings: cancelled,
+    totalSpent: round(spent),
+    avgSpendPerSession: used.length ? round(spent / used.length) : null,
+    avgSessionMinutes: used.length ? Math.round(minutes / used.length) : null,
+    totalEnergyKwh: kwh > 0 ? round(kwh, 1) : null,
+    favouriteConnectors: top(used.map((b) => b.charger.connectorType)),
+    favouritePowerTiers: top(used.map((b) => b.charger.kwTier)),
+    favouriteAreas: top(used.map((b) => b.charger.city)),
+    usualTimeOfDay: top(used.map((b) => dayPart(new Date(b.scheduledStart).getHours())), 1)[0] || null,
+    recentChargers: [...new Set(used.slice(0, 3).map((b) => b.charger.name))],
+    currency: bookings[0].currency,
+  };
+}
+
+async function loadDriverProfile(userId) {
+  const bookings = await prisma.booking.findMany({
+    where: { driverId: userId, status: { in: ['completed', 'cancelled'] } },
+    orderBy: { scheduledStart: 'desc' },
+    take: 30,
+    select: {
+      status: true, totalAmount: true, scheduledStart: true, scheduledEnd: true, currency: true,
+      charger: { select: { name: true, city: true, connectorType: true, kwTier: true } },
+      session: { select: { energyKwh: true } },
+    },
+  });
+  return summarizeDriverHistory(bookings);
+}
+
 async function spentThisMonth(userId) {
   const sum = await prisma.booking.aggregate({
     where: {
@@ -304,6 +479,94 @@ async function runTool(agent, userId, toolName, args, mandate = null) {
       return { value: result, bookingId: args.booking_id };
     }
 
+    case 'get_wallet': {
+      const { wallet, transactions } = await walletService.getWallet(userId, { limit: 10 });
+      return { value: { wallet, recent: transactions } };
+    }
+
+    case 'list_my_bookings': {
+      const role = args.as === 'host' ? 'host' : 'driver';
+      const result = await bookingService.getUserBookings(userId, role, { status: args.status, limit: 10 });
+      return { value: result.bookings };
+    }
+
+    case 'list_disputes': {
+      const result = await disputeService.getUserDisputes(userId, { status: args.status, limit: 10 });
+      return { value: result.disputes };
+    }
+
+    case 'list_invoices':
+      return { value: (await invoiceService.listForUser(userId)).slice(0, 10) };
+
+    case 'check_device_status': {
+      const booking = await prisma.booking.findUnique({
+        where: { id: args.booking_id },
+        select: {
+          id: true, status: true, driverId: true, charger: { select: { hostId: true, name: true } },
+          session: { select: { status: true, outcome: true, energyKwh: true, proofSource: true } },
+        },
+      });
+      if (!booking) throw new NotFoundError('Booking');
+      if (booking.driverId !== userId && booking.charger.hostId !== userId) {
+        throw new ForbiddenError('You are not part of this booking');
+      }
+      const events = await prisma.deviceEvent.findMany({
+        where: { bookingId: booking.id },
+        orderBy: { counter: 'asc' },
+        select: { type: true, counter: true, createdAt: true },
+      });
+      return {
+        value: { bookingId: booking.id, chargerName: booking.charger.name, bookingStatus: booking.status, session: booking.session, events },
+        bookingId: booking.id,
+      };
+    }
+
+    case 'cancel_booking': {
+      const result = await bookingService.cancelBooking(args.booking_id, userId, args.reason || 'Cancelled by the user\'s agent');
+      return { value: result, bookingId: args.booking_id };
+    }
+
+    case 'top_up_wallet': {
+      const amount = Number(args.amount);
+      if (!Number.isFinite(amount) || amount < 1 || amount > 100000 || Math.abs(amount * 100 - Math.round(amount * 100)) > 1e-6) {
+        throw new ValidationError('Top-up must be between 1 and 100000, with at most 2 decimals');
+      }
+      const order = await walletService.startTopUp(userId, amount);
+      return { value: { ...order, note: 'Open approveUrl and approve on PayPal. Nothing is charged until you do.' } };
+    }
+
+    case 'recommend_chargers': {
+      const found = await chargerService.searchChargers({
+        latitude: args.latitude,
+        longitude: args.longitude,
+        radius: args.radius_km || 10,
+        connectorType: args.connector_type,
+        minKw: args.min_kw,
+        maxPrice: args.max_price,
+        limit: 50,
+      });
+      const priority = args.priority || 'balanced';
+      const picks = rankChargers(found.chargers, priority, 3);
+      return { value: { priority, consideredCount: found.chargers.length, picks } };
+    }
+
+    case 'create_damage_invoice': {
+      if (!args.description || args.description.trim().length < 10) {
+        throw new ValidationError('An invoice description needs at least 10 characters');
+      }
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const sentToday = await prisma.invoice.count({ where: { issuerId: userId, createdAt: { gte: since } } });
+      if (sentToday >= config.agent.maxInvoicesPerDay) {
+        throw new ForbiddenError(`Daily invoice limit reached (${config.agent.maxInvoicesPerDay})`);
+      }
+      const invoice = await invoiceService.createDamageInvoice(userId, {
+        bookingId: args.booking_id,
+        amount: args.amount,
+        description: args.description.trim(),
+      });
+      return { value: invoice, bookingId: args.booking_id };
+    }
+
     default:
       throw new Error(`Unknown tool: ${toolName}`);
   }
@@ -318,6 +581,12 @@ function describeAction(toolName, args, amount) {
       return `Book charger ${args.charger_id} at ${args.scheduled_start} and hold ${amount?.toFixed(2)} ${config.platform.defaultCurrency} from your wallet`;
     case 'raise_dispute':
       return `Raise a dispute on booking ${args.booking_id}: ${args.reason}`;
+    case 'create_damage_invoice':
+      return `Send a PayPal invoice of ${Number(args.amount).toFixed(2)} for booking ${args.booking_id}: ${args.description}`;
+    case 'cancel_booking':
+      return `Cancel booking ${args.booking_id}. A cancellation fee may apply; the rest returns to your wallet`;
+    case 'top_up_wallet':
+      return `Create a PayPal link to add ${Number(args.amount).toFixed(2)} ${config.platform.defaultCurrency} to your wallet (you still approve on PayPal)`;
     default:
       return `${toolName} ${JSON.stringify(args)}`;
   }
@@ -629,7 +898,7 @@ export const agentService = {
    * Chat with the concierge. Each tool call the model makes goes through the owner's
    * permission settings before anything runs.
    */
-  async chat(userId, { message, mandateToken, context }) {
+  async chat(userId, { message, mandateToken, context }, stream = {}) {
     const agent = await kyaService.registerAgent(userId);
     const settings = settingsOf(agent);
 
@@ -649,8 +918,17 @@ export const agentService = {
 
     const pendingApprovals = [];
 
+    // A driver only gets driver tools, a host only host tools; a user with both roles gets both
+    const roleRows = await prisma.userRoleMapping.findMany({ where: { userId }, select: { role: true } });
+    const roles = roleRows.map((r) => r.role);
+    const toolsForUser = agentTools.filter((t) => toolAllowedForRoles(t.function.name, roles));
+
     const executeToolCall = async (toolName, args) => {
       const startTime = Date.now();
+
+      if (!toolAllowedForRoles(toolName, roles)) {
+        throw new ForbiddenError(`Not allowed: "${toolName}" is not available for your account type`);
+      }
 
       // Work out how much money this call would commit
       let amount = 0;
@@ -708,7 +986,10 @@ export const agentService = {
       }
     };
 
-    const response = await aiService.chatWithConcierge(messages, agentTools, executeToolCall);
+    // Past bookings help the model tailor its picks; only drivers have any
+    const profile = roles.includes('driver') ? await loadDriverProfile(userId) : null;
+
+    const response = await aiService.chatWithConcierge(messages, toolsForUser, executeToolCall, { ...stream, profile });
 
     const first = pendingApprovals[0];
     return {

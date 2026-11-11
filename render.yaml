@@ -1,0 +1,65 @@
+# Render Blueprint for ChargeNest: one Docker web service (API + built React app) and a Postgres database.
+# Render dashboard: New > Blueprint > pick this repo. Fill the "sync: false" values when asked.
+# Free plans are fine for a demo. Free Postgres expires after 30 days; the free web service sleeps when idle.
+# Uploaded charger photos are wiped on redeploy unless you use a paid plan and add a disk (see below).
+
+databases:
+  - name: chargenest-db
+    plan: free
+    databaseName: chargenest
+    user: chargenest
+
+services:
+  - type: web
+    name: chargenest
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    # Paid plans only: keep uploaded photos across deploys.
+    # disk:
+    #   name: uploads
+    #   mountPath: /app/backend/uploads
+    #   sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chargenest-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: TOTP_ENCRYPTION_KEY
+        generateValue: true
+      - key: KYA_KEY_SECRET
+        generateValue: true
+      # Your Render URL, e.g. https://chargenest.onrender.com (used for CORS and PayPal return links)
+      - key: FRONTEND_URL
+        sync: false
+      # PayPal sandbox (US business app)
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: PAYPAL_MODE
+        value: sandbox
+      - key: DEFAULT_CURRENCY
+        value: USD
+      # AI concierge: "mock" needs no key. Use openrouter or openai and add a key below for a real model.
+      - key: AI_PROVIDER
+        value: mock
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      # Note: the device mock is always off when NODE_ENV=production.
+      - key: WALLET_MOCK_CREDIT
+        value: "0"

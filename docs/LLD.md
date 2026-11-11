@@ -1114,6 +1114,9 @@ interface LLMConfig {
 ```
 
 #### Tool Schemas (OpenAI Function Calling Format)
+
+> **Current tool set (Nov 11, 2026).** The schemas below are the original design. The built tools are listed in `docs/DECISIONS.md` under "AI Concierge Tools and Roles" and defined in `backend/src/services/agent.service.js`. Names changed: `get_host_details` is now `get_charger_details`, and `create_booking_hold` is now `create_booking`, which holds money in the wallet. New tools: `raise_dispute`, `cancel_booking`, `top_up_wallet`, `recommend_chargers`, `create_damage_invoice`, `get_wallet`, `list_my_bookings`, `list_disputes`, `list_invoices` and `check_device_status`. Each tool is limited by the user's role and by the permission switches in `agentPolicy.js`.
+
 ```typescript
 const tools = [
   {

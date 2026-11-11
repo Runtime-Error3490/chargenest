@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { config } from '../config/index.js';
 import { z } from 'zod';
 
 import { agentService } from '../services/agent.service.js';
@@ -185,6 +186,37 @@ router.post('/chat', authenticate, requireRole('driver'), validateBody(chatSchem
   } catch (error) {
     next(error);
   }
+});
+
+/**
+ * POST /api/agent/chat/stream
+ * Same as /chat, but sent as server-sent events: `text`, `tool_start`, `tool_result`, then
+ * `done` (with the same result /chat returns) or `error`. Off when AI_STREAMING=false.
+ */
+router.post('/chat/stream', authenticate, requireRole('driver'), validateBody(chatSchema), async (req, res, next) => {
+  if (!config.ai.streaming) {
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Streaming is turned off' } });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+  const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    const result = await agentService.chat(req.user.id, req.body, {
+      onText: (text) => send('text', { text }),
+      onToolStart: (name) => send('tool_start', { name }),
+      onToolResult: (name, ok) => send('tool_result', { name, ok }),
+    });
+    send('done', result);
+  } catch (error) {
+    send('error', { code: error.code || 'ERROR', message: error.message });
+  }
+  res.end();
 });
 
 export default router;

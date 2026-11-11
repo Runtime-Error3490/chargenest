@@ -74,3 +74,49 @@ test('normalizeSettings clamps the level and drops unknown or non-boolean permis
   assert.deepEqual(clean.permissions, { create_booking: true });
   assert.equal(clean.spendingLimit, 0);
 });
+
+test('read tools run without asking at level 1', () => {
+  const s = settings(1);
+  for (const tool of ['get_wallet', 'list_my_bookings', 'list_disputes', 'list_invoices', 'check_device_status']) {
+    assert.equal(decide(s, tool), DECISIONS.ALLOW, tool);
+  }
+});
+
+test('a driver does not get search or booking tools as a host, and vice versa', async () => {
+  const { toolAllowedForRoles } = await import('../src/services/agentPolicy.js');
+  assert.equal(toolAllowedForRoles('create_booking', ['host']), false);
+  assert.equal(toolAllowedForRoles('create_booking', ['driver']), true);
+  assert.equal(toolAllowedForRoles('create_booking', ['host', 'driver']), true);
+  assert.equal(toolAllowedForRoles('get_wallet', ['host']), true);
+});
+
+test('cancel and top-up are driver-only and ask first until the right level', async () => {
+  const { toolAllowedForRoles } = await import('../src/services/agentPolicy.js');
+  assert.equal(toolAllowedForRoles('cancel_booking', ['host']), false);
+  assert.equal(toolAllowedForRoles('top_up_wallet', ['driver']), true);
+  assert.equal(decide(settings(2), 'cancel_booking'), DECISIONS.CONFIRM);
+  assert.equal(decide(settings(3), 'cancel_booking'), DECISIONS.ALLOW);
+  assert.equal(decide(settings(3), 'top_up_wallet'), DECISIONS.CONFIRM);
+  assert.equal(decide(settings(4), 'top_up_wallet'), DECISIONS.ALLOW);
+  assert.equal(decide(settings(1), 'top_up_wallet'), DECISIONS.DENY);
+});
+
+test('the owner can switch off top-up links', () => {
+  assert.equal(decide(settings(4, { top_up_wallet: false }), 'top_up_wallet'), DECISIONS.DENY);
+});
+
+test('the damage invoice is host-only and asks the owner at every level', async () => {
+  const { toolAllowedForRoles } = await import('../src/services/agentPolicy.js');
+  assert.equal(toolAllowedForRoles('create_damage_invoice', ['driver']), false);
+  assert.equal(toolAllowedForRoles('create_damage_invoice', ['host']), true);
+  assert.equal(decide(settings(2), 'create_damage_invoice'), DECISIONS.DENY);
+  assert.equal(decide(settings(3), 'create_damage_invoice'), DECISIONS.CONFIRM);
+  assert.equal(decide(settings(4), 'create_damage_invoice'), DECISIONS.CONFIRM);
+  assert.equal(decide(settings(4, { create_invoice: false }), 'create_damage_invoice'), DECISIONS.DENY);
+});
+
+test('recommend_chargers is a driver read tool', async () => {
+  const { toolAllowedForRoles } = await import('../src/services/agentPolicy.js');
+  assert.equal(decide(settings(1), 'recommend_chargers'), DECISIONS.ALLOW);
+  assert.equal(toolAllowedForRoles('recommend_chargers', ['host']), false);
+});
