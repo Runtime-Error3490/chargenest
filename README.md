@@ -26,6 +26,8 @@ ChargeNest is a web marketplace that connects them — think "Airbnb for EV char
 ### For Drivers
 - 🗺️ Search chargers on an interactive map
 - 🤖 AI Concierge: "Find me a charger near Koramangala, budget ₹500"
+- 🎯 Smart recommendations: "Which charger is fastest near me?" ranks by power, distance, rating and price
+- ❌ Ask the agent to cancel a booking, raise a dispute, or make a wallet top-up link
 - 💳 Secure PayPal payments with authorization holds
 - 📊 Spending mandates for agent control
 - ⭐ Rate chargers after sessions
@@ -35,10 +37,11 @@ ChargeNest is a web marketplace that connects them — think "Airbnb for EV char
 - 💰 AI Pricing Advisor suggests competitive rates
 - 📈 Dashboard with bookings and earnings
 - 💸 Automatic PayPal payouts (minus 7% platform fee)
+- 🧾 Ask the agent to send a damage invoice (you approve every time)
 - ⭐ Rate drivers for community trust
 
 ### AI Features
-1. **Charging Concierge Agent** — Natural language booking with mandate enforcement
+1. **Charging Concierge Agent** — Natural language booking, cancelling, disputes, wallet and invoice help, with role-based tools, per-action permissions and owner approval for risky actions. Details: `docs/DECISIONS.md`
 2. **Dispute Resolver** — Analyzes evidence and recommends fair resolutions
 3. **Pricing Advisor** — Suggests optimal pricing based on location and demand
 
@@ -57,7 +60,7 @@ ChargeNest is a web marketplace that connects them — think "Airbnb for EV char
 | Backend | Node.js, Express.js |
 | Database | PostgreSQL |
 | Auth | JWT + TOTP (speakeasy) |
-| AI | OpenRouter (GPT-3.5-turbo / Claude Haiku) |
+| AI | Pluggable: Gemini, OpenRouter, OpenAI, Ollama or a mock |
 | Payments | PayPal Orders v2, Payouts |
 | Hosting | Render |
 
@@ -69,7 +72,7 @@ ChargeNest is a web marketplace that connects them — think "Airbnb for EV char
 - Node.js 20+
 - PostgreSQL 15+
 - PayPal Sandbox Account
-- OpenRouter API Key
+- An AI API key (a free Gemini key works), or use the mock provider
 
 ### 1. Clone the repository
 ```bash
@@ -99,10 +102,13 @@ PAYPAL_WEBHOOK_ID=your-webhook-id
 WALLET_MIN_BALANCE=500
 WALLET_DEPOSIT=250
 
-# AI provider: openrouter | openai | ollama | mock (mock needs no key)
+# AI provider: gemini | openrouter | openai | ollama | mock (mock needs no key)
 AI_PROVIDER=mock
-OPENROUTER_API_KEY=your-openrouter-api-key
-OPENROUTER_MODEL=openai/gpt-3.5-turbo
+# Model for whichever provider is chosen (e.g. gemini-3.1-flash-lite)
+AI_MODEL=
+GEMINI_API_KEY=your-gemini-api-key
+# Streamed concierge replies; false turns off POST /api/agent/chat/stream
+AI_STREAMING=true
 
 # Know Your Agent: encrypts agent signing keys at rest
 KYA_KEY_SECRET=a-long-random-value
@@ -152,8 +158,15 @@ default 1000, `0` turns it off), so the wallet page has data to show.
 3. Restart the backend. The wallet page no longer shows the "mock mode" notice.
 4. Pay with a sandbox buyer account. Set the minimum balance with `WALLET_MIN_BALANCE`.
 
-**Switch the AI provider** (no code change): set `AI_PROVIDER` to `openrouter`, `openai`, `ollama`
-or `mock`, and optionally `AI_MODEL`. For OpenRouter, set `OPENROUTER_API_KEY`.
+**Switch the AI provider** (no code change): set `AI_PROVIDER` to `gemini`, `openrouter`, `openai`,
+`ollama` or `mock`, and `AI_MODEL` (one model setting for any provider). Set the provider's key:
+`GEMINI_API_KEY` (free key from Google AI Studio), `OPENROUTER_API_KEY` or `OPENAI_API_KEY`.
+Concierge replies stream to the chat page. Set `AI_STREAMING=false` (backend) or
+`VITE_AI_STREAMING=false` (frontend) to switch that off.
+
+**Host on Render:** `render.yaml` is a Blueprint for the Docker web service plus a Postgres database.
+Render > New > Blueprint, pick the repo, then fill the secret values it asks for (`FRONTEND_URL`,
+PayPal keys, an AI key). The device mock is always off in production.
 
 `./setup.sh` is an alternative that uses its own database name (`evcharge`).
 

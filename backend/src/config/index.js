@@ -49,6 +49,11 @@ export const config = {
         baseUrl: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
         model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       },
+      gemini: {
+        apiKey: process.env.GEMINI_API_KEY,
+        baseUrl: process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/openai',
+        model: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
+      },
       ollama: {
         apiKey: process.env.OLLAMA_API_KEY || 'ollama',
         baseUrl: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
@@ -57,6 +62,8 @@ export const config = {
       mock: { model: 'mock' },
     },
     modelOverride: process.env.AI_MODEL,
+    // Streamed replies (POST /agent/chat/stream). Set AI_STREAMING=false to turn the endpoint off.
+    streaming: process.env.AI_STREAMING !== 'false',
     temperature: parseFloat(process.env.AI_TEMPERATURE || '0'),
     timeoutMs: parseInt(process.env.AI_TIMEOUT_MS || '30000', 10),
     maxRetries: parseInt(process.env.AI_MAX_RETRIES || '2', 10),
@@ -113,6 +120,7 @@ export const config = {
     defaultLevel: parseInt(process.env.AGENT_DEFAULT_LEVEL || '2', 10),
     defaultSpendingLimit: parseFloat(process.env.AGENT_DEFAULT_SPENDING_LIMIT || '5000'),
     approvalExpiryMinutes: parseInt(process.env.AGENT_APPROVAL_EXPIRY_MINUTES || '30', 10),
+    maxInvoicesPerDay: parseInt(process.env.AGENT_MAX_INVOICES_PER_DAY || '5', 10),
   },
 
   // Cancellation policy (hours before booking)

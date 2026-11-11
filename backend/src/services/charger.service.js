@@ -70,6 +70,64 @@ export function priceForDuration(hourlyRate, durationMin) {
   return Math.round(((hourlyRate * durationMin) / 60) * 100) / 100;
 }
 
+/**
+ * Rank chargers for a driver. Pure and deterministic: the model only explains the result.
+ * Each factor is scaled 0..1 against the other candidates, then weighted by what the driver cares about.
+ * Travel plans (route from A to B) can reuse this later by feeding it chargers found along the route.
+ */
+export const RANK_PRIORITIES = {
+  balanced: { power: 0.25, distance: 0.25, rating: 0.25, price: 0.25 },
+  fastest: { power: 0.6, distance: 0.15, rating: 0.15, price: 0.1 },
+  nearest: { power: 0.1, distance: 0.6, rating: 0.15, price: 0.15 },
+  cheapest: { power: 0.1, distance: 0.15, rating: 0.15, price: 0.6 },
+  best_rated: { power: 0.1, distance: 0.15, rating: 0.6, price: 0.15 },
+};
+const KW_OF_TIER = { kW3_3: 3.3, kW7_4: 7.4, kW11: 11, kW22: 22, kW50: 50, kW150: 150 };
+const UNRATED = 3; // a charger nobody rated yet is neither good nor bad
+
+export function rankChargers(chargers, priority = 'balanced', top = 3) {
+  const weights = RANK_PRIORITIES[priority] || RANK_PRIORITIES.balanced;
+  const rows = chargers
+    .map((c) => ({
+      c,
+      kw: KW_OF_TIER[c.kwTier] ?? null,
+      rate: hourlyRateOf(c.packages || []),
+      rating: c.totalBookings > 0 && c.avgRating > 0 ? c.avgRating : UNRATED,
+      km: c.distanceKm ?? null,
+    }))
+    .filter((r) => r.kw !== null && r.rate !== null);
+  if (rows.length === 0) return [];
+
+  const maxKw = Math.max(...rows.map((r) => r.kw));
+  const maxKm = Math.max(...rows.map((r) => r.km ?? 0)) || 1;
+  const minRate = Math.min(...rows.map((r) => r.rate));
+
+  return rows
+    .map((r) => {
+      const parts = {
+        power: r.kw / maxKw,
+        distance: r.km === null ? 0.5 : 1 - r.km / (maxKm * 1.0001),
+        rating: (r.rating - 1) / 4,
+        price: r.rate > 0 ? minRate / r.rate : 1,
+      };
+      const score = Object.keys(weights).reduce((sum, k) => sum + weights[k] * parts[k], 0);
+      return {
+        chargerId: r.c.id,
+        name: r.c.name,
+        address: r.c.address,
+        distanceKm: r.km,
+        powerKw: r.kw,
+        rating: r.rating,
+        rated: r.c.totalBookings > 0,
+        hourlyRate: r.rate,
+        currency: r.c.packages?.[0]?.currency,
+        score: Math.round(score * 1000) / 1000,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, top);
+}
+
 export const chargerService = {
   /**
    * Search chargers with filters

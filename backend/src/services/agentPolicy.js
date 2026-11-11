@@ -26,6 +26,10 @@ export const AGENT_ACTIONS = {
   cancel_booking: { grantLevel: 2, autoLevel: 3, spends: false },
   start_session: { grantLevel: 3, autoLevel: 3, spends: false },
   make_payment: { grantLevel: 2, autoLevel: 3, spends: true },
+  // Only creates a PayPal link. The owner still pays on PayPal's page, so it is not a spend by the agent.
+  top_up_wallet: { grantLevel: 2, autoLevel: 4, spends: false },
+  // Bills another person. autoLevel above the top level (4) means the owner is always asked.
+  create_invoice: { grantLevel: 3, autoLevel: 5, spends: false },
   request_refund: { grantLevel: 2, autoLevel: 4, spends: false },
   create_dispute: { grantLevel: 2, autoLevel: 4, spends: false },
   respond_dispute: { grantLevel: 2, autoLevel: 4, spends: false },
@@ -39,7 +43,33 @@ export const TOOL_ACTIONS = {
   estimate_cost: ['compare_prices'],
   create_booking: ['create_booking', 'make_payment'],
   raise_dispute: ['create_dispute'],
+  get_wallet: ['view_payment'],
+  cancel_booking: ['cancel_booking'],
+  top_up_wallet: ['top_up_wallet'],
+  recommend_chargers: ['search_chargers', 'compare_prices'],
+  create_damage_invoice: ['create_invoice'],
+  list_my_bookings: ['view_payment'],
+  list_disputes: ['view_payment'],
+  list_invoices: ['view_payment'],
+  check_device_status: ['view_charger'],
 };
+
+// Who a tool is for. A tool not listed here is for everyone. A user with both roles gets both sets.
+export const TOOL_ROLES = {
+  search_chargers: ['driver'],
+  get_charger_details: ['driver', 'host'],
+  estimate_cost: ['driver'],
+  create_booking: ['driver'],
+  cancel_booking: ['driver'],
+  top_up_wallet: ['driver'],
+  recommend_chargers: ['driver'],
+  create_damage_invoice: ['host'],
+};
+
+export function toolAllowedForRoles(toolName, roles = []) {
+  const wanted = TOOL_ROLES[toolName];
+  return !wanted || wanted.some((r) => roles.includes(r));
+}
 
 export const DECISIONS = { ALLOW: 'allow', CONFIRM: 'confirm', DENY: 'deny' };
 
