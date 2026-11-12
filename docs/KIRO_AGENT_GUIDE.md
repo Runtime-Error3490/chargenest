@@ -27,12 +27,7 @@ cd frontend && npm run dev   # Terminal 2
 
 ## Demo Accounts
 
-| Role | Email | Password |
-|------|-------|----------|
-| Client | demo_driver@example.com | REDACTED_PASSWORD |
-| Host | demo_host@example.com | REDACTED_PASSWORD |
-| Client+Host | clientdemo_host@example.com | REDACTED_PASSWORD |
-| Admin | demo_admin@example.com | REDACTED_PASSWORD |
+Demo accounts are created by the seed script. Run `node backend/prisma/seed.js` after setting up the database. Check `backend/prisma/seed.js` for account details.
 
 ---
 

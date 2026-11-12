@@ -1379,32 +1379,34 @@ async function verifyMandate(token: string, action: AgentAction): Promise<Verifi
 ```sql
 -- Driver account
 INSERT INTO users (id, email, password_hash, name, phone) VALUES
-('d1000000-0000-0000-0000-000000000001', 'driver@demo.com', '$2b$10$...', 'Rahul Kumar', '+919876543210');
+('d1000000-0000-0000-0000-000000000001', 'driver@example.com', '$2b$10$...', 'Demo Driver', '+910000000001');
 
 INSERT INTO user_roles (user_id, role) VALUES
 ('d1000000-0000-0000-0000-000000000001', 'driver');
 
 -- Host account
 INSERT INTO users (id, email, password_hash, name, phone) VALUES
-('h1000000-0000-0000-0000-000000000001', 'demo_host@example.com', '$2b$10$...', 'Priya Sharma', '+919876543211');
+('h1000000-0000-0000-0000-000000000001', 'host@example.com', '$2b$10$...', 'Demo Host', '+910000000002');
 
 INSERT INTO user_roles (user_id, role) VALUES
 ('h1000000-0000-0000-0000-000000000001', 'host');
 
 -- Admin account
 INSERT INTO users (id, email, password_hash, name, phone) VALUES
-('a1000000-0000-0000-0000-000000000001', 'demo_admin@example.com', '$2b$10$...', 'Admin User', '+919876543212');
+('a1000000-0000-0000-0000-000000000001', 'admin@example.com', '$2b$10$...', 'Demo Admin', '+910000000003');
 
 INSERT INTO user_roles (user_id, role) VALUES
 ('a1000000-0000-0000-0000-000000000001', 'admin');
 ```
+
+> **Note:** Actual demo credentials are in `backend/prisma/seed.js`. Run the seed script after setup.
 
 ### 5.2 Demo Chargers (Bengaluru)
 ```sql
 -- HSR Layout charger
 INSERT INTO chargers (id, host_id, name, address, city, latitude, longitude, connector_type, kw_tier) VALUES
 ('c1000000-0000-0000-0000-000000000001', 'h1000000-0000-0000-0000-000000000001', 
- 'Priya''s Home Charger', '123 4th Cross, HSR Layout, Bengaluru', 'Bengaluru',
+ 'Demo Home Charger', '123 Example Street, HSR Layout, Bengaluru', 'Bengaluru',
  12.9141, 77.6411, 'Type2', '7.4kW');
 
 -- Koramangala charger

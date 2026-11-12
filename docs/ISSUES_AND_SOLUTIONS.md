@@ -474,16 +474,9 @@ if (bookingData.status === 'completed') {
 
 ### 26. Demo Account Email Consistency
 
-**Problem:** Different emails used in docs vs seed file (driver@demo.com vs demo_driver@example.com).
+**Problem:** Different emails used in docs vs seed file.
 
-**Solution:** Standardized demo accounts:
-
-| Role | Email | Password |
-|------|-------|----------|
-| Client | demo_driver@example.com | REDACTED_PASSWORD |
-| Host | demo_host@example.com | REDACTED_PASSWORD |
-| Client+Host | clientdemo_host@example.com | REDACTED_PASSWORD |
-| Admin | demo_admin@example.com | REDACTED_PASSWORD |
+**Solution:** Standardized demo accounts. See `backend/prisma/seed.js` for the current demo account configuration.
 
 **Files Updated:**
 - `backend/prisma/seed.js`

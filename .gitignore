@@ -1,35 +1,91 @@
+# ===========================================
+# ChargeNest - Security-First .gitignore
+# ===========================================
+
+# ============ SECRETS & KEYS ============
 # SSH keys - NEVER commit
 .ssh/
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+id_dsa*
+*.p12
+*.pfx
 
-# Dependencies
-node_modules/
-
-# Environment files
+# Environment files (may contain API keys, passwords)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+*.env
+secrets/
+credentials/
 
-# Build outputs
+# API Keys & Tokens (backup files)
+**/api_key*
+**/apikey*
+**/secret*
+**/*token*.txt
+**/*credentials*.json
+
+# ============ DEPENDENCIES ============
+node_modules/
+package-lock.json.bak
+
+# ============ BUILD OUTPUTS ============
 dist/
 build/
+.next/
+out/
 
-# Logs
+# ============ LOGS ============
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# OS files
+# ============ OS FILES ============
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
-# IDE
+# ============ IDE ============
 .idea/
 .vscode/
 *.swp
 *.swo
+*.sublime-workspace
+*.sublime-project
+.project
+.settings/
+*.iml
 
-# Test coverage
+# ============ TEST & COVERAGE ============
 coverage/
+.nyc_output/
+*.lcov
 
-# Prisma
+# ============ DATABASE ============
 backend/prisma/*.db
 backend/prisma/*.db-journal
+*.sqlite
+*.sqlite3
+
+# ============ UPLOADS (local dev) ============
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ============ LARGE MEDIA ============
+# Keep repo lightweight - host videos externally
+presentation/audio/
+presentation/*.mp4
+presentation/*.wav
+presentation/elevenlabs/
+*.wav
+*.mp3
+*.mp4
