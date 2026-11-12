@@ -344,6 +344,46 @@ export default function DashboardPage() {
               )}
             </Card>
 
+            {/* Disputes summary */}
+            <Card className="mt-6 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Disputes{disputeTotal > 0 ? ` (${disputeTotal})` : ''}
+                </h2>
+                <Button variant="outline" size="sm" onClick={() => navigate('/disputes')}>
+                  View All
+                </Button>
+              </div>
+              {disputes === null ? (
+                <Loading size="sm" />
+              ) : disputes.length === 0 ? (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  No disputes. If something goes wrong with a booking, you can report it from the booking page.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {disputes.map((d) => (
+                    <div
+                      key={d.id}
+                      className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => navigate('/disputes')}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-gray-900 dark:text-white truncate">{d.chargerName}</span>
+                        <Badge
+                          size="sm"
+                          variant={d.status === 'resolved' ? 'success' : d.status === 'closed' ? 'default' : 'warning'}
+                        >
+                          {({ open: 'Open', ai_reviewed: 'AI reviewed', pending_admin: 'With admin', resolved: 'Resolved', closed: 'Closed' })[d.status] || d.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate mt-1">{d.reason}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
             {/* Quick Actions - Only show useful secondary actions */}
             <Card className="mt-6 p-6">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Actions</h2>
@@ -398,6 +438,7 @@ export default function DashboardPage() {
                 )}
               </div>
             </Card>
+
           </div>
 
           {/* Sidebar */}
@@ -462,46 +503,6 @@ export default function DashboardPage() {
               )}
             </Card>
 
-            {/* Disputes summary */}
-            <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Disputes{disputeTotal > 0 ? ` (${disputeTotal})` : ''}
-                </h2>
-                <Button variant="outline" size="sm" onClick={() => navigate('/disputes')}>
-                  View All
-                </Button>
-              </div>
-              {disputes === null ? (
-                <Loading size="sm" />
-              ) : disputes.length === 0 ? (
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  No disputes. If something goes wrong with a booking, you can report it from the booking page.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {disputes.map((d) => (
-                    <div
-                      key={d.id}
-                      className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      onClick={() => navigate('/disputes')}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-gray-900 dark:text-white truncate">{d.chargerName}</span>
-                        <Badge
-                          size="sm"
-                          variant={d.status === 'resolved' ? 'success' : d.status === 'closed' ? 'default' : 'warning'}
-                        >
-                          {({ open: 'Open', ai_reviewed: 'AI reviewed', pending_admin: 'With admin', resolved: 'Resolved', closed: 'Closed' })[d.status] || d.status}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate mt-1">{d.reason}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
-
             {/* Become a Host */}
             {!isHost && (
               <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/20 border-green-200 dark:border-green-800 p-6">
@@ -519,72 +520,72 @@ export default function DashboardPage() {
                 </div>
               </Card>
             )}
-
-            {/* Help & Resources */}
-            <Card className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <HelpCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Help & Resources</h2>
-              </div>
-              <ul className="space-y-2">
-                <li>
-                  <Link 
-                    to="/#how-it-works" 
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <span className="text-sm text-gray-700 dark:text-gray-300">How It Works</span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    to="/#faq" 
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <span className="text-sm text-gray-700 dark:text-gray-300">FAQ</span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </Link>
-                </li>
-                <li>
-                  <Link 
-                    to="/#payment-security" 
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Payment Security</span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                  </Link>
-                </li>
-                <li>
-                  <button 
-                    onClick={() => navigate('/chat')}
-                    className="w-full flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
-                  >
-                    <span className="text-sm text-purple-700 dark:text-purple-300 font-medium">Ask AI for Help</span>
-                    <MessageSquare className="w-4 h-4 text-purple-500" />
-                  </button>
-                </li>
-              </ul>
-            </Card>
-
-            {/* Tips */}
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">💡 Pro Tips</h2>
-              <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-                <li className="flex items-start gap-2">
-                  <span className="text-lg">⚡</span>
-                  <span>Book during off-peak hours for better availability</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-lg">💰</span>
-                  <span>Longer sessions often have better per-hour rates</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-lg">🤖</span>
-                                    <span>Try "Find me a charger under $30" in AI Concierge</span>
-                </li>
-              </ul>
-            </Card>
           </div>
+        </div>
+
+        {/* Help and tips side by side under both columns */}
+        <div className="grid md:grid-cols-2 gap-8 mt-8">
+          <Card className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <HelpCircle className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Help & Resources</h2>
+            </div>
+            <ul className="space-y-2">
+              <li>
+                <Link 
+                  to="/#how-it-works" 
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="text-sm text-gray-700 dark:text-gray-300">How It Works</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/#faq" 
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="text-sm text-gray-700 dark:text-gray-300">FAQ</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/#payment-security" 
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <span className="text-sm text-gray-700 dark:text-gray-300">Payment Security</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </Link>
+              </li>
+              <li>
+                <button 
+                  onClick={() => navigate('/chat')}
+                  className="w-full flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
+                >
+                  <span className="text-sm text-purple-700 dark:text-purple-300 font-medium">Ask AI for Help</span>
+                  <MessageSquare className="w-4 h-4 text-purple-500" />
+                </button>
+              </li>
+            </ul>
+          </Card>
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">💡 Pro Tips</h2>
+            <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+              <li className="flex items-start gap-2">
+                <span className="text-lg">⚡</span>
+                <span>Book during off-peak hours for better availability</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-lg">💰</span>
+                <span>Longer sessions often have better per-hour rates</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-lg">🤖</span>
+                                  <span>Try "Find me a charger under $30" in AI Concierge</span>
+              </li>
+            </ul>
+          </Card>
         </div>
       </div>
     </div>

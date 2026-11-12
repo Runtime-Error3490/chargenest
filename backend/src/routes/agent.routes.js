@@ -195,7 +195,7 @@ router.post('/approvals/:id/respond', authenticate, validateBody(approvalRespons
  * POST /api/agent/chat
  * Chat with the AI concierge
  */
-router.post('/chat', authenticate, requireRole('driver'), validateBody(chatSchema), async (req, res, next) => {
+router.post('/chat', authenticate, requireRole('driver', 'host'), validateBody(chatSchema), async (req, res, next) => {
   try {
     const result = await agentService.chat(req.user.id, req.body);
     successResponse(res, result);
@@ -209,7 +209,7 @@ router.post('/chat', authenticate, requireRole('driver'), validateBody(chatSchem
  * Same as /chat, but sent as server-sent events: `text`, `tool_start`, `tool_result`, then
  * `done` (with the same result /chat returns) or `error`. Off when AI_STREAMING=false.
  */
-router.post('/chat/stream', authenticate, requireRole('driver'), validateBody(chatSchema), async (req, res, next) => {
+router.post('/chat/stream', authenticate, requireRole('driver', 'host'), validateBody(chatSchema), async (req, res, next) => {
   if (!config.ai.streaming) {
     return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Streaming is turned off' } });
   }

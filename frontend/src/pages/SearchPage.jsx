@@ -120,7 +120,7 @@ function FilterInput({ label, value, onChange, placeholder, unit, icon: Icon, mi
         `}
       >
         {Icon && (
-          <div className={`flex-shrink-0 ${hasValue ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>
+          <div className={`flex-shrink-0 ${hasValue ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
             <Icon className="w-4 h-4" />
           </div>
         )}
@@ -139,16 +139,17 @@ function FilterInput({ label, value, onChange, placeholder, unit, icon: Icon, mi
           onFocus={() => setIsFocused(true)}
           onBlur={() => { setIsFocused(false); setHint(''); }}
           onWheel={(e) => e.target.blur()}
+          style={{ backgroundColor: 'transparent', colorScheme: 'normal', minHeight: 'auto', minWidth: 'auto' }}
           className={`
-            w-16 bg-transparent text-sm font-medium outline-none border-0 p-0 focus:ring-0
+            w-20 bg-transparent text-base font-semibold outline-none border-0 p-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 selection:bg-white/30
             [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none
             ${hasValue 
-              ? 'text-white placeholder-white/60' 
-              : 'text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500'
+              ? 'text-white placeholder-white/80' 
+              : 'text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-300'
             }
           `}
         />
-        <span className={`text-xs font-medium whitespace-nowrap ${hasValue ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+        <span className={`text-xs font-medium whitespace-nowrap ${hasValue ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>
           {unit}
         </span>
         {hasValue && (
@@ -195,7 +196,7 @@ export default function SearchPage() {
   // Filter states
   const [filters, setFilters] = useState({
     connectorType: searchParams.get('connector') || '',
-    minPower: Number(searchParams.get('minPower')) > 0 ? searchParams.get('minPower') : '',
+    power: Number(searchParams.get('power')) > 0 ? searchParams.get('power') : '',
     maxPrice: Number(searchParams.get('maxPrice')) > 0 ? searchParams.get('maxPrice') : '',
     amenities: searchParams.get('amenities')?.split(',').filter(Boolean) || [],
   });
@@ -222,7 +223,7 @@ export default function SearchPage() {
   // Count active filters
   const activeFilterCount = [
     filters.connectorType,
-    filters.minPower,
+    filters.power,
     filters.maxPrice,
     filters.amenities.length > 0
   ].filter(Boolean).length;
@@ -235,7 +236,7 @@ export default function SearchPage() {
         setLoading(true);
         const params = {};
         if (filters.connectorType) params.connector = filters.connectorType;
-        if (filters.minPower) params.minKw = filters.minPower;
+        if (filters.power) params.kw = filters.power;
         if (filters.maxPrice) params.maxPrice = filters.maxPrice;
         if (location) {
           params.lat = location.latitude;
@@ -261,7 +262,7 @@ export default function SearchPage() {
     };
 
     fetchChargers();
-  }, [filters.connectorType, filters.minPower, filters.maxPrice, location, locationAsked]);
+  }, [filters.connectorType, filters.power, filters.maxPrice, location, locationAsked]);
 
   // Filter chargers by amenities (client-side)
   const filteredChargers = useMemo(() => {
@@ -302,7 +303,7 @@ export default function SearchPage() {
   };
 
   const clearAllFilters = () => {
-    setFilters({ connectorType: '', minPower: '', maxPrice: '', amenities: [] });
+    setFilters({ connectorType: '', power: '', maxPrice: '', amenities: [] });
     setSearchParams({});
   };
 
@@ -374,36 +375,42 @@ export default function SearchPage() {
               />
             </div>
 
-            {/* Min Power - Enhanced */}
-            <div className="flex items-center gap-2">
+            {/* Min Power: type any value, or pick a common one. Both stay in sync. */}
+            <div className="flex items-center gap-2" title="Show only chargers with this exact power">
               <FilterInput
-                label="Minimum power"
-                placeholder="Min"
+                label="Power (exact)"
+                placeholder="Power"
                 unit="kW"
                 icon={Gauge}
                 max={350}
                 step={0.1}
-                value={filters.minPower}
-                onChange={(v) => handleFilterChange('minPower', v)}
+                value={filters.power}
+                onChange={(v) => handleFilterChange('power', v)}
                 gradient="from-yellow-500 to-orange-500"
               />
-              <div className="hidden md:flex gap-1">
-                {POWER_PRESETS.map(kw => (
-                  <button
-                    key={kw}
-                    type="button"
-                    onClick={() => handleFilterChange('minPower', String(filters.minPower) === String(kw) ? '' : String(kw))}
-                    className={`
-                      px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200
-                      ${String(filters.minPower) === String(kw)
-                        ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md shadow-orange-500/25 scale-105'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 hover:scale-105'
-                      }
-                    `}
-                  >
-                    {kw}+
-                  </button>
-                ))}
+              <div className="flex gap-1" role="group" aria-label="Quick power picks, exact kW">
+                {POWER_PRESETS.map(kw => {
+                  const active = String(filters.power) === String(kw);
+                  return (
+                    <button
+                      key={kw}
+                      type="button"
+                      aria-pressed={active}
+                      title={active ? `Only ${kw} kW (click to clear)` : `Only ${kw} kW`}
+                      onClick={() => handleFilterChange('power', active ? '' : String(kw))}
+                      className={`
+                        px-3 py-2 rounded-lg text-sm font-bold transition-all duration-200
+                        ${active
+                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white shadow-md shadow-orange-500/25 scale-105'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-white hover:bg-gray-300 dark:hover:bg-gray-500 hover:scale-105'
+                        }
+                      `}
+                      style={{ minHeight: 'auto', minWidth: 'auto' }}
+                    >
+                      {kw}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

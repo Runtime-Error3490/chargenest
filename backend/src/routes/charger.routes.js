@@ -50,6 +50,7 @@ const searchChargersSchema = z.object({
   radius: z.string().transform(Number).optional().default('10'),
   connector: z.enum(['Type2', 'CCS2', 'CHAdeMO', 'Type1', 'GBT']).optional(),
   minKw: z.string().transform(Number).optional(),
+  kw: z.string().transform(Number).optional(), // exactly this power (7 matches the 7.4 kW tier)
   maxPrice: z.string().transform(Number).optional(),
   availableFrom: z.string().optional(),
   availableTo: z.string().optional(),
@@ -126,6 +127,7 @@ router.get('/', optionalAuth, validateQuery(searchChargersSchema), async (req, r
       radius: req.query.radius,
       connectorType: req.query.connector,
       minKw: req.query.minKw,
+      kw: req.query.kw,
       maxPrice: req.query.maxPrice,
       availableFrom: req.query.availableFrom,
       availableTo: req.query.availableTo,

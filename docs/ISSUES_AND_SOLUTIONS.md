@@ -797,6 +797,15 @@ cd frontend && npm run build
 
 ---
 
+### 42. UI Polish: Larger Text, Dashboard Layout, kW Filter
+
+- **Larger text** (navbar "A" button) now scales the whole site by raising the root text size from 16px to about 18.5px (`html.a11y-large` in `index.css`). Before, it only enlarged headings. It stays off by default.
+- **Dashboard layout** (`DashboardPage.jsx`) was unbalanced: the left column was short and the sidebar long. Now the left column holds Recent Bookings, Disputes and Quick Actions; the sidebar holds Nearby Chargers and Become a Host; Help & Resources and Pro Tips sit side by side below both.
+- **kW filter** on Find Chargers: the number box and the preset chips stay (7, 11, 22, 50), now polished and **exact**: "7" shows only 7 kW chargers, not "7 and up". The page sends `kw` (URL `?power=7`), and `GET /chargers?kw=7` keeps tiers within 0.5 kW of the value, so 7 finds the 7.4 kW tier and 3 finds 3.3; a value no charger has (8) returns an empty list. `minKw` (and the AI tool's `min_kw`) still means "at least". The box and chips stay in sync (clicking the active chip clears it), the chips show on small screens, the input has a transparent background (it showed a dark block before), and the text, placeholder, unit and chip labels have stronger contrast and a larger size. The first redesign, a dropdown, was dropped because the earlier layout was preferred.
+- **Concierge for hosts:** a host-only account used to see driver quick actions ("Find nearby chargers"), and then got "Requires one of these roles: driver" because `/agent/chat` allowed drivers only. Now `/agent/chat` and `/agent/chat/stream` allow drivers and hosts. The chat page shows host quick actions and a host greeting to a host-only account, and a friendly message instead of the raw role error. The model is told the account type, so a host who asks to find or book a charger gets a kind explanation of what they can do instead.
+
+---
+
 ### Debugging Tips
 
 1. **API not responding:** Check if backend is running on port 4000

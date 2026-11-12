@@ -138,6 +138,7 @@ export const chargerService = {
     radius = 10,
     connectorType,
     minKw,
+    kw,
     maxPrice,
     availableFrom,
     availableTo,
@@ -164,6 +165,14 @@ export const chargerService = {
       if (minIndex !== -1) {
         where.kwTier = { in: kwOrder.slice(minIndex) };
       }
+    }
+
+    // Exactly this power: the tiers within 0.5 kW of it, so 7 finds the 7.4 kW tier and 3 finds 3.3
+    if (kw) {
+      const matching = Object.entries(KW_OF_TIER)
+        .filter(([, value]) => Math.abs(value - kw) < 0.5)
+        .map(([tier]) => tier);
+      where.kwTier = { in: matching }; // an empty list matches nothing
     }
 
     // Get all active chargers with packages

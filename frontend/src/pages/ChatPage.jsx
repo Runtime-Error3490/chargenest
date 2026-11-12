@@ -25,8 +25,8 @@ import {
   MessageCircle
 } from 'lucide-react';
 
-// Quick action suggestions with icons
-const QUICK_ACTIONS = [
+// Quick action suggestions with icons, by account type. A host-only account never sees driver actions.
+const DRIVER_ACTIONS = [
   { label: 'Find nearby chargers', message: 'Help me find chargers near my location', icon: MapPin, color: 'from-blue-500 to-blue-600' },
   { label: 'My bookings', message: 'Show me my upcoming bookings', icon: Calendar, color: 'from-purple-500 to-purple-600' },
   { label: 'Cancel booking', message: 'I need to cancel a booking', icon: XCircle, color: 'from-red-500 to-red-600' },
@@ -34,6 +34,36 @@ const QUICK_ACTIONS = [
   { label: 'Refund status', message: 'What is the status of my refund?', icon: RefreshCw, color: 'from-green-500 to-green-600' },
   { label: 'How does it work?', message: 'Explain how this platform works', icon: HelpCircle, color: 'from-indigo-500 to-indigo-600' },
 ];
+
+const HOST_ACTIONS = [
+  { label: 'Bookings on my chargers', message: 'Show the bookings on my chargers', icon: Calendar, color: 'from-purple-500 to-purple-600' },
+  { label: 'My earnings', message: 'What is my wallet balance and what are my pending earnings?', icon: RefreshCw, color: 'from-green-500 to-green-600' },
+  { label: 'Send a damage invoice', message: 'I want to send a damage invoice for a finished booking', icon: AlertTriangle, color: 'from-orange-500 to-orange-600' },
+  { label: 'My disputes', message: 'Show my disputes', icon: XCircle, color: 'from-red-500 to-red-600' },
+  { label: 'Check a charger device', message: 'Check the device status for a booking on my charger', icon: MapPin, color: 'from-blue-500 to-blue-600' },
+  { label: 'How does it work?', message: 'Explain how hosting works on this platform', icon: HelpCircle, color: 'from-indigo-500 to-indigo-600' },
+];
+
+function actionsFor(user) {
+  const roles = user?.roles || [];
+  const driver = roles.includes('driver');
+  const host = roles.includes('host');
+  if (driver && host) {
+    // Both roles: the driver set, plus the host actions that driver does not have
+    return [...DRIVER_ACTIONS.slice(0, 3), HOST_ACTIONS[0], HOST_ACTIONS[2], DRIVER_ACTIONS[5]];
+  }
+  if (host) return HOST_ACTIONS;
+  return DRIVER_ACTIONS;
+}
+
+// The server's role error, in words a user can act on
+function friendlyError(err) {
+  const text = String(err?.message || '');
+  if (/requires one of these roles|forbidden/i.test(text)) {
+    return "The AI Concierge isn't available for this account type. Use a driver or host account, or email support from the Support page.";
+  }
+  return text || "I'm sorry, I encountered an error. Please try again.";
+}
 
 // Styles for the assistant's markdown. Raw HTML in a reply is not rendered.
 const markdownComponents = {
@@ -68,10 +98,15 @@ export default function ChatPage() {
       role: 'assistant',
       content: `Hello${user?.name ? ` ${user.name.split(' ')[0]}` : ''}! 👋 I'm your EV charging assistant. I can help you with:
 
-• Finding and booking chargers
+${(user?.roles || []).includes('host') && !(user?.roles || []).includes('driver')
+  ? `• Bookings on your chargers
+• Your wallet and earnings
+• Damage invoices and disputes
+• Understanding platform features`
+  : `• Finding and booking chargers
 • Managing your bookings
 • Reporting issues and disputes
-• Understanding platform features
+• Understanding platform features`}
 
 How can I help you today?`,
       timestamp: new Date(),
@@ -164,7 +199,7 @@ How can I help you today?`,
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: err.message || "I'm sorry, I encountered an error. Please try again.",
+        content: friendlyError(err),
         timestamp: new Date(),
         isError: true,
       };
@@ -341,7 +376,7 @@ How can I help you today?`,
               Quick actions
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {QUICK_ACTIONS.map((action, index) => {
+              {actionsFor(user).map((action, index) => {
                 const Icon = action.icon;
                 return (
                   <button

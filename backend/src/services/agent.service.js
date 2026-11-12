@@ -373,7 +373,7 @@ function settingsOf(agent) {
 /** Safety net: remove any "[... internal ...]" note the model copied into its reply. */
 export function stripInternalNotes(text) {
   return String(text ?? '')
-    .replace(/\n*\[(?:Tool data|Known chargers|User location|Current date)[^\n]*(?:\]|$)/gi, '')
+    .replace(/\n*\[(?:Tool data|Known chargers|User location|Current date|Account type)[^\n]*(?:\]|$)/gi, '')
     .trim();
 }
 
@@ -1038,6 +1038,8 @@ export const agentService = {
     // A driver only gets driver tools, a host only host tools; a user with both roles gets both
     const roleRows = await prisma.userRoleMapping.findMany({ where: { userId }, select: { role: true } });
     const roles = roleRows.map((r) => r.role);
+    // Tell the model what this account can do, so a request it cannot serve gets a kind answer
+    messages[last].content = `[Account type: ${roles.join(' and ') || 'none'}]\n\n${messages[last].content}`;
     const toolsForUser = agentTools.filter((t) => toolAllowedForRoles(t.function.name, roles)
       && (t.function.name !== 'find_place' || config.ai.geocoding.enabled));
 
