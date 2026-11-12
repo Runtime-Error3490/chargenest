@@ -435,6 +435,7 @@ export default function BookingDetailPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      className="self-center flex-shrink-0 whitespace-nowrap"
                       onClick={() => navigate(`/chargers/${booking.charger.id}`)}
                     >
                       View Charger
