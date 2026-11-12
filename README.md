@@ -18,10 +18,10 @@ Visit: **https://chargenest-swbe.onrender.com**
 
 | Role | Email | Password |
 |------|-------|----------|
-| Driver | `driver@chargenest.demo` | `ChargeNest2026!` |
-| Host | `host@chargenest.demo` | `ChargeNest2026!` |
-| Admin | `admin@chargenest.demo` | `ChargeNest2026!` |
-| Driver+Host | `both@chargenest.demo` | `ChargeNest2026!` |
+| Driver | `client@demo.com` | `ChargeNest2026!` |
+| Host | `host@demo.com` | `ChargeNest2026!` |
+| Admin | `admin@evcharge.com` | `ChargeNest2026!` |
+| Driver+Host | `clienthost@demo.com` | `ChargeNest2026!` |
 
 ### Testing Flow
 1. **As Driver:** Login → AI Chat → "Find me a charger near Koramangala" → Book → Check Wallet

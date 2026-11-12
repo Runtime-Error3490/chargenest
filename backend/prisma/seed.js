@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 // Demo account configuration - override via environment variables
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'ChargeNest2026!';
-const DEMO_DRIVER_EMAIL = process.env.DEMO_DRIVER_EMAIL || 'driver@chargenest.demo';
-const DEMO_HOST_EMAIL = process.env.DEMO_HOST_EMAIL || 'host@chargenest.demo';
-const DEMO_ADMIN_EMAIL = process.env.DEMO_ADMIN_EMAIL || 'admin@chargenest.demo';
-const DEMO_DUAL_EMAIL = process.env.DEMO_DUAL_EMAIL || 'both@chargenest.demo';
+const DEMO_DRIVER_EMAIL = process.env.DEMO_DRIVER_EMAIL || 'client@demo.com';
+const DEMO_HOST_EMAIL = process.env.DEMO_HOST_EMAIL || 'host@demo.com';
+const DEMO_ADMIN_EMAIL = process.env.DEMO_ADMIN_EMAIL || 'admin@evcharge.com';
+const DEMO_DUAL_EMAIL = process.env.DEMO_DUAL_EMAIL || 'clienthost@demo.com';
 
 // High-quality EV charging stock photos from Unsplash (free to use)
 // Using direct Unsplash Source URLs which are more reliable for production
