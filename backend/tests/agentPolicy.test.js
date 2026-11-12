@@ -86,6 +86,9 @@ test('a driver does not get search or booking tools as a host, and vice versa', 
   const { toolAllowedForRoles } = await import('../src/services/agentPolicy.js');
   assert.equal(toolAllowedForRoles('create_booking', ['host']), false);
   assert.equal(toolAllowedForRoles('create_booking', ['driver']), true);
+  assert.equal(toolAllowedForRoles('raise_dispute', ['host']), false);
+  assert.equal(toolAllowedForRoles('raise_dispute', ['driver']), true);
+  assert.equal(toolAllowedForRoles('create_damage_invoice', ['host']), true);
   assert.equal(toolAllowedForRoles('create_booking', ['host', 'driver']), true);
   assert.equal(toolAllowedForRoles('get_wallet', ['host']), true);
 });

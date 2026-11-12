@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { bookingService } from '../services/bookingService';
 import { disputeService } from '../services/disputeService';
+import { walletService } from '../services/walletService';
 import { useAuthStore } from '../store/authStore';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -112,6 +113,11 @@ export default function BookingDetailPage() {
   // Modals
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceAmount, setInvoiceAmount] = useState('');
+  const [invoiceNote, setInvoiceNote] = useState('');
+  const [invoiceError, setInvoiceError] = useState(null);
+  const [invoiceSent, setInvoiceSent] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewError, setReviewError] = useState(null);
   
@@ -259,6 +265,26 @@ export default function BookingDetailPage() {
     }
   };
 
+  const handleInvoice = async () => {
+    if (!canSubmitInvoice) return;
+    try {
+      setActionLoading(true);
+      setInvoiceError(null);
+      const invoice = await walletService.createInvoice({
+        bookingId: id,
+        amount: Number(invoiceAmount),
+        description: invoiceNote.trim(),
+      });
+      setInvoiceSent(invoice);
+      setInvoiceAmount('');
+      setInvoiceNote('');
+    } catch (err) {
+      setInvoiceError(err.message || 'Could not send the invoice');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDispute = async () => {
     if (!disputeReason || !disputeDescription) {
       return;
@@ -333,7 +359,20 @@ export default function BookingDetailPage() {
   const canCancel = ['pending', 'confirmed'].includes(booking.status);
   const canStartSession = booking.status === 'confirmed' && !timeUntilStart;
   const canEndSession = booking.status === 'active';
-  const canDispute = ['completed', 'active'].includes(booking.status);
+  // A driver reports an issue (dispute). A host reports damage with a damage invoice instead.
+  const canDispute = !!booking.isDriver && ['completed', 'in_progress'].includes(booking.status);
+  const canInvoice = !!booking.isHost && ['completed', 'disputed'].includes(booking.status);
+  const invoiceCap = Math.round(Number(booking.totalAmount || 0) * 5 * 100) / 100;
+  const invoiceAmountError = (() => {
+    if (invoiceAmount === '') return null;
+    const v = Number(invoiceAmount);
+    if (!Number.isFinite(v) || v <= 0) return 'Enter an amount above 0';
+    if (!/^\d+(\.\d{1,2})?$/.test(invoiceAmount)) return 'Max 2 decimal places';
+    if (v > invoiceCap) return `The most you can invoice for this booking is $${invoiceCap.toFixed(2)}`;
+    return null;
+  })();
+  const invoiceNoteError = invoiceNote && invoiceNote.trim().length < 5 ? 'Describe the damage in at least 5 characters' : null;
+  const canSubmitInvoice = invoiceAmount !== '' && !invoiceAmountError && invoiceNote.trim().length >= 5;
   const canReview = !!booking.canReview;
   const reviewsDriver = booking.reviewTarget === 'driver';
   const reviewLabel = reviewsDriver ? 'Rate the Driver' : 'Rate this Charger';
@@ -695,6 +734,17 @@ export default function BookingDetailPage() {
                     </Button>
                   )}
 
+                  {canInvoice && (
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => { setInvoiceSent(null); setInvoiceError(null); setShowInvoiceModal(true); }}
+                    >
+                      <Flag className="w-4 h-4 mr-2" />
+                      Send Damage Invoice
+                    </Button>
+                  )}
+
                   <Button
                     className="w-full"
                     variant="outline"
@@ -832,6 +882,71 @@ export default function BookingDetailPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Damage Invoice Modal (hosts) */}
+      <Modal
+        isOpen={showInvoiceModal}
+        onClose={() => setShowInvoiceModal(false)}
+        title="Send a Damage Invoice"
+      >
+        {invoiceSent ? (
+          <div className="space-y-4">
+            <p className="text-gray-800 dark:text-gray-100">
+              Invoice sent{booking.driver?.name ? ` to ${booking.driver.name}` : ''}. They pay it on PayPal, and you are credited when it is paid.
+            </p>
+            <div className="flex gap-3">
+              {invoiceSent.payUrl && (
+                <a href={invoiceSent.payUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                  <Button variant="outline" className="w-full">View on PayPal</Button>
+                </a>
+              )}
+              <Button className="flex-1" onClick={() => setShowInvoiceModal(false)}>Done</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Found damage after the session? Send the driver a PayPal invoice. You can invoice up to ${invoiceCap.toFixed(2)} for this booking.
+            </p>
+            <div>
+              <label htmlFor="invoice-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (USD)</label>
+              <input
+                id="invoice-amount"
+                type="number"
+                inputMode="decimal"
+                min="0.01"
+                step="0.01"
+                value={invoiceAmount}
+                onChange={(e) => setInvoiceAmount(e.target.value)}
+                placeholder="0.00"
+                aria-invalid={!!invoiceAmountError}
+                className={`w-full rounded-lg border bg-white dark:bg-gray-700 text-gray-900 dark:text-white p-3 ${invoiceAmountError ? 'border-red-400' : 'border-gray-300 dark:border-gray-600'}`}
+              />
+              {invoiceAmountError && <p role="alert" className="text-sm text-red-600 dark:text-red-400 mt-1">{invoiceAmountError}</p>}
+            </div>
+            <div>
+              <label htmlFor="invoice-note" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">What was damaged?</label>
+              <textarea
+                id="invoice-note"
+                value={invoiceNote}
+                onChange={(e) => setInvoiceNote(e.target.value)}
+                rows={4}
+                maxLength={500}
+                placeholder="For example: the charging cable was cut"
+                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white p-4"
+              />
+              {invoiceNoteError && <p role="alert" className="text-sm text-red-600 dark:text-red-400 mt-1">{invoiceNoteError}</p>}
+            </div>
+            {invoiceError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{invoiceError}</p>}
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowInvoiceModal(false)}>Cancel</Button>
+              <Button className="flex-1" onClick={handleInvoice} disabled={actionLoading || !canSubmitInvoice}>
+                {actionLoading ? <Loading size="sm" /> : 'Send Invoice'}
+              </Button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* Dispute Modal */}

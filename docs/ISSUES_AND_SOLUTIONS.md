@@ -815,6 +815,9 @@ cd frontend && npm run build
 - **Invoices on the wallet page** are titled "Invoices" with a "Sent by you" or "Sent to you" tag. A damage invoice shows there (for the host who sent it too), not on the Disputes page; an invoice is not a dispute.
 - **Deposit** is $50 (was 250), the default for `WALLET_DEPOSIT` and `WALLET_MIN_BALANCE`.
 
+- **Reporting problems by role** (booking page): a **driver** sees "Report Issue" (a dispute), now also while the session is running (`in_progress`; the page checked a status the backend never uses, `active`). A **host** sees "Send Damage Invoice" instead, with an amount (checked against 5 times the booking total, 2 decimals) and a description; it sends the PayPal invoice and shows a link. The server also refuses a dispute raised by a host ("Hosts report damage with a damage invoice"), and the AI concierge's `raise_dispute` tool is driver-only, so a host's agent uses `create_damage_invoice`. Tests added in `paymentFlows.test.js` and `agentPolicy.test.js`.
+- PayPal does not email anyone about a dispute raised in ChargeNest (it never hears about it), and the app sends no emails of its own, so the other party is not notified. Not built.
+
 ---
 
 ### Debugging Tips

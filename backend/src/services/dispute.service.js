@@ -44,6 +44,11 @@ export const disputeService = {
       throw new ForbiddenError('You are not part of this booking');
     }
 
+    // A host reports damage with a damage invoice, not a dispute
+    if (isHost && !isDriver) {
+      throw new ValidationError('Hosts report damage with a damage invoice. Use "Send Damage Invoice" on the booking.');
+    }
+
     // Check if booking can be disputed
     if (!['completed', 'in_progress'].includes(booking.status)) {
       throw new ValidationError(`Cannot dispute booking with status: ${booking.status}`);

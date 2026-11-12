@@ -30,6 +30,12 @@ export const walletService = {
     return response.data.data;
   },
 
+  // Host sends a PayPal invoice for a finished booking (for example for damage)
+  async createInvoice({ bookingId, amount, description }) {
+    const response = await api.post('/payments/invoices', { bookingId, amount, description });
+    return response.data.data.invoice;
+  },
+
   async getInvoices() {
     const response = await api.get('/payments/invoices');
     return response.data.data.invoices;

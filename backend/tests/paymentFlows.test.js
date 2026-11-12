@@ -169,6 +169,20 @@ test('driver raises a dispute: it is stored and the booking becomes disputed', a
   }
 });
 
+test('a host cannot raise a dispute: damage goes through a damage invoice', async () => {
+  reset();
+  db.bookingRow = {
+    id: 'b1', status: 'completed', driverId: 'd', scheduledEnd: new Date(),
+    charger: { hostId: 'h' }, session: null, payment: null, dispute: null,
+  };
+  await assert.rejects(
+    () => disputeService.raiseDispute('h', { bookingId: 'b1', reason: 'cable_damaged', description: 'Cable was cut' }),
+    /damage invoice/i,
+  );
+  assert.equal(db.dispute, null);
+  assert.equal(db.bookingRow.status, 'completed');
+});
+
 test('a second dispute on the same booking is rejected', async () => {
   reset();
   db.bookingRow = {

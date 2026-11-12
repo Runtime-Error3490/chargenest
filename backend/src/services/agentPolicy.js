@@ -64,6 +64,7 @@ export const TOOL_ROLES = {
   cancel_booking: ['driver'],
   top_up_wallet: ['driver'],
   recommend_chargers: ['driver'],
+  raise_dispute: ['driver'],
   find_place: ['driver'],
   create_damage_invoice: ['host'],
 };
