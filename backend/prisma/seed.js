@@ -3,6 +3,13 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
+// Demo account configuration - override via environment variables
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'ChangeMe123!';
+const DEMO_DRIVER_EMAIL = process.env.DEMO_DRIVER_EMAIL || 'driver@example.com';
+const DEMO_HOST_EMAIL = process.env.DEMO_HOST_EMAIL || 'host@example.com';
+const DEMO_ADMIN_EMAIL = process.env.DEMO_ADMIN_EMAIL || 'admin@example.com';
+const DEMO_DUAL_EMAIL = process.env.DEMO_DUAL_EMAIL || 'dualuser@example.com';
+
 // High-quality EV charging stock photos from Unsplash (free to use)
 // Using direct Unsplash Source URLs which are more reliable for production
 const stockPhotos = {
@@ -45,15 +52,15 @@ const stockPhotos = {
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Hash password (REDACTED_PASSWORD)
-  const passwordHash = await bcrypt.hash('REDACTED_PASSWORD', 10);
+  // Hash password
+  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 10);
 
   // Create demo users with realistic names
   const driver = await prisma.user.upsert({
-    where: { email: 'demo_driver@example.com' },
+    where: { email: DEMO_DRIVER_EMAIL },
     update: {},
     create: {
-      email: 'demo_driver@example.com',
+      email: DEMO_DRIVER_EMAIL,
       passwordHash,
       name: 'Alex Thompson',
       phone: '+14155551234',
@@ -65,10 +72,10 @@ async function main() {
   });
 
   const host = await prisma.user.upsert({
-    where: { email: 'demo_host@example.com' },
+    where: { email: DEMO_HOST_EMAIL },
     update: {},
     create: {
-      email: 'demo_host@example.com',
+      email: DEMO_HOST_EMAIL,
       passwordHash,
       name: 'Sarah Mitchell',
       phone: '+14155551235',
@@ -80,10 +87,10 @@ async function main() {
   });
 
   const admin = await prisma.user.upsert({
-    where: { email: 'demo_admin@example.com' },
+    where: { email: DEMO_ADMIN_EMAIL },
     update: {},
     create: {
-      email: 'demo_admin@example.com',
+      email: DEMO_ADMIN_EMAIL,
       passwordHash,
       name: 'Admin User',
       phone: '+14155551236',
@@ -96,10 +103,10 @@ async function main() {
 
   // Create a user who is both client and host
   const dualUser = await prisma.user.upsert({
-    where: { email: 'clientdemo_host@example.com' },
+    where: { email: DEMO_DUAL_EMAIL },
     update: {},
     create: {
-      email: 'clientdemo_host@example.com',
+      email: DEMO_DUAL_EMAIL,
       passwordHash,
       name: 'Michael Chen',
       phone: '+14155551237',
@@ -627,12 +634,14 @@ async function main() {
   console.log(`
 🎉 Seed completed!
 
-Demo Accounts (Password: REDACTED_PASSWORD)
+Demo Accounts:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Client:      demo_driver@example.com
-Host:        demo_host@example.com
-Client+Host: clientdemo_host@example.com
-Admin:       demo_admin@example.com
+Configure via environment variables:
+  DEMO_PASSWORD, DEMO_DRIVER_EMAIL,
+  DEMO_HOST_EMAIL, DEMO_ADMIN_EMAIL,
+  DEMO_DUAL_EMAIL
+
+Or use defaults (see seed.js)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Chargers created: ${chargers.length}
