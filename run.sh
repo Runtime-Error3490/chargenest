@@ -256,11 +256,7 @@ start_dev() {
     print_msg "Wallet: run './run.sh seed' once to fund the demo wallets above the minimum balance." "$YELLOW"
     print_msg "Without PayPal keys in backend/.env, PayPal runs in mock mode (payments simulated). AI runs on the provider set by AI_PROVIDER." "$YELLOW"
     echo ""
-    print_msg "Demo Accounts (Password: REDACTED_PASSWORD):" "$YELLOW"
-    print_msg "  Client:      demo_driver@example.com"
-    print_msg "  Host:        demo_host@example.com"
-    print_msg "  Client+Host: clientdemo_host@example.com"
-    print_msg "  Admin:       demo_admin@example.com"
+    print_msg "Demo accounts are in backend/prisma/seed.js. Run './run.sh seed' to create them." "$YELLOW"
     echo ""
     print_msg "Press Ctrl+C to stop all servers" "$YELLOW"
 
