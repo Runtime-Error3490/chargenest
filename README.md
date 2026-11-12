@@ -9,6 +9,31 @@
 
 ---
 
+## 🧪 Testing Instructions (For Judges)
+
+### Live Demo Access
+Visit: **https://chargenest-swbe.onrender.com**
+
+### Demo Accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| Driver | `driver@chargenest.demo` | `ChargeNest2026!` |
+| Host | `host@chargenest.demo` | `ChargeNest2026!` |
+| Admin | `admin@chargenest.demo` | `ChargeNest2026!` |
+| Driver+Host | `both@chargenest.demo` | `ChargeNest2026!` |
+
+### Testing Flow
+1. **As Driver:** Login → AI Chat → "Find me a charger near Koramangala" → Book → Check Wallet
+2. **As Host:** Login → My Chargers → View Bookings → Check Earnings
+3. **PayPal:** Uses sandbox mode (simulated payments work without real money)
+4. **AI Concierge:** Try natural language queries like "Cancel my booking" or "Show my wallet balance"
+
+### PayPal Sandbox
+The app uses PayPal sandbox. No real money is involved. Wallet top-ups and withdrawals are simulated.
+
+---
+
 ## 🎯 Problem
 
 EV adoption in India is rising, but many owners (apartment dwellers, renters) cannot install a home charger, and public charging infrastructure is sparse. Meanwhile, many homeowners and small businesses have idle charger capacity.
@@ -163,7 +188,6 @@ ev-charging-marketplace/
 │       ├── routes/         # Express routes
 │       ├── services/       # Business logic
 │       └── middleware/     # Auth, validation
-├── presentation/           # Hackathon materials
 └── README.md
 ```
 

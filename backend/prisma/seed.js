@@ -4,11 +4,11 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 // Demo account configuration - override via environment variables
-const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'ChangeMe123!';
-const DEMO_DRIVER_EMAIL = process.env.DEMO_DRIVER_EMAIL || 'driver@example.com';
-const DEMO_HOST_EMAIL = process.env.DEMO_HOST_EMAIL || 'host@example.com';
-const DEMO_ADMIN_EMAIL = process.env.DEMO_ADMIN_EMAIL || 'admin@example.com';
-const DEMO_DUAL_EMAIL = process.env.DEMO_DUAL_EMAIL || 'dualuser@example.com';
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || 'ChargeNest2026!';
+const DEMO_DRIVER_EMAIL = process.env.DEMO_DRIVER_EMAIL || 'driver@chargenest.demo';
+const DEMO_HOST_EMAIL = process.env.DEMO_HOST_EMAIL || 'host@chargenest.demo';
+const DEMO_ADMIN_EMAIL = process.env.DEMO_ADMIN_EMAIL || 'admin@chargenest.demo';
+const DEMO_DUAL_EMAIL = process.env.DEMO_DUAL_EMAIL || 'both@chargenest.demo';
 
 // High-quality EV charging stock photos from Unsplash (free to use)
 // Using direct Unsplash Source URLs which are more reliable for production
