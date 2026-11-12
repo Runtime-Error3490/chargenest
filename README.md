@@ -8,7 +8,7 @@
 
 **PayPal AI Hackathon 2026** · Built by **Nandini A Choukimath** & **Shaleen Shukla**
 
-[**🌐 Live demo**](https://chargenest-swbe.onrender.com) · [**🎬 Demo video**](https://youtube.com/your-demo-video) · [**📊 Pitch deck**](presentation/ChargeNest_Hackathon_Presentation.html) · [**📄 One-page summary**](presentation/ONE_PAGE_SUMMARY.md)
+[**🌐 Live demo**](https://chargenest-swbe.onrender.com) · [**🎬 Demo video**](https://youtu.be/L-ebQlh6e74) · [**📊 Pitch deck**](presentation/ChargeNest_Hackathon_Presentation.html) · [**📄 One-page summary**](presentation/ONE_PAGE_SUMMARY.md)
 
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
 ![Node](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)
