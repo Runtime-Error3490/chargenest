@@ -36,6 +36,22 @@ const chatSchema = z.object({
       latitude: z.number().min(-90).max(90),
       longitude: z.number().min(-180).max(180),
     }).optional(),
+    // Earlier turns of this chat (text only), so the model remembers what was agreed
+    history: z.array(z.object({
+      role: z.enum(['user', 'assistant']),
+      content: z.string().max(8000),
+    })).max(20).optional(),
+    timeZone: z.string().max(64).optional(),
+    // Charger and package ids the agent's tools returned earlier in this chat
+    refs: z.array(z.object({
+      chargerId: z.string().max(64),
+      name: z.string().max(200),
+      packages: z.array(z.object({
+        id: z.string().max(64),
+        minutes: z.number().nullable().optional(),
+        price: z.number().nullable().optional(),
+      })).max(10).optional(),
+    })).max(8).optional(),
   }).optional(),
 });
 

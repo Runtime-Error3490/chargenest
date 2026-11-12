@@ -39,6 +39,7 @@ export const AGENT_ACTIONS = {
 // Each concierge tool maps to the permission actions it needs. Booking holds money, so it needs both.
 export const TOOL_ACTIONS = {
   search_chargers: ['search_chargers'],
+  find_place: ['search_chargers'],
   get_charger_details: ['view_charger'],
   estimate_cost: ['compare_prices'],
   create_booking: ['create_booking', 'make_payment'],
@@ -63,6 +64,7 @@ export const TOOL_ROLES = {
   cancel_booking: ['driver'],
   top_up_wallet: ['driver'],
   recommend_chargers: ['driver'],
+  find_place: ['driver'],
   create_damage_invoice: ['host'],
 };
 

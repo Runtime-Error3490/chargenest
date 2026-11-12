@@ -160,9 +160,9 @@ export function Select({
                   className={`
                     flex items-center justify-between gap-2 px-4 py-2.5 cursor-pointer
                     transition-colors duration-100
-                    ${isHighlighted ? 'bg-primary-50' : ''}
-                    ${isSelected ? 'text-primary-700 font-medium' : 'text-gray-700'}
-                    hover:bg-primary-50
+                    ${isHighlighted ? 'bg-primary-50 dark:bg-primary-900/30' : ''}
+                    ${isSelected ? 'text-primary-700 dark:text-primary-400 font-medium' : 'text-gray-700 dark:text-gray-200'}
+                    hover:bg-primary-50 dark:hover:bg-primary-900/30
                   `}
                 >
                   <span className="truncate">{optionLabel}</span>

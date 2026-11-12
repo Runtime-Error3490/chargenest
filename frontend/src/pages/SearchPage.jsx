@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { chargerService } from '../services/chargerService';
+import { getBrowserLocation, DEMO_LOCATION } from '../utils/location';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -199,6 +200,21 @@ export default function SearchPage() {
     amenities: searchParams.get('amenities')?.split(',').filter(Boolean) || [],
   });
   
+  // Driver's position (browser, or the demo spot). null = not known, so nothing is sorted by distance.
+  const [location, setLocation] = useState(null);
+  const [locationAsked, setLocationAsked] = useState(false);
+  const [beyondRadius, setBeyondRadius] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getBrowserLocation().then((loc) => {
+      if (!alive) return;
+      setLocation(loc);
+      setLocationAsked(true);
+    });
+    return () => { alive = false; };
+  }, []);
+
   // Bengaluru center coordinates
   const defaultCenter = [12.9716, 77.5946];
   const [mapCenter, setMapCenter] = useState(defaultCenter);
@@ -211,8 +227,9 @@ export default function SearchPage() {
     filters.amenities.length > 0
   ].filter(Boolean).length;
 
-  // Fetch chargers
+  // Fetch chargers. With a location: those within 10 km, nearest first; if none, all of them, nearest first.
   useEffect(() => {
+    if (!locationAsked) return; // wait for the location answer so we don't search twice
     const fetchChargers = async () => {
       try {
         setLoading(true);
@@ -220,8 +237,19 @@ export default function SearchPage() {
         if (filters.connectorType) params.connector = filters.connectorType;
         if (filters.minPower) params.minKw = filters.minPower;
         if (filters.maxPrice) params.maxPrice = filters.maxPrice;
-        
-        const response = await chargerService.searchChargers(params);
+        if (location) {
+          params.lat = location.latitude;
+          params.lng = location.longitude;
+          params.radius = 10;
+        }
+
+        let response = await chargerService.searchChargers(params);
+        let outside = false;
+        if (location && (response.data || []).length === 0) {
+          response = await chargerService.searchChargers({ ...params, radius: 0 });
+          outside = (response.data || []).length > 0;
+        }
+        setBeyondRadius(outside);
         setChargers(response.data || []);
         setError(null);
       } catch (err) {
@@ -233,7 +261,7 @@ export default function SearchPage() {
     };
 
     fetchChargers();
-  }, [filters.connectorType, filters.minPower, filters.maxPrice]);
+  }, [filters.connectorType, filters.minPower, filters.maxPrice, location, locationAsked]);
 
   // Filter chargers by amenities (client-side)
   const filteredChargers = useMemo(() => {
@@ -315,7 +343,19 @@ export default function SearchPage() {
                 <p className="text-base font-semibold text-gray-900 dark:text-white">Find Chargers</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
                   <Sparkles className="w-3 h-3 text-green-500" />
-                  {filteredChargers.length} available near you
+                  {location
+                    ? `${filteredChargers.length} ${beyondRadius ? 'chargers, nearest first' : 'within 10 km'}${location.demo ? ' (demo location)' : ''}`
+                    : `${filteredChargers.length} available`}
+                  {!location && locationAsked && (
+                    <button
+                      type="button"
+                      onClick={() => setLocation(DEMO_LOCATION)}
+                      className="ml-1 underline text-green-600 dark:text-green-400"
+                      style={{ minHeight: 'auto', minWidth: 'auto' }}
+                    >
+                      use demo location
+                    </button>
+                  )}
                 </p>
               </div>
             </div>
@@ -551,6 +591,12 @@ export default function SearchPage() {
                               <Zap className="w-4 h-4 text-yellow-500" />
                               {charger.powerKw} kW
                             </span>
+                            {typeof charger.distanceKm === 'number' && (
+                              <span className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-300">
+                                <MapPin className="w-3.5 h-3.5" />
+                                {charger.distanceKm < 10 ? charger.distanceKm.toFixed(1) : Math.round(charger.distanceKm)} km
+                              </span>
+                            )}
                             <span className="text-sm text-green-600 dark:text-green-400 font-medium">
                               {charger.lowestPrice > 0 ? `$${charger.lowestPrice}` : 'Free'}
                               {charger.packages?.[0] && <span className="text-gray-500 dark:text-gray-400 font-normal"> / {charger.packages[0].durationMin}min</span>}

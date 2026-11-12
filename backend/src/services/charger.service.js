@@ -202,7 +202,8 @@ export const chargerService = {
         ),
       }));
 
-      chargers = chargers.filter(c => c.distanceKm <= radius);
+      // radius 0 = no limit (everything, nearest first)
+      if (radius > 0) chargers = chargers.filter(c => c.distanceKm <= radius);
       
       // Sort by distance
       chargers.sort((a, b) => a.distanceKm - b.distanceKm);

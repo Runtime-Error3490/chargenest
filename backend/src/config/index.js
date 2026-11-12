@@ -110,6 +110,14 @@ export const config = {
     modelOverride: process.env.AI_MODEL,
     // Streamed replies (POST /agent/chat/stream). Set AI_STREAMING=false to turn the endpoint off.
     streaming: process.env.AI_STREAMING !== 'false',
+    // Place-name lookup for the concierge (find_place tool). Free OpenStreetMap Nominatim by default.
+    // GEOCODING_ENABLED=false removes the tool; GEOCODE_COUNTRIES limits matches (comma list, '' = worldwide).
+    geocoding: {
+      enabled: process.env.GEOCODING_ENABLED !== 'false',
+      url: process.env.GEOCODE_URL || 'https://nominatim.openstreetmap.org/search',
+      countries: process.env.GEOCODE_COUNTRIES ?? 'in',
+      userAgent: process.env.GEOCODE_USER_AGENT || 'ChargeNest/1.0 (EV charger marketplace demo)',
+    },
     temperature: parseFloat(process.env.AI_TEMPERATURE || '0'),
     timeoutMs: parseInt(process.env.AI_TIMEOUT_MS || '30000', 10),
     maxRetries: parseInt(process.env.AI_MAX_RETRIES || '2', 10),

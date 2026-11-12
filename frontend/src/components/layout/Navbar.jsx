@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { 
   Zap, Menu, X, User, LogOut, MapPin, Calendar, 
   MessageSquare, Settings, Shield, LayoutDashboard,
-  Plus, ChevronDown, Sun, Moon, Wallet, HelpCircle
+  Plus, ChevronDown, Sun, Moon, Wallet, HelpCircle, ALargeSmall
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -32,6 +32,39 @@ function ThemeToggle() {
     >
       {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
     </button>
+  );
+}
+
+// Accessibility: larger headings and touch targets. Off by default; saved in localStorage('a11y-large').
+function TextSizeToggle() {
+  const [large, setLarge] = useState(() => document.documentElement.classList.contains('a11y-large'));
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('a11y-large', large);
+    localStorage.setItem('a11y-large', large ? '1' : '0');
+  }, [large]);
+
+  return (
+    <div className="relative group">
+      <button
+        type="button"
+        onClick={() => setLarge(v => !v)}
+        aria-label={large ? 'Larger text is on. Switch to normal text size' : 'Larger text is off. Switch to larger text'}
+        aria-pressed={large}
+        aria-describedby="text-size-tip"
+        className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 flex items-center justify-center ${large ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700'}`}
+      >
+        <ALargeSmall className="w-5 h-5" />
+      </button>
+      <div
+        id="text-size-tip"
+        role="tooltip"
+        className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs leading-snug px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-[70]"
+      >
+        <p className="font-semibold mb-0.5">Accessibility: larger text {large ? '(on)' : '(off)'}</p>
+        <p className="text-gray-200">Makes headings bigger and buttons easier to tap. Click to turn {large ? 'off' : 'on'}.</p>
+      </div>
+    </div>
   );
 }
 
@@ -181,6 +214,7 @@ export function Navbar() {
 
           {/* Right side */}
           <div className="flex items-center gap-4">
+            <TextSizeToggle />
             <ThemeToggle />
             {isAuthenticated ? (
               <div className="relative">

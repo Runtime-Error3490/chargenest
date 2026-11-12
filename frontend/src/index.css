@@ -39,10 +39,11 @@
     font-weight: 700;
   }
   
-  h1 { @apply text-4xl md:text-5xl; }
-  h2 { @apply text-3xl md:text-4xl; }
-  h3 { @apply text-2xl md:text-3xl; }
-  h4 { @apply text-xl md:text-2xl; }
+  /* Normal heading sizes. The larger sizes live under html.a11y-large below. */
+  h1 { @apply text-3xl; }
+  h2 { @apply text-2xl; }
+  h3 { @apply text-xl; }
+  h4 { @apply text-lg; }
   
   /* Better paragraph spacing */
   p {
@@ -54,14 +55,20 @@
     @apply outline-none ring-2 ring-primary-500 ring-offset-2;
   }
   
-  /* Ensure minimum touch target size (44x44px per WCAG) */
-  button, a, [role="button"] {
+  /* Larger text and touch targets: only when "Larger text" is switched on (navbar, "A+" button) */
+  html.a11y-large h1 { @apply text-4xl md:text-5xl; }
+  html.a11y-large h2 { @apply text-3xl md:text-4xl; }
+  html.a11y-large h3 { @apply text-2xl md:text-3xl; }
+  html.a11y-large h4 { @apply text-xl md:text-2xl; }
+  html.a11y-large button,
+  html.a11y-large a,
+  html.a11y-large [role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
-  
-  /* Inline links don't need min size */
-  p a, span a, li a {
+  html.a11y-large p a,
+  html.a11y-large span a,
+  html.a11y-large li a {
     min-height: auto;
     min-width: auto;
   }

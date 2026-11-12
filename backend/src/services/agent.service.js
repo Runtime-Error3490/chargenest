@@ -15,12 +15,70 @@ import { MandateError, ValidationError, NotFoundError, ForbiddenError } from '..
  * Agent tool definitions for OpenAI-style function calling.
  * Every name here has an entry in TOOL_ACTIONS (agentPolicy.js), which decides who may run it.
  */
+const placeCache = new Map(); // query -> { at, places }
+const PLACE_CACHE_MS = 24 * 60 * 60 * 1000;
+let lastLookupAt = 0; // Nominatim asks for at most one request a second
+
+/**
+ * Turn a place name ("Yeshwantpur, Bengaluru") into real coordinates with OpenStreetMap Nominatim.
+ * Returns up to 3 matches: { name, latitude, longitude, type }. Results are cached for a day.
+ * fetchImpl is injectable for tests.
+ */
+export async function geocodePlace(query, fetchImpl = fetch) {
+  const q = String(query || '').trim().replace(/\s+/g, ' ').slice(0, 200);
+  if (q.length < 2) throw new ValidationError('Give a place name to look up');
+  const key = q.toLowerCase();
+  const hit = placeCache.get(key);
+  if (hit && Date.now() - hit.at < PLACE_CACHE_MS) return hit.places;
+
+  const g = config.ai.geocoding;
+  const wait = lastLookupAt + 1100 - Date.now();
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastLookupAt = Date.now();
+
+  const url = new URL(g.url);
+  url.searchParams.set('q', q);
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('limit', '3');
+  if (g.countries) url.searchParams.set('countrycodes', g.countries);
+
+  const res = await fetchImpl(url, {
+    headers: { 'User-Agent': g.userAgent, Accept: 'application/json' },
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`Place lookup failed (${res.status})`);
+  const rows = await res.json();
+  const places = (Array.isArray(rows) ? rows : []).map((r) => ({
+    name: r.display_name,
+    latitude: Math.round(parseFloat(r.lat) * 1e6) / 1e6,
+    longitude: Math.round(parseFloat(r.lon) * 1e6) / 1e6,
+    type: r.type,
+  })).filter((p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude));
+
+  placeCache.set(key, { at: Date.now(), places });
+  return places;
+}
+
 const agentTools = [
   {
     type: 'function',
     function: {
+      name: 'find_place',
+      description: 'Look up the real coordinates of a place name, area or address (for example "Yeshwantpur, Bengaluru"). Call this FIRST whenever the user names a place, then pass the returned latitude and longitude to search_chargers or recommend_chargers. If several places match and it is unclear which one is meant, ask the user. Never guess coordinates.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Place name, area or address, with the city if known' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_chargers',
-      description: 'Search for available EV chargers near a location',
+      description: 'Search for available EV chargers near a location. Use the user\'s shared location, or the coordinates from find_place when they name a place.',
       parameters: {
         type: 'object',
         properties: {
@@ -312,6 +370,34 @@ function settingsOf(agent) {
 /**
  * What a booking costs the driver (package price plus platform fee)
  */
+/** Safety net: remove any "[... internal ...]" note the model copied into its reply. */
+export function stripInternalNotes(text) {
+  return String(text ?? '')
+    .replace(/\n*\[(?:Tool data|Known chargers|User location|Current date)[^\n]*(?:\]|$)/gi, '')
+    .trim();
+}
+
+/**
+ * Remember which chargers (and which package ids) a tool returned. The page sends these back
+ * with the next message, because earlier tool results are not replayed and booking needs the ids.
+ */
+export function collectRefs(refs, value, depth = 0) {
+  if (!value || typeof value !== 'object' || depth > 4) return;
+  if (Array.isArray(value)) {
+    value.forEach((v) => collectRefs(refs, v, depth + 1));
+    return;
+  }
+  const id = value.chargerId || (Array.isArray(value.packages) ? value.id : null);
+  if (id && value.name) {
+    const prev = refs.get(id);
+    const packages = Array.isArray(value.packages)
+      ? value.packages.map((p) => ({ id: p.id, minutes: p.durationMin, price: Number(p.price) }))
+      : prev?.packages;
+    refs.set(id, { chargerId: id, name: value.name, ...(packages ? { packages } : {}) });
+  }
+  Object.values(value).forEach((v) => collectRefs(refs, v, depth + 1));
+}
+
 async function quoteBooking(chargerId, packageId) {
   const charger = await prisma.charger.findUnique({
     where: { id: chargerId },
@@ -396,6 +482,15 @@ async function spentThisMonth(userId) {
  */
 async function runTool(agent, userId, toolName, args, mandate = null) {
   switch (toolName) {
+    case 'find_place': {
+      const places = await geocodePlace(args.query);
+      return {
+        value: places.length
+          ? { places }
+          : { places: [], note: 'No match. Ask the user for a more exact place name or the city.' },
+      };
+    }
+
     case 'search_chargers': {
       const result = await chargerService.searchChargers({
         latitude: args.latitude,
@@ -911,17 +1006,40 @@ export const agentService = {
       }
     }
 
-    const messages = [{ role: 'user', content: message }];
+    // Earlier turns of this chat come from the page; keep only the last 20 plain-text turns
+    const history = (context?.history || []).slice(-20).map((m) => ({ role: m.role, content: m.content }));
+    const messages = [...history, { role: 'user', content: message }];
+    const last = messages.length - 1;
+    // Known ids go in front of the newest user message, as data for the model only
+    if (context?.refs?.length) {
+      messages[last].content = `[Known chargers, internal ids: ${JSON.stringify(context.refs)}]\n\n${messages[last].content}`;
+    }
+    // The model has no clock: tell it the real date, in the user's time zone when the page sent one
+    {
+      let nowNote = `${new Date().toISOString()} (UTC)`;
+      const tz = context?.timeZone;
+      if (tz) {
+        try {
+          const local = new Intl.DateTimeFormat('en-GB', {
+            timeZone: tz, dateStyle: 'full', timeStyle: 'short',
+          }).format(new Date());
+          nowNote = `${local} in the user's time zone ${tz}; UTC now is ${new Date().toISOString()}`;
+        } catch { /* unknown zone: keep UTC */ }
+      }
+      messages[last].content = `[Current date and time: ${nowNote}. Convert "today", "1pm" and similar to ISO times in UTC for tools.]\n\n${messages[last].content}`;
+    }
     if (context?.currentLocation) {
-      messages[0].content = `[User location: ${context.currentLocation.latitude}, ${context.currentLocation.longitude}]\n\n${message}`;
+      messages[last].content = `[User location: ${context.currentLocation.latitude}, ${context.currentLocation.longitude}]\n\n${messages[last].content}`;
     }
 
     const pendingApprovals = [];
+    const refs = new Map(); // chargers (and their package ids) seen by tools in this turn
 
     // A driver only gets driver tools, a host only host tools; a user with both roles gets both
     const roleRows = await prisma.userRoleMapping.findMany({ where: { userId }, select: { role: true } });
     const roles = roleRows.map((r) => r.role);
-    const toolsForUser = agentTools.filter((t) => toolAllowedForRoles(t.function.name, roles));
+    const toolsForUser = agentTools.filter((t) => toolAllowedForRoles(t.function.name, roles)
+      && (t.function.name !== 'find_place' || config.ai.geocoding.enabled));
 
     const executeToolCall = async (toolName, args) => {
       const startTime = Date.now();
@@ -933,6 +1051,12 @@ export const agentService = {
       // Work out how much money this call would commit
       let amount = 0;
       if (toolName === 'create_booking') {
+        const start = new Date(args.scheduled_start);
+        if (Number.isNaN(start.getTime()) || start.getTime() < Date.now() - 5 * 60 * 1000) {
+          throw new ValidationError(
+            `scheduled_start must be a future time. It is now ${new Date().toISOString()} (UTC). Use the current date from the message.`
+          );
+        }
         const quote = await quoteBooking(args.charger_id, args.package_id);
         amount = quote.total;
         if (mandate) {
@@ -954,7 +1078,12 @@ export const agentService = {
 
       if (verdict.decision === DECISIONS.CONFIRM) {
         const summary = describeAction(toolName, args, amount);
-        const approval = await prisma.agentApproval.create({
+        // The same request asked twice should reuse the open approval, not stack up new ones
+        const open = await prisma.agentApproval.findMany({
+          where: { userId, action: toolName, status: 'pending', expiresAt: { gt: new Date() } },
+        });
+        const same = open.find((a) => JSON.stringify(a.args) === JSON.stringify(args));
+        const approval = same || await prisma.agentApproval.create({
           data: {
             agentId: agent.id,
             userId,
@@ -974,6 +1103,7 @@ export const agentService = {
       try {
         await this.assertVerifiedForSpend(agent, toolName);
         const outcome = await runTool(agent, userId, toolName, args, mandate);
+        collectRefs(refs, outcome.value);
         await logAgentAction(agent, mandate, toolName, args, outcome.value, {
           decision: 'allow', level: settings.level, durationMs: Date.now() - startTime, bookingId: outcome.bookingId,
         });
@@ -992,8 +1122,13 @@ export const agentService = {
     const response = await aiService.chatWithConcierge(messages, toolsForUser, executeToolCall, { ...stream, profile });
 
     const first = pendingApprovals[0];
+    let finalMessage = stripInternalNotes(response.message);
+    if (first) {
+      // Typing "yes" in the chat does not approve anything; point to the real button
+      finalMessage += '\n\n**To confirm, press Approve in the yellow "Actions waiting for your approval" box at the top of this page.** Typing "yes" here does not confirm it.';
+    }
     return {
-      message: response.message,
+      message: finalMessage,
       toolsUsed: response.toolsUsed,
       requiresApproval: pendingApprovals.length > 0,
       approvalId: first?.id,
@@ -1001,6 +1136,7 @@ export const agentService = {
       actionDescription: first?.description,
       actionData: first ? { approvalId: first.id } : undefined,
       pendingApprovals,
+      refs: [...refs.values()].slice(0, 8),
       agent: { id: agent.id, level: settings.level, provider: agent.provider, model: agent.model },
       durationMs: response.durationMs,
     };

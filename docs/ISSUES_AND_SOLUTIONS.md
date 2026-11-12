@@ -744,6 +744,30 @@ cd frontend && npm run build
 
 ---
 
+### 39. "Near You" Did Not Use the User's Location
+
+**Problem:** The Find Chargers page sent no location, so it listed every charger and still said "available near you". The AI concierge got no location either, so the model guessed coordinates.
+
+**Fix:**
+- `frontend/src/utils/location.js` asks the browser for the position once per page load.
+- Search page: sends `lat`, `lng` and `radius=10`. Chargers come back nearest first and each card shows its distance in km. If none are within 10 km, it asks again with `radius=0` (no limit) and shows all, nearest first.
+- If the user refuses, the page lists all chargers as before and offers "use demo location" (central Bengaluru).
+- `charger.service.js`: `radius` of 0 now means no limit. Other callers are unchanged.
+- AI concierge: the chat page sends `context.currentLocation` when allowed. The backend already added it to the message.
+- Not done: turning an area name like "Yeshwantpur" into coordinates, and using the location in the ranking beyond distance.
+
+**Follow-up: the agent forgot earlier turns.** The chat page sent only the newest message, so every turn started blank and the agent kept asking for details already given. The page now sends the last 20 plain-text turns as `context.history` (no welcome text or errors), and `agent.service.js` puts them before the new message. `agent.routes.js` allows the new field. Tool results from earlier turns are not replayed, only the text.
+
+**Follow-up: place names.** New driver tool `find_place` turns "Yeshwantpur, Bengaluru" into real coordinates with OpenStreetMap Nominatim (`geocodePlace()` in `agent.service.js`), returning up to 3 matches. The prompt tells the model to call it first whenever a place is named and never to invent coordinates. Results are cached for a day and calls are spaced to 1 a second, as Nominatim asks. Switches: `GEOCODING_ENABLED=false` removes the tool; `GEOCODE_COUNTRIES` (default `in`) limits matches; `GEOCODE_URL` can point to another Nominatim server. Tests: `backend/tests/geocode.test.js`. Not done: the mock provider does not use it, and a search with no chargers within the radius still returns nothing.
+
+**Follow-up: "yes book it" failed.** Earlier tool results are not replayed, so by the confirm turn the model had no real charger or package ids and made them up (`create_booking` failed with "Charger or package" not found). Now `collectRefs()` in `agent.service.js` gathers the charger and package ids each tool returns, the API returns them as `refs`, and the chat page sends them back as `context.refs`. The server puts them in front of the newest user message as an internal "Known chargers" note. The prompt tells the model to use those ids and never show them.
+
+**Follow-up: the note showed up in the chat.** The first version put the ids inside the earlier assistant reply, so the model copied the note into its own text. Now the ids travel separately (`context.refs`), and `stripInternalNotes()` removes any copied note from the final reply as a safety net. While a reply is streaming the note can flash for a moment. The final message replaces it.
+
+**Follow-up: the booking waited for approval, and its date was wrong.** The ids now worked, but at autonomy level 2 a booking needs your approval, and the model's "please confirm" made you type "yes" in the chat, which approves nothing. Each "yes" also made a new pending approval. Also, the model has no clock and picked dates in 2025. Fixes in `agent.service.js`: the same request reuses its open approval; any reply with a pending approval ends with a line pointing at the Approve button; every message now starts with the current date and the user's time zone (sent by the chat page); a `create_booking` with a past time is refused with an error telling the model to use the real date.
+
+---
+
 ### Debugging Tips
 
 1. **API not responding:** Check if backend is running on port 4000

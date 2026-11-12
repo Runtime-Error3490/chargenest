@@ -7,6 +7,7 @@ import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Loading from '../components/ui/Loading';
 import Badge from '../components/ui/Badge';
+import { getBrowserLocation } from '../utils/location';
 import {
   Bot,
   Settings,
@@ -115,7 +116,20 @@ How can I help you today?`,
     const replyId = (Date.now() + 1).toString();
     let streamed = false;
     try {
-      const data = await agentService.chatStream(content.trim(), undefined, {}, {
+      // Real browser location if the user allowed it; the backend adds it to the message
+      const loc = await getBrowserLocation();
+      const context = loc ? { currentLocation: { latitude: loc.latitude, longitude: loc.longitude } } : {};
+      // Earlier turns, so the agent remembers what was said (no welcome text, no errors)
+      context.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      context.history = messages
+        .filter(m => (m.role === 'user' || m.role === 'assistant') && m.id !== 'welcome' && !m.isError && m.content)
+        .slice(-20)
+        .map(m => ({ role: m.role, content: String(m.content).slice(0, 4000) }));
+      // Real charger and package ids seen so far (newest win), sent as data, not inside the replies
+      const seen = new Map();
+      messages.forEach(m => (m.refs || []).forEach(r => seen.set(r.chargerId, r)));
+      context.refs = [...seen.values()].slice(-8);
+      const data = await agentService.chatStream(content.trim(), undefined, context, {
         onText: (text) => {
           setStatus('');
           const hasReply = streamed;
@@ -131,6 +145,7 @@ How can I help you today?`,
         id: replyId,
         role: 'assistant',
         content: data.message,
+        refs: data.refs,
         timestamp: new Date(),
       };
 
@@ -251,59 +266,6 @@ How can I help you today?`,
         </div>
       </div>
 
-      {/* Pending Approvals */}
-      {pendingApprovals.length > 0 && (
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-b border-yellow-200 dark:border-yellow-800">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4 text-white" />
-              </div>
-              <p className="font-semibold text-yellow-800 dark:text-yellow-200">
-                Actions waiting for your approval
-              </p>
-            </div>
-            <div className="space-y-2">
-              {pendingApprovals.map(approval => (
-                <div
-                  key={approval.id}
-                  className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-yellow-200 dark:border-yellow-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                    </div>
-                    <div>
-                      <Badge size="sm" variant="warning">{approval.action}</Badge>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{approval.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleApproval(approval.id, false)}
-                      className="flex items-center gap-1"
-                    >
-                      <X className="w-4 h-4" />
-                      Deny
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleApproval(approval.id, true)}
-                      className="flex items-center gap-1 bg-gradient-to-r from-green-500 to-emerald-600"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Approve
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
@@ -399,8 +361,62 @@ How can I help you today?`,
         </div>
       )}
 
-      {/* Input */}
-      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 sticky bottom-0">
+      {/* Approvals and input stick to the bottom together, so Approve is always in view */}
+      <div className="sticky bottom-0 z-40">
+      {/* Pending Approvals */}
+      {pendingApprovals.length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-t-2 border-yellow-400 dark:border-yellow-600 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] max-h-[50vh] overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
+                <AlertTriangle className="w-4 h-4 text-white" />
+              </div>
+              <p className="font-semibold text-yellow-800 dark:text-yellow-200">
+                Actions waiting for your approval
+              </p>
+            </div>
+            <div className="space-y-2">
+              {pendingApprovals.map(approval => (
+                <div
+                  key={approval.id}
+                  className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-yellow-200 dark:border-yellow-800"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                      <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    </div>
+                    <div>
+                      <Badge size="sm" variant="warning">{approval.action}</Badge>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{approval.description}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleApproval(approval.id, false)}
+                      className="flex items-center gap-1"
+                    >
+                      <X className="w-4 h-4" />
+                      Deny
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleApproval(approval.id, true)}
+                      className="flex items-center gap-1 bg-gradient-to-r from-green-500 to-emerald-600"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Approve
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex gap-3">
             <div className="flex-1 relative">
@@ -434,6 +450,7 @@ How can I help you today?`,
             AI responses are generated. For critical issues, contact human support.
           </p>
         </div>
+      </div>
       </div>
     </div>
   );
