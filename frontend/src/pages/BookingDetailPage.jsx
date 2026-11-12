@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import { bookingService } from '../services/bookingService';
@@ -266,7 +266,7 @@ export default function BookingDetailPage() {
     
     try {
       setActionLoading(true);
-      await disputeService.createDispute({
+      await disputeService.raiseDispute({
         bookingId: id,
         reason: disputeReason,
         description: disputeDescription,
@@ -701,8 +701,11 @@ export default function BookingDetailPage() {
                     onClick={() => navigate('/chat')}
                   >
                     <MessageCircle className="w-4 h-4 mr-2" />
-                    Contact Support
+                    Ask AI Concierge
                   </Button>
+                  <Link to="/support" className="block mt-2 text-center text-sm text-gray-500 dark:text-gray-400 underline hover:text-gray-700 dark:hover:text-gray-200">
+                    AI can't fix it? Email support
+                  </Link>
                 </div>
               </div>
             </Card>

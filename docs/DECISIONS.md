@@ -231,7 +231,7 @@ Driver --PayPal Orders--> Escrow account (our business app) --PayPal Payouts--> 
 | Book | Booking total (price plus 7% fee) moves from spendable to held. | none |
 | Charging done | Held amount leaves the driver. Host wallet gets it minus the fee share. | none |
 | Cancel | Held amount returns to the driver, minus any cancellation fee. | none |
-| Host cash out | Spendable balance is paid to the host PayPal email. | Payouts |
+| Host cash out | Spendable balance is paid to the user's saved PayPal email (hosts and drivers). | Payouts |
 | Close wallet | Whole balance, deposit included, is paid out. Blocked while a booking, dispute or unpaid invoice is open. | Payouts |
 | Damage | Host sends an invoice. Paid invoice credits the host (minus fee). | Invoicing |
 | Dispute | Raised and answered through PayPal. A refund moves money back in the ledger. | Disputes |
@@ -298,6 +298,7 @@ The agent acts for one user. Each tool maps to a permission switch in `agentPoli
 | `get_wallet`, `list_my_bookings`, `list_disputes`, `list_invoices` | Everyone | `view_payment` | None |
 | `check_device_status` | Driver or host of that booking | `view_charger` | None |
 | `recommend_chargers` | Driver | `search_chargers` + `compare_prices` | None |
+| `find_place` | Driver | `search_chargers` | None |
 | `create_damage_invoice` | Host | `create_invoice` (new) | Always, at every level. Limit `AGENT_MAX_INVOICES_PER_DAY` (default 5), checked in code. |
 
 - **Recommendations:** `rankChargers()` in `charger.service.js` scores nearby chargers on power, distance, rating and price, each scaled against the other candidates. The driver's priority (`balanced`, `fastest`, `nearest`, `cheapest`, `best_rated`) sets the weights. The code picks the top 3 and the model only explains them, so the ranking is repeatable. A charger nobody rated gets a neutral 3. Phase 2 travel plans can reuse it by feeding it chargers found along a route.
@@ -306,7 +307,14 @@ The agent acts for one user. Each tool maps to a permission switch in `agentPoli
 - **Top-up:** the tool only creates a PayPal link. The owner approves on PayPal, so the agent never pays by itself.
 - **Cancel:** it calls the same code as the cancel button, so the fee rule and wallet refund are identical.
 - **Decided:** the agent may act as host or driver by role. `raise_dispute` does not open a dispute on PayPal at raise time.
-- **Planned, not built:** respond to disputes, accept resolution, host withdraw.
+- **Planned, not built:** respond to disputes, accept resolution.
+- **Place names:** `find_place` turns "Yeshwantpur, Bengaluru" into real coordinates with OpenStreetMap Nominatim (`geocodePlace()`). It returns up to 3 matches, caches for a day and spaces calls to one a second. `GEOCODING_ENABLED=false` removes the tool and `GEOCODE_COUNTRIES` (default `in`) limits matches. The prompt says to call it first whenever a place is named and never to invent coordinates.
+- **Location:** the Find Chargers page and the chat page send the browser location when allowed. The search page shows distances and falls back to all chargers, nearest first, when none are within 10 km (`radius=0` means no limit).
+- **Memory across turns:** the chat page sends the last 20 text turns (`context.history`), the charger and package ids the tools returned (`context.refs`, so booking needs no guessing) and the user's time zone. The server puts the current date and these ids in front of the newest message, and strips any internal note the model copies into a reply.
+- **Approvals:** the same pending request is reused, not duplicated. A reply with a pending approval points to the Approve box, which now stays at the bottom of the chat page. A booking in the past is refused.
+- **Withdraw:** built on the Wallet page for every user (see Payment Architecture). The agent has no withdraw tool.
+- **Disputes page:** `/disputes` lists the user's disputes with the AI review and final decision. PayPal's Disputes API cannot open a dispute for a merchant, so a dispute raised here stays in our system; a buyer-opened PayPal dispute is imported by the webhook and shown with a PayPal badge.
+- **Support:** `/support` lists a placeholder address (`SUPPORT_EMAIL` in `SupportPage.jsx`) for issues the AI cannot fix. The old "Contact Support" buttons are now "Ask AI Concierge".
 - **Not built, needs new backend code first:** `modify_booking` (no reschedule code exists) and `request_refund` (refunds only happen through disputes).
 
 ---
@@ -328,3 +336,4 @@ The agent acts for one user. Each tool maps to a permission switch in `agentPoli
 | Nov 9, 2026 | Initial decisions document created |
 | Nov 11, 2026 | Added AI Concierge Tools and Roles |
 | Nov 11, 2026 | Added Gemini provider, streamed concierge replies (`POST /agent/chat/stream`, switchable), markdown in chat, Render Blueprint (`render.yaml`) |
+| Nov 12, 2026 | Concierge: `find_place` (place names to coordinates), chat memory (history, ids, date, time zone), real browser location, approval box at the bottom. Wallet page: withdraw to PayPal. `/support` page. Larger-text accessibility toggle |

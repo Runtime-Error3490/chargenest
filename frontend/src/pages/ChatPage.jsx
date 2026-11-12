@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { agentService } from '../services/agentService';
 import { useAuthStore } from '../store/authStore';
@@ -447,7 +447,10 @@ How can I help you today?`,
             </Button>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-3 text-center">
-            AI responses are generated. For critical issues, contact human support.
+            AI responses are generated. Not solved?{' '}
+            <Link to="/support" className="underline text-green-600 dark:text-green-400" style={{ minHeight: 'auto', minWidth: 'auto' }}>
+              Email human support
+            </Link>.
           </p>
         </div>
       </div>

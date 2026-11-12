@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { 
   Zap, Menu, X, User, LogOut, MapPin, Calendar, 
   MessageSquare, Settings, Shield, LayoutDashboard,
-  Plus, ChevronDown, Sun, Moon, Wallet, HelpCircle, ALargeSmall
+  Plus, ChevronDown, Sun, Moon, Wallet, HelpCircle, ALargeSmall, AlertTriangle
 } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 
@@ -62,7 +62,7 @@ function TextSizeToggle() {
         className="pointer-events-none absolute right-0 top-full mt-2 w-56 rounded-lg bg-gray-900 dark:bg-gray-700 text-white text-xs leading-snug px-3 py-2 shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-[70]"
       >
         <p className="font-semibold mb-0.5">Accessibility: larger text {large ? '(on)' : '(off)'}</p>
-        <p className="text-gray-200">Makes headings bigger and buttons easier to tap. Click to turn {large ? 'off' : 'on'}.</p>
+        <p className="text-gray-200">Makes all text bigger and buttons easier to tap. Click to turn {large ? 'off' : 'on'}.</p>
       </div>
     </div>
   );
@@ -349,6 +349,15 @@ export function Navbar() {
                           <Wallet className="w-4 h-4" />
                           Wallet
                         </Link>
+
+                        <Link 
+                          to="/disputes" 
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <AlertTriangle className="w-4 h-4" />
+                          Disputes
+                        </Link>
                       </>
                     ) : (
                       /* Driver or mixed role (driver+host) menu items */
@@ -381,6 +390,15 @@ export function Navbar() {
                             >
                               <Wallet className="w-4 h-4" />
                               Wallet
+                            </Link>
+
+                            <Link 
+                              to="/disputes" 
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              <AlertTriangle className="w-4 h-4" />
+                              Disputes
                             </Link>
 
                             <Link 

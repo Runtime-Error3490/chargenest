@@ -26,9 +26,11 @@ ChargeNest is a web marketplace that connects them — think "Airbnb for EV char
 ### For Drivers
 - 🗺️ Search chargers on an interactive map
 - 🤖 AI Concierge: "Find me a charger near Koramangala, budget ₹500"
-- 🎯 Smart recommendations: "Which charger is fastest near me?" ranks by power, distance, rating and price
+- 🎯 Smart recommendations: "Which charger is fastest near me?" ranks by power, distance, rating and price. It uses your browser location, or a place name like "Yeshwantpur" that is looked up to real coordinates
 - ❌ Ask the agent to cancel a booking, raise a dispute, or make a wallet top-up link
+- ⚖️ "Disputes" page (user menu) lists every dispute you raised or that was raised on your bookings, with the AI review and final decision
 - 💳 Secure PayPal payments with authorization holds
+- 🏧 Withdraw your wallet balance to PayPal from the Wallet page
 - 📊 Spending mandates for agent control
 - ⭐ Rate chargers after sessions
 
@@ -36,7 +38,7 @@ ChargeNest is a web marketplace that connects them — think "Airbnb for EV char
 - 📝 List your charger with time-based packages
 - 💰 AI Pricing Advisor suggests competitive rates
 - 📈 Dashboard with bookings and earnings
-- 💸 Automatic PayPal payouts (minus 7% platform fee)
+- 💸 Earnings go to your wallet after each session (minus 7% platform fee). Withdraw them to PayPal from the Wallet page
 - 🧾 Ask the agent to send a damage invoice (you approve every time)
 - ⭐ Rate drivers for community trust
 
@@ -109,7 +111,10 @@ AI_MODEL=
 GEMINI_API_KEY=your-gemini-api-key
 # Streamed concierge replies; false turns off POST /api/agent/chat/stream
 AI_STREAMING=true
-
+# Place-name lookup for the concierge (free OpenStreetMap Nominatim). false removes the find_place tool
+GEOCODING_ENABLED=true
+# Country codes to search in (comma list); empty = worldwide
+GEOCODE_COUNTRIES=in
 # Know Your Agent: encrypts agent signing keys at rest
 KYA_KEY_SECRET=a-long-random-value
 
@@ -210,8 +215,10 @@ Navigate to `http://localhost:5173`
 3. Session starts → Both parties confirm
 4. Session ends → Held funds are released to the host's wallet (minus 7% fee)
 5. Damage? → Host sends a PayPal invoice, or a PayPal dispute is raised
-6. Cash out → Host withdraws to PayPal. "Close wallet" returns the deposit too
+6. Cash out → Any user can withdraw their spendable balance (above the 250 deposit) to PayPal from the Wallet page. "Close wallet" returns the deposit too
 ```
+
+**Withdrawing in the sandbox:** the money is sent as a PayPal payout to the PayPal email saved on the user. Save the email first (Wallet page, "PayPal email", then Save). Use the email of a **sandbox personal account** from [developer.paypal.com](https://developer.paypal.com) (Testing Tools, Sandbox Accounts). The demo users in the seed have made-up emails with no account behind them, so a payout to them shows as `UNCLAIMED` and PayPal returns it after 30 days. With a real sandbox email, log in to sandbox.paypal.com as that account to see the money. Payouts need to be enabled for your PayPal app, and the business account needs sandbox funds.
 
 All money sits in one PayPal sandbox business account (the demo escrow). The wallet is a ledger on top of it. Full design, limits and the Commerce Platform note: [docs/DECISIONS.md](docs/DECISIONS.md#payment-architecture-nov-10-2026).
 
@@ -285,6 +292,8 @@ ev-charging-marketplace/
 ### Wallet and invoices
 - `GET /api/payments/wallet` — Balance, held funds, deposit status
 - `POST /api/payments/wallet/topup` — Create PayPal order (then `/topup/capture`)
+- `POST /api/payments/wallet/withdraw` — Pay spendable balance out to the user's PayPal email
+- `PUT /api/users/profile` — Save the PayPal email used for withdrawals
 - `GET /api/payments/invoices`, `POST /api/payments/invoices` — PayPal invoices
 
 ### Bookings
@@ -305,6 +314,7 @@ ev-charging-marketplace/
 
 ### Disputes
 - `POST /api/disputes` — Raise dispute
+- `GET /api/disputes` — List the user's disputes (raised by them, or on their bookings)
 - `GET /api/disputes/:id` — Get status
 
 ---

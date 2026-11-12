@@ -238,6 +238,7 @@ export function Footer() {
           <div className="flex flex-wrap items-center justify-start gap-x-6 gap-y-2 text-sm text-gray-500">
             <span>© 2026 ChargeNest. Built for PayPal AI Hackathon.</span>
             <span className="flex items-center gap-4">
+              <Link to="/support" className="hover:text-white transition-colors">Support</Link>
               <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
               <Link to="/host-policy" className="hover:text-white transition-colors">Host Policy</Link>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { walletService } from '../services/walletService';
+import { userService } from '../services/userService';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -14,6 +15,8 @@ import {
 const TOPUP_PRESETS = [50, 100, 250, 500];
 const TOPUP_MIN = 1;
 const TOPUP_MAX = 10000;
+const WITHDRAW_MIN = 1;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const money = (value, currency = 'USD') =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value || 0);
@@ -67,6 +70,14 @@ export default function WalletPage() {
   const [amount, setAmount] = useState('');
   const [touched, setTouched] = useState(false);
 
+  // Withdraw to PayPal (hosts and drivers)
+  const [paypalEmail, setPaypalEmail] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawTouched, setWithdrawTouched] = useState(false);
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+
   // Same rules as the backend: 1 to 10000, at most 2 decimals
   const amountError = (() => {
     if (amount === '') return null; // Don't show error for empty (handled by disabled button)
@@ -81,12 +92,14 @@ export default function WalletPage() {
   const isValidAmount = amount !== '' && !amountError;
 
   const load = useCallback(async () => {
-    const [walletData, invoiceList] = await Promise.all([
+    const [walletData, invoiceList, profile] = await Promise.all([
       walletService.getWallet(),
       walletService.getInvoices().catch(() => []),
+      userService.getProfile().catch(() => null),
     ]);
     setData(walletData);
     setInvoices(invoiceList);
+    setPaypalEmail(profile?.paypalEmail || '');
   }, []);
 
   // On first load, finish a top-up if PayPal just sent the user back with an order id
@@ -147,6 +160,60 @@ export default function WalletPage() {
 
     const wallet = data?.wallet;
   const currency = wallet?.currency || 'USD';
+
+  // Same rules as the backend: more than 0, at most 2 decimals, not above the spendable balance (the deposit stays)
+  const maxWithdraw = Math.max(0, Number(wallet?.spendable) || 0);
+  const withdrawError = (() => {
+    if (withdrawAmount === '') return null;
+    const value = Number(withdrawAmount);
+    if (!Number.isFinite(value)) return 'Enter a valid number';
+    if (!/^\d+(\.\d{1,2})?$/.test(withdrawAmount)) return 'Max 2 decimal places';
+    if (value < WITHDRAW_MIN) return `Minimum is ${money(WITHDRAW_MIN, currency)}`;
+    if (value > maxWithdraw) return `You can withdraw up to ${money(maxWithdraw, currency)}`;
+    return null;
+  })();
+  // Withdrawing is blocked while the email box is open, so a typed-but-unsaved email can't be skipped
+  const emailPending = editingEmail || !paypalEmail;
+  const canWithdraw = !emailPending && withdrawAmount !== '' && !withdrawError;
+  const emailError = emailInput && !EMAIL_RE.test(emailInput) ? 'Enter a valid email address' : null;
+
+  const handleSaveEmail = async () => {
+    if (!EMAIL_RE.test(emailInput)) return;
+    try {
+      setWithdrawBusy(true);
+      setError(null);
+      const updated = await userService.updateProfile({ paypalEmail: emailInput.trim() });
+      setPaypalEmail(updated?.paypalEmail || emailInput.trim());
+      setEditingEmail(false);
+      setNotice('PayPal email saved.');
+    } catch (err) {
+      setError(err.message || 'Could not save the PayPal email');
+    } finally {
+      setWithdrawBusy(false);
+    }
+  };
+
+  const handleWithdraw = async () => {
+    setWithdrawTouched(true);
+    if (!canWithdraw) return;
+    try {
+      setWithdrawBusy(true);
+      setError(null);
+      const value = Number(withdrawAmount);
+      await walletService.withdraw(value);
+      setWithdrawAmount('');
+      setWithdrawTouched(false);
+      setNotice(`${money(value, currency)} is on its way to ${paypalEmail}.`);
+      await load();
+      // The message is at the top of the page; bring it into view
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(err.message || 'Could not withdraw');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+      setWithdrawBusy(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -388,6 +455,126 @@ export default function WalletPage() {
             {wallet?.paypalMock
               ? '🧪 Mock mode: Amount is added instantly without PayPal redirect.'
               : '🔒 Secure payment via PayPal. Sandbox mode — no real money moves.'}
+          </p>
+        </Card>
+
+        {/* Withdraw to PayPal */}
+        <Card className="p-6 bg-white dark:bg-gray-800">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <ArrowUpRight className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Withdraw to PayPal</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Available to withdraw: <span className="font-medium text-gray-700 dark:text-gray-200">{money(maxWithdraw, currency)}</span>
+                {wallet?.deposit > 0 && ` (the ${money(wallet.deposit, currency)} deposit stays in your wallet)`}
+              </p>
+            </div>
+          </div>
+
+          {wallet?.pendingPayout > 0 && (
+            <p className="text-sm text-amber-700 dark:text-amber-400 mb-3">
+              {money(wallet.pendingPayout, currency)} of earnings will reach your balance after the payout delay.
+            </p>
+          )}
+
+          {/* PayPal email */}
+          <div className="mb-4">
+            <label htmlFor="paypal-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              PayPal email
+            </label>
+            {paypalEmail && !editingEmail ? (
+              <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
+                <span className="text-gray-900 dark:text-white break-all">{paypalEmail}</span>
+                <button
+                  type="button"
+                  onClick={() => { setEmailInput(paypalEmail); setEditingEmail(true); }}
+                  className="text-sm text-primary-600 dark:text-primary-400 underline flex-shrink-0"
+                  style={{ minHeight: 'auto', minWidth: 'auto' }}
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex gap-3">
+                  <input
+                    id="paypal-email"
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="you@example.com"
+                    aria-invalid={!!emailError}
+                    className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:border-primary-500"
+                  />
+                  <Button onClick={handleSaveEmail} disabled={withdrawBusy || !EMAIL_RE.test(emailInput)}>
+                    Save
+                  </Button>
+                  {editingEmail && (
+                    <Button variant="outline" onClick={() => setEditingEmail(false)}>Cancel</Button>
+                  )}
+                </div>
+                {emailError && (
+                  <p role="alert" className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400 mt-2">
+                    <AlertCircle className="w-4 h-4" />{emailError}
+                  </p>
+                )}
+                {!paypalEmail && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Add the PayPal email that should receive your money.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Amount */}
+          <div className="mb-4">
+            <label htmlFor="withdraw-amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Amount
+            </label>
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-500 dark:text-gray-400 text-lg">$</span>
+                <input
+                  id="withdraw-amount"
+                  type="number"
+                  inputMode="decimal"
+                  min={WITHDRAW_MIN}
+                  max={maxWithdraw}
+                  step="0.01"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  onBlur={() => setWithdrawTouched(true)}
+                  placeholder="Enter amount"
+                  aria-invalid={withdrawTouched && !!withdrawError}
+                  aria-describedby={withdrawError ? 'withdraw-amount-error' : undefined}
+                  className={`w-full pl-10 pr-4 py-3 text-lg rounded-xl border-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none ${
+                    withdrawTouched && withdrawError
+                      ? 'border-red-400 dark:border-red-500'
+                      : 'border-gray-200 dark:border-gray-600 focus:border-primary-500'
+                  }`}
+                />
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => { setWithdrawAmount(maxWithdraw >= WITHDRAW_MIN ? String(Math.floor(maxWithdraw * 100) / 100) : ''); setWithdrawTouched(true); }}
+                disabled={maxWithdraw < WITHDRAW_MIN}
+              >
+                All
+              </Button>
+            </div>
+            {withdrawTouched && withdrawError && (
+              <p id="withdraw-amount-error" role="alert" className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400 mt-2">
+                <AlertCircle className="w-4 h-4" />{withdrawError}
+              </p>
+            )}
+          </div>
+
+          <Button onClick={handleWithdraw} disabled={withdrawBusy || !canWithdraw} className="w-full py-3.5 text-base font-medium">
+            {withdrawBusy ? 'Processing...' : emailPending ? 'Save your PayPal email first' : canWithdraw ? `Withdraw ${money(Number(withdrawAmount), currency)} to ${paypalEmail}` : 'Enter amount to continue'}
+          </Button>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
+            {wallet?.paypalMock ? 'Mock mode: the payout is simulated.' : 'Sent as a PayPal payout. Sandbox mode, so no real money moves.'}
           </p>
         </Card>
 

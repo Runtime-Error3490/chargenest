@@ -382,6 +382,7 @@ export const disputeService = {
       description: dispute.description,
       evidence: dispute.evidence,
       status: dispute.status,
+      paypalDisputeId: dispute.paypalDisputeId,
       aiAnalysis: dispute.aiDecision ? {
         decision: dispute.aiDecision,
         refundAmount: dispute.aiRefundAmount ? parseFloat(dispute.aiRefundAmount) : null,
@@ -444,6 +445,7 @@ export const disputeService = {
         status: d.status,
         aiDecision: d.aiDecision,
         finalDecision: d.finalDecision,
+        paypalDisputeId: d.paypalDisputeId,
         createdAt: d.createdAt,
         resolvedAt: d.resolvedAt,
       })),

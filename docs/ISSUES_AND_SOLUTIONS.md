@@ -768,6 +768,35 @@ cd frontend && npm run build
 
 ---
 
+### 40. No Way to Withdraw, a Dead Payout History Button, and Support Went to the AI
+
+**Problem:** The backend could pay a wallet out to PayPal (`POST /payments/wallet/withdraw`), but no page called it, so hosts and drivers could not take their money out. "View Payout History" on the host dashboard had no click action. Both "Contact Support" buttons opened the AI Concierge (`/chat`), and the site had no support page.
+
+**Fix:**
+- `WalletPage.jsx` has a "Withdraw to PayPal" card for hosts and drivers. It shows the withdrawable amount (balance above the deposit), lets the user save or change their PayPal email (`PUT /users/profile`), and checks the amount (more than 0, 2 decimals, not above the withdrawable amount) with inline errors and a disabled button until valid. The server enforces the same rules.
+- "View Payout History" opens `/wallet`, where the activity list shows earnings and withdrawals.
+- The buttons now say "Ask AI Concierge", each with an "AI can't fix it? Email support" link. New public page `/support` (`SupportPage.jsx`) with a dummy address, `support@chargenest.example.com` (constant `SUPPORT_EMAIL`), linked from the footer and the chat page. Replace the address before launch.
+
+**Follow-ups:** the first withdrawal went to the seeded fake email because a typed email was never saved while the Withdraw button stayed on (that payout showed `UNCLAIMED` with `RECEIVER_UNCONFIRMED` and returns after 30 days). The button is now off while the email box is open, and it names the recipient. After a withdrawal (or an error) the page scrolls to the top where the message shows. A payout to a real sandbox personal account ends `SUCCESS` and appears in that account on sandbox.paypal.com. README and `docs/DECISIONS.md` describe how to test it.
+
+---
+
+### 41. Users Could Not See Their Disputes, and "Report Issue" Failed
+
+**Problem:** Only the admin had a disputes page. Drivers and hosts saw just a "Disputed" badge on the booking. The booking page's Report Issue button called `disputeService.createDispute`, which does not exist (the function is `raiseDispute`), so submitting always failed.
+
+**Fix:**
+- `BookingDetailPage.jsx` now calls `raiseDispute`.
+- New page `/disputes` (`DisputesPage.jsx`), linked as "Disputes" in the user menu for hosts and drivers. It lists every dispute the user raised or that was raised on their bookings (`GET /disputes`). A row opens to show the report, the AI review, the final decision and a link to the booking. A dispute that also exists on PayPal shows a "PayPal" badge and its PayPal id (`paypalDisputeId` is now returned by the API).
+- Not done: raising a dispute on PayPal from here. PayPal's Disputes API lets a merchant read, accept and answer disputes, but only the buyer opens one. Today a dispute that a buyer opens on PayPal is pulled in by the `CUSTOMER.DISPUTE.CREATED` webhook, and accepting a refund tells PayPal we agree.
+
+**Follow-ups:**
+- The dashboard has a small "Disputes" panel: the 3 newest with a status badge, the total, and a link to `/disputes`.
+- The dashboard "Nearby Chargers" card sent a fixed Bengaluru point under the wrong parameter names (`latitude`/`longitude`; the API reads `lat`/`lng`), so it showed the first 4 chargers. It now uses the browser location with `lat`, `lng` and a 10 km radius, shows the distance, and falls back to the closest chargers (`radius=0`) when none are near. Without location it is titled "Available Chargers" and asks you to allow location. It loads separately, so the permission prompt never delays the page.
+- An agent-raised dispute on an old booking fails with "Dispute window has expired" (24 hours after the session ended, `dispute.windowHours`). The seed's old completed bookings hit this, so test with a fresh booking.
+
+---
+
 ### Debugging Tips
 
 1. **API not responding:** Check if backend is running on port 4000

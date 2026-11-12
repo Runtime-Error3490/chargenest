@@ -47,6 +47,8 @@ const SearchPage = lazy(() => import('./pages/SearchPage'));
 const ChargerDetailPage = lazy(() => import('./pages/ChargerDetailPage'));
 const TeamPage = lazy(() => import('./pages/TeamPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
+const SupportPage = lazy(() => import('./pages/SupportPage'));
+const DisputesPage = lazy(() => import('./pages/DisputesPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Protected Pages - Driver/Client
@@ -188,6 +190,12 @@ function App() {
         </Layout>
       } />
       
+      <Route path="/support" element={
+        <Layout>
+          <LazyPage><SupportPage /></LazyPage>
+        </Layout>
+      } />
+
       <Route path="/terms" element={
         <Layout>
           <LazyPage><LegalPage doc="terms" /></LazyPage>
@@ -254,6 +262,14 @@ function App() {
         <ProtectedRoute>
           <Layout>
             <LazyPage><WalletPage /></LazyPage>
+          </Layout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/disputes" element={
+        <ProtectedRoute>
+          <Layout>
+            <LazyPage><DisputesPage /></LazyPage>
           </Layout>
         </ProtectedRoute>
       } />

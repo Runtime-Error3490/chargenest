@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { chargerService } from '../services/chargerService';
 import { bookingService } from '../services/bookingService';
 import { userService } from '../services/userService';
@@ -475,6 +475,7 @@ export default function HostDashboardPage() {
                 </div>
 
                 <Button 
+                  onClick={() => navigate('/wallet')}
                   className="w-full mt-4 bg-white/20 hover:bg-white/30 border-0 text-white backdrop-blur-sm"
                 >
                   <Wallet className="w-4 h-4 mr-2" />
@@ -522,8 +523,11 @@ export default function HostDashboardPage() {
                   onClick={() => navigate('/chat')}
                   className="bg-white/20 hover:bg-white/30 border-0 text-white backdrop-blur-sm"
                 >
-                  Contact Support
+                  Ask AI Concierge
                 </Button>
+                <Link to="/support" className="block mt-3 text-sm text-blue-100 underline hover:text-white">
+                  AI can't fix it? Email support
+                </Link>
               </div>
             </Card>
           </div>

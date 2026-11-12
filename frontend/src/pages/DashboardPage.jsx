@@ -9,6 +9,8 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import Loading from '../components/ui/Loading';
 import WalletBanner from '../components/WalletBanner';
+import { getBrowserLocation } from '../utils/location';
+import { disputeService } from '../services/disputeService';
 import { HelpCircle, Wallet, ArrowRight, Sparkles, MapPin, MessageSquare, Calendar, ChevronRight, LayoutDashboard, Settings } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -24,6 +26,10 @@ export default function DashboardPage() {
   });
   const [recentBookings, setRecentBookings] = useState([]);
   const [nearbyChargers, setNearbyChargers] = useState([]);
+  const [located, setLocated] = useState(false);
+  const [disputes, setDisputes] = useState(null); // null = loading
+  const [disputeTotal, setDisputeTotal] = useState(0);
+  const [beyondRadius, setBeyondRadius] = useState(false);
   const [walletBalance, setWalletBalance] = useState(null);
   const [isNewUser, setIsNewUser] = useState(false);
 
@@ -74,14 +80,7 @@ export default function DashboardPage() {
           console.error('Failed to fetch wallet:', e);
         }
 
-        // Fetch nearby chargers (default Bengaluru center)
-        const chargersResponse = await chargerService.searchChargers({
-          latitude: 12.9716,
-          longitude: 77.5946,
-          radius: 10,
-          limit: 4,
-        });
-        setNearbyChargers(chargersResponse.data || []);
+        // Nearby chargers load separately (see the effect below), so a location prompt never delays the page
 
       } catch (err) {
         console.error('Failed to load dashboard:', err);
@@ -92,6 +91,44 @@ export default function DashboardPage() {
 
     fetchDashboardData();
   }, [isAuthenticated, navigate, user]);
+
+  // A short disputes summary; the full list is on /disputes
+  useEffect(() => {
+    let alive = true;
+    disputeService.getDisputes({ limit: 3 })
+      .then((res) => {
+        if (!alive) return;
+        setDisputes(res.data || []);
+        setDisputeTotal(res.pagination?.total ?? (res.data || []).length);
+      })
+      .catch(() => alive && setDisputes([]));
+    return () => { alive = false; };
+  }, []);
+
+  // Nearby chargers from the browser's real location. Without it, the page does not claim "nearby".
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const loc = await getBrowserLocation();
+        if (!alive) return;
+        setLocated(!!loc);
+        const base = loc ? { lat: loc.latitude, lng: loc.longitude } : {};
+        let res = await chargerService.searchChargers({ ...base, ...(loc ? { radius: 10 } : {}), limit: 4 });
+        let rows = res.data || [];
+        if (loc && rows.length === 0) {
+          // Nothing within 10 km: show the closest ones anyway (radius 0 = no limit)
+          res = await chargerService.searchChargers({ ...base, radius: 0, limit: 4 });
+          rows = res.data || [];
+          setBeyondRadius(rows.length > 0);
+        }
+        if (alive) setNearbyChargers(rows);
+      } catch (err) {
+        console.error('Failed to load nearby chargers:', err);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
 
     const formatDateTime = (dateString) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -368,11 +405,23 @@ export default function DashboardPage() {
             {/* Nearby Chargers */}
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Nearby Chargers</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {located ? 'Nearby Chargers' : 'Available Chargers'}
+                </h2>
                 <Button variant="outline" size="sm" onClick={() => navigate('/search')}>
                   View Map
                 </Button>
               </div>
+              {located && beyondRadius && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 mb-3">
+                  None within 10 km. Showing the closest ones.
+                </p>
+              )}
+              {!located && nearbyChargers.length > 0 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 mb-3">
+                  Allow location in your browser to see chargers near you.
+                </p>
+              )}
 
               {nearbyChargers.length === 0 ? (
                 <div className="text-center py-6">
@@ -399,11 +448,54 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-sm text-gray-600 dark:text-gray-400">
                           {charger.kwTier?.replace('kW', '')} kW
+                          {typeof charger.distanceKm === 'number' && (
+                            <span> · {charger.distanceKm < 10 ? charger.distanceKm.toFixed(1) : Math.round(charger.distanceKm)} km</span>
+                          )}
                         </span>
                         <span className="text-sm font-medium text-green-600 dark:text-green-400">
                                                     ${charger.lowestPrice || charger.packages?.[0]?.price || '--'}/session
                         </span>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            {/* Disputes summary */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Disputes{disputeTotal > 0 ? ` (${disputeTotal})` : ''}
+                </h2>
+                <Button variant="outline" size="sm" onClick={() => navigate('/disputes')}>
+                  View All
+                </Button>
+              </div>
+              {disputes === null ? (
+                <Loading size="sm" />
+              ) : disputes.length === 0 ? (
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  No disputes. If something goes wrong with a booking, you can report it from the booking page.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {disputes.map((d) => (
+                    <div
+                      key={d.id}
+                      className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      onClick={() => navigate('/disputes')}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium text-gray-900 dark:text-white truncate">{d.chargerName}</span>
+                        <Badge
+                          size="sm"
+                          variant={d.status === 'resolved' ? 'success' : d.status === 'closed' ? 'default' : 'warning'}
+                        >
+                          {({ open: 'Open', ai_reviewed: 'AI reviewed', pending_admin: 'With admin', resolved: 'Resolved', closed: 'Closed' })[d.status] || d.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate mt-1">{d.reason}</p>
                     </div>
                   ))}
                 </div>
