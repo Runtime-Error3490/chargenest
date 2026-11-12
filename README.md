@@ -100,9 +100,8 @@ PAYPAL_CLIENT_SECRET=your-sandbox-client-secret
 PAYPAL_MODE=sandbox
 PAYPAL_WEBHOOK_ID=your-webhook-id
 
-# Wallet: balance needed before booking or listing, and the part of it kept as a damage deposit
-WALLET_MIN_BALANCE=500
-WALLET_DEPOSIT=250
+# Wallet: damage deposit in USD. It stays locked; money above it pays for bookings
+WALLET_DEPOSIT=50
 
 # AI provider: gemini | openrouter | openai | ollama | mock (mock needs no key)
 AI_PROVIDER=mock
@@ -210,12 +209,12 @@ Navigate to `http://localhost:5173`
 ## 🔄 Payment Flow
 
 ```
-1. Sign up → add the minimum balance (500) with PayPal. 250 stays as a damage deposit, the rest is spendable
+1. Sign up → add at least the damage deposit ($50) with PayPal. $50 stays locked; anything above it pays for bookings
 2. Driver books → the booking amount is held from the wallet balance
 3. Session starts → Both parties confirm
 4. Session ends → Held funds are released to the host's wallet (minus 7% fee)
 5. Damage? → Host sends a PayPal invoice, or a PayPal dispute is raised
-6. Cash out → Any user can withdraw their spendable balance (above the 250 deposit) to PayPal from the Wallet page. "Close wallet" returns the deposit too
+6. Cash out → Any user can withdraw their spendable balance (above the $50 deposit) to PayPal from the Wallet page. "Close wallet" returns the deposit too
 ```
 
 **Withdrawing in the sandbox:** the money is sent as a PayPal payout to the PayPal email saved on the user. Save the email first (Wallet page, "PayPal email", then Save). Use the email of a **sandbox personal account** from [developer.paypal.com](https://developer.paypal.com) (Testing Tools, Sandbox Accounts). The demo users in the seed have made-up emails with no account behind them, so a payout to them shows as `UNCLAIMED` and PayPal returns it after 30 days. With a real sandbox email, log in to sandbox.paypal.com as that account to see the money. Payouts need to be enabled for your PayPal app, and the business account needs sandbox funds.

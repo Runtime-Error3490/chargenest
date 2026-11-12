@@ -57,7 +57,6 @@ async function main() {
       passwordHash,
       name: 'Alex Thompson',
       phone: '+14155551234',
-      paypalEmail: 'sb-buyer@personal.example.com',
       isVerified: true,
       roles: {
         create: [{ role: 'driver' }],
@@ -73,7 +72,6 @@ async function main() {
       passwordHash,
       name: 'Sarah Mitchell',
       phone: '+14155551235',
-      paypalEmail: 'sb-seller@business.example.com',
       isVerified: true,
       roles: {
         create: [{ role: 'host' }],
@@ -105,7 +103,6 @@ async function main() {
       passwordHash,
       name: 'Michael Chen',
       phone: '+14155551237',
-      paypalEmail: 'sb-dual@personal.example.com',
       isVerified: true,
       roles: {
         create: [{ role: 'driver' }, { role: 'host' }],

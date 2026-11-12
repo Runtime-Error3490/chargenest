@@ -227,7 +227,7 @@ Driver --PayPal Orders--> Escrow account (our business app) --PayPal Payouts--> 
 | Step | What happens | PayPal call |
 |------|--------------|-------------|
 | Top-up | Driver approves a PayPal order. Capture adds the amount to the wallet. | Orders create, capture |
-| Deposit | The first 500 is required. 250 of it stays locked. | none |
+| Deposit | The first $50 is required and stays locked. Money above it pays for bookings. | none |
 | Book | Booking total (price plus 7% fee) moves from spendable to held. | none |
 | Charging done | Held amount leaves the driver. Host wallet gets it minus the fee share. | none |
 | Cancel | Held amount returns to the driver, minus any cancellation fee. | none |
@@ -236,7 +236,7 @@ Driver --PayPal Orders--> Escrow account (our business app) --PayPal Payouts--> 
 | Damage | Host sends an invoice. Paid invoice credits the host (minus fee). | Invoicing |
 | Dispute | Raised and answered through PayPal. A refund moves money back in the ledger. | Disputes |
 
-**Config:** `PLATFORM_FEE_PERCENT` (7), `WALLET_MIN_BALANCE` (500), `WALLET_DEPOSIT` (250), `DEFAULT_CURRENCY`.
+**Config:** `PLATFORM_FEE_PERCENT` (7), `WALLET_DEPOSIT` (50), `WALLET_MIN_BALANCE` (defaults to the deposit, 50), `DEFAULT_CURRENCY`.
 
 **Sandbox setup that works (checked Nov 10, 2026):** a sandbox Business account with country United States, and a REST app on it. An India business account fails with `PAYOUT_NOT_AVAILABLE` for Payouts and `NOT_AUTHORIZED` for partner referrals. Use `DEFAULT_CURRENCY=USD` with it. With no keys, mock mode simulates every call.
 

@@ -99,7 +99,7 @@ export function Navbar() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden lg:flex items-center gap-2 xl:gap-6 whitespace-nowrap">
             {/* Role-based navigation */}
             {isAuthenticated && hasRole('admin') ? (
               /* Admin sees admin-specific nav */
@@ -464,7 +464,7 @@ export function Navbar() {
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-gray-600 hover:text-gray-900"
+              className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -474,7 +474,7 @@ export function Navbar() {
 
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-100 dark:border-gray-700 py-4 px-4 space-y-2 bg-white dark:bg-gray-800">
+        <div className="lg:hidden border-t border-gray-100 dark:border-gray-700 py-4 px-4 space-y-2 bg-white dark:bg-gray-800">
           {/* Admin mobile menu */}
           {isAuthenticated && hasRole('admin') ? (
             <Link 

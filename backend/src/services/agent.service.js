@@ -670,16 +670,22 @@ async function runTool(agent, userId, toolName, args, mandate = null) {
 /**
  * Short plain-language line shown on the approval card
  */
-function describeAction(toolName, args, amount) {
+// Booking ids are shown the way the booking page shows them (#5C4C1BA0), not as a full UUID
+const shortId = (id) => `#${String(id || '').slice(0, 8).toUpperCase()}`;
+
+function describeAction(toolName, args, amount, chargerName = null) {
   switch (toolName) {
-    case 'create_booking':
-      return `Book charger ${args.charger_id} at ${args.scheduled_start} and hold ${amount?.toFixed(2)} ${config.platform.defaultCurrency} from your wallet`;
+    case 'create_booking': {
+      const when = new Date(args.scheduled_start);
+      const at = Number.isNaN(when.getTime()) ? args.scheduled_start : when.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+      return `Book ${chargerName || 'the charger'} on ${at} and hold ${amount?.toFixed(2)} ${config.platform.defaultCurrency} from your wallet`;
+    }
     case 'raise_dispute':
-      return `Raise a dispute on booking ${args.booking_id}: ${args.reason}`;
+      return `Raise a dispute on booking ${shortId(args.booking_id)}: ${args.reason}`;
     case 'create_damage_invoice':
-      return `Send a PayPal invoice of ${Number(args.amount).toFixed(2)} for booking ${args.booking_id}: ${args.description}`;
+      return `Send a PayPal invoice of ${Number(args.amount).toFixed(2)} ${config.platform.defaultCurrency} for booking ${shortId(args.booking_id)}: ${args.description}`;
     case 'cancel_booking':
-      return `Cancel booking ${args.booking_id}. A cancellation fee may apply; the rest returns to your wallet`;
+      return `Cancel booking ${shortId(args.booking_id)}. A cancellation fee may apply; the rest returns to your wallet`;
     case 'top_up_wallet':
       return `Create a PayPal link to add ${Number(args.amount).toFixed(2)} ${config.platform.defaultCurrency} to your wallet (you still approve on PayPal)`;
     default:
@@ -1052,6 +1058,7 @@ export const agentService = {
 
       // Work out how much money this call would commit
       let amount = 0;
+      let chargerName = null;
       if (toolName === 'create_booking') {
         const start = new Date(args.scheduled_start);
         if (Number.isNaN(start.getTime()) || start.getTime() < Date.now() - 5 * 60 * 1000) {
@@ -1061,6 +1068,7 @@ export const agentService = {
         }
         const quote = await quoteBooking(args.charger_id, args.package_id);
         amount = quote.total;
+        chargerName = quote.charger.name;
         if (mandate) {
           await verifyMandate(mandateToken, { amount, connectorType: quote.charger.connectorType });
         }
@@ -1079,7 +1087,7 @@ export const agentService = {
       }
 
       if (verdict.decision === DECISIONS.CONFIRM) {
-        const summary = describeAction(toolName, args, amount);
+        const summary = describeAction(toolName, args, amount, chargerName);
         // The same request asked twice should reuse the open approval, not stack up new ones
         const open = await prisma.agentApproval.findMany({
           where: { userId, action: toolName, status: 'pending', expiresAt: { gt: new Date() } },

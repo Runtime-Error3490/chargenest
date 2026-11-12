@@ -50,11 +50,14 @@ export const invoiceService = {
       throw new ValidationError(`Invoice cannot exceed ${cap.toFixed(2)} for this booking`);
     }
 
+    // Invoice in the platform currency. An older booking may carry INR, which PayPal Invoicing rejects.
+    const currency = config.platform.defaultCurrency;
+
     const draft = await paypalService.createInvoice({
       recipientEmail: booking.driver.email,
       recipientName: booking.driver.name,
       amount: value,
-      currency: booking.currency,
+      currency,
       description: `Damage claim: ${booking.charger.name}`,
       note: description,
     });
@@ -66,7 +69,7 @@ export const invoiceService = {
         recipientId: booking.driver.id,
         paypalInvoiceId: draft.invoiceId,
         amount: value,
-        currency: booking.currency,
+        currency,
         reason: description,
         status: 'draft',
       },

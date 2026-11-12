@@ -21,7 +21,6 @@ import {
   HelpCircle,
   CheckCircle,
   X,
-  Zap,
   MessageCircle
 } from 'lucide-react';
 
@@ -56,6 +55,15 @@ function actionsFor(user) {
   return DRIVER_ACTIONS;
 }
 
+// What each approval is, in plain words
+const APPROVAL_TITLES = {
+  create_booking: 'Book a charger',
+  raise_dispute: 'Raise a dispute',
+  create_damage_invoice: 'Send a damage invoice',
+  cancel_booking: 'Cancel a booking',
+  top_up_wallet: 'Add money to your wallet',
+};
+
 // The server's role error, in words a user can act on
 function friendlyError(err) {
   const text = String(err?.message || '');
@@ -82,12 +90,14 @@ export default function ChatPage() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
   const messagesEndRef = useRef(null);
+  const approving = useRef(new Set()); // approval ids being sent right now
   const inputRef = useRef(null);
   
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [replying, setReplying] = useState(false); // true once the reply text starts arriving
   const [agentStatus, setAgentStatus] = useState(null);
   const [pendingApprovals, setPendingApprovals] = useState([]);
 
@@ -132,7 +142,7 @@ How can I help you today?`,
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, loading, pendingApprovals.length]);
 
   const sendMessage = async (content) => {
     if (!content.trim()) return;
@@ -167,6 +177,7 @@ How can I help you today?`,
       const data = await agentService.chatStream(content.trim(), undefined, context, {
         onText: (text) => {
           setStatus('');
+          setReplying(true);
           const hasReply = streamed;
           streamed = true;
           setMessages(prev => hasReply
@@ -207,15 +218,21 @@ How can I help you today?`,
     } finally {
       setLoading(false);
       setStatus('');
+      setReplying(false);
       inputRef.current?.focus();
     }
   };
 
   const handleApproval = async (approvalId, approved) => {
+    // One click only: ignore a second click while this one is being sent
+    if (approving.current.has(approvalId)) return;
+    approving.current.add(approvalId);
+    // The box goes away at once; the "working" bubble above the input shows progress
+    setPendingApprovals(prev => prev.filter(a => a.id !== approvalId));
+    setStatus(approved ? 'Carrying that out...' : 'Cancelling...');
     try {
       setLoading(true);
       const result = await agentService.respondToApproval(approvalId, approved);
-      setPendingApprovals(prev => prev.filter(a => a.id !== approvalId));
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',
@@ -233,8 +250,9 @@ How can I help you today?`,
         timestamp: new Date(),
         isError: true,
       }]);
-      setPendingApprovals(prev => prev.filter(a => a.id !== approvalId));
     } finally {
+      approving.current.delete(approvalId);
+      setStatus('');
       setLoading(false);
     }
   };
@@ -345,7 +363,7 @@ How can I help you today?`,
             </div>
           ))}
 
-          {loading && (
+          {loading && (!replying || status) && (
             <div className="flex justify-start">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center mr-3 flex-shrink-0">
                 <Bot className="w-4 h-4 text-white" />
@@ -400,53 +418,49 @@ How can I help you today?`,
       <div className="sticky bottom-0 z-40">
       {/* Pending Approvals */}
       {pendingApprovals.length > 0 && (
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-t-2 border-yellow-400 dark:border-yellow-600 shadow-[0_-8px_24px_rgba(0,0,0,0.12)] max-h-[50vh] overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-8 h-8 rounded-lg bg-yellow-500 flex items-center justify-center">
-                <AlertTriangle className="w-4 h-4 text-white" />
-              </div>
-              <p className="font-semibold text-yellow-800 dark:text-yellow-200">
-                Actions waiting for your approval
-              </p>
-            </div>
-            <div className="space-y-2">
-              {pendingApprovals.map(approval => (
-                <div
-                  key={approval.id}
-                  className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-yellow-200 dark:border-yellow-800"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                      <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                    </div>
-                    <div>
-                      <Badge size="sm" variant="warning">{approval.action}</Badge>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{approval.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleApproval(approval.id, false)}
-                      className="flex items-center gap-1"
-                    >
-                      <X className="w-4 h-4" />
-                      Deny
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleApproval(approval.id, true)}
-                      className="flex items-center gap-1 bg-gradient-to-r from-green-500 to-emerald-600"
-                    >
-                      <CheckCircle className="w-4 h-4" />
-                      Approve
-                    </Button>
-                  </div>
+        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-[0_-10px_30px_rgba(0,0,0,0.18)] max-h-[50vh] overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 py-4 space-y-3">
+            <p className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+              <AlertTriangle className="w-4 h-4 text-amber-500" />
+              Needs your approval
+              {pendingApprovals.length > 1 && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300">
+                  {pendingApprovals.length}
+                </span>
+              )}
+            </p>
+            {pendingApprovals.map(approval => (
+              <div
+                key={approval.id}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-amber-300/70 dark:border-amber-500/40 border-l-4 border-l-amber-500 bg-amber-50/60 dark:bg-amber-900/10 p-4"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
+                    {APPROVAL_TITLES[approval.action] || approval.action.replace(/_/g, ' ')}
+                  </p>
+                  <p className="text-sm text-gray-800 dark:text-gray-100 mt-1 break-words">{approval.description}</p>
                 </div>
-              ))}
-            </div>
+                <div className="flex gap-2 flex-shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleApproval(approval.id, false)}
+                    className="flex items-center gap-1"
+                  >
+                    <X className="w-4 h-4" />
+                    Deny
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleApproval(approval.id, true)}
+                    className="flex items-center gap-1 bg-gradient-to-r from-green-500 to-emerald-600"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Approve
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

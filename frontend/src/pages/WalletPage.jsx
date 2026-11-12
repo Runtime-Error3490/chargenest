@@ -71,7 +71,8 @@ export default function WalletPage() {
   const [touched, setTouched] = useState(false);
 
   // Withdraw to PayPal (hosts and drivers)
-  const [paypalEmail, setPaypalEmail] = useState('');
+  const [paypalEmail, setPaypalEmail] = useState(''); // saved on the profile (may be empty)
+  const [accountEmail, setAccountEmail] = useState(''); // the login email, used when none is saved
   const [emailInput, setEmailInput] = useState('');
   const [editingEmail, setEditingEmail] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
@@ -100,6 +101,7 @@ export default function WalletPage() {
     setData(walletData);
     setInvoices(invoiceList);
     setPaypalEmail(profile?.paypalEmail || '');
+    setAccountEmail(profile?.email || '');
   }, []);
 
   // On first load, finish a top-up if PayPal just sent the user back with an order id
@@ -173,7 +175,8 @@ export default function WalletPage() {
     return null;
   })();
   // Withdrawing is blocked while the email box is open, so a typed-but-unsaved email can't be skipped
-  const emailPending = editingEmail || !paypalEmail;
+  const payoutEmail = paypalEmail || accountEmail; // the saved PayPal email, else the account email
+  const emailPending = editingEmail || !payoutEmail;
   const canWithdraw = !emailPending && withdrawAmount !== '' && !withdrawError;
   const emailError = emailInput && !EMAIL_RE.test(emailInput) ? 'Enter a valid email address' : null;
 
@@ -203,7 +206,7 @@ export default function WalletPage() {
       await walletService.withdraw(value);
       setWithdrawAmount('');
       setWithdrawTouched(false);
-      setNotice(`${money(value, currency)} is on its way to ${paypalEmail}.`);
+      setNotice(`${money(value, currency)} is on its way to ${payoutEmail}.`);
       await load();
       // The message is at the top of the page; bring it into view
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -261,8 +264,8 @@ export default function WalletPage() {
                 Add {money(wallet.shortfall, currency)} to get started
               </p>
               <p className="text-sm mt-1 text-amber-700 dark:text-amber-400">
-                Your wallet needs {money(wallet.minBalance, currency)} before you can book or list a charger.
-                {money(wallet.deposit, currency)} stays as a damage deposit.
+                Your wallet needs at least {money(wallet.minBalance, currency)} before you can book or list a charger. {money(wallet.deposit, currency)} stays locked as a damage deposit.
+                Bookings are paid from the money above it, so add enough to cover them.
               </p>
             </div>
           </div>
@@ -324,14 +327,14 @@ export default function WalletPage() {
               <div>
                 <p className="font-medium text-gray-900 dark:text-white">Damage Deposit</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {wallet.depositMet 
+                  {(wallet.balance + wallet.held) >= wallet.deposit
                     ? `${money(wallet.deposit, currency)} securely locked` 
                     : `${money(wallet.deposit, currency)} required`}
                 </p>
               </div>
             </div>
-            <Badge variant={wallet.depositMet ? 'success' : 'warning'} className="text-xs">
-              {wallet.depositMet ? '✓ Funded' : 'Pending'}
+            <Badge variant={(wallet.balance + wallet.held) >= wallet.deposit ? 'success' : 'warning'} className="text-xs">
+              {(wallet.balance + wallet.held) >= wallet.deposit ? '✓ Funded' : 'Pending'}
             </Badge>
           </Card>
         )}
@@ -484,12 +487,15 @@ export default function WalletPage() {
             <label htmlFor="paypal-email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               PayPal email
             </label>
-            {paypalEmail && !editingEmail ? (
+            {payoutEmail && !editingEmail ? (
               <div className="flex items-center justify-between gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
-                <span className="text-gray-900 dark:text-white break-all">{paypalEmail}</span>
+                <span className="text-gray-900 dark:text-white break-all">
+                  {payoutEmail}
+                  {!paypalEmail && <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(your account email)</span>}
+                </span>
                 <button
                   type="button"
-                  onClick={() => { setEmailInput(paypalEmail); setEditingEmail(true); }}
+                  onClick={() => { setEmailInput(payoutEmail); setEditingEmail(true); }}
                   className="text-sm text-primary-600 dark:text-primary-400 underline flex-shrink-0"
                   style={{ minHeight: 'auto', minWidth: 'auto' }}
                 >
@@ -520,9 +526,7 @@ export default function WalletPage() {
                     <AlertCircle className="w-4 h-4" />{emailError}
                   </p>
                 )}
-                {!paypalEmail && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Add the PayPal email that should receive your money.</p>
-                )}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">The PayPal email that should receive your money. Leave your account email if it is also your PayPal email.</p>
               </div>
             )}
           </div>
@@ -571,7 +575,7 @@ export default function WalletPage() {
           </div>
 
           <Button onClick={handleWithdraw} disabled={withdrawBusy || !canWithdraw} className="w-full py-3.5 text-base font-medium">
-            {withdrawBusy ? 'Processing...' : emailPending ? 'Save your PayPal email first' : canWithdraw ? `Withdraw ${money(Number(withdrawAmount), currency)} to ${paypalEmail}` : 'Enter amount to continue'}
+            {withdrawBusy ? 'Processing...' : emailPending ? 'Save your PayPal email first' : canWithdraw ? `Withdraw ${money(Number(withdrawAmount), currency)} to ${payoutEmail}` : 'Enter amount to continue'}
           </Button>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center">
             {wallet?.paypalMock ? 'Mock mode: the payout is simulated.' : 'Sent as a PayPal payout. Sandbox mode, so no real money moves.'}
@@ -581,7 +585,7 @@ export default function WalletPage() {
         {/* Invoices */}
         {invoices.length > 0 && (
           <Card className="p-6 bg-white dark:bg-gray-800">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Pending Invoices</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Invoices</h2>
             <div className="space-y-3">
               {invoices.map(invoice => (
                 <div key={invoice.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
@@ -590,6 +594,7 @@ export default function WalletPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400">{money(invoice.amount, invoice.currency || currency)}</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Badge size="sm" variant="default">{invoice.direction === 'issued' ? 'Sent by you' : 'Sent to you'}</Badge>
                     <Badge size="sm" variant={invoice.status === 'paid' ? 'success' : 'warning'}>
                       {invoice.status}
                     </Badge>

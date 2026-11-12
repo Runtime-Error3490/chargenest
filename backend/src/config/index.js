@@ -136,10 +136,11 @@ export const config = {
   // Wallet. The minimum balance doubles as the damage deposit: it must be in the wallet
   // before a user can book or list a charger, and withdrawals can never dip below it.
   wallet: {
-    // Balance a user needs in the wallet before booking or listing
-    minBalance: parseFloat(process.env.WALLET_MIN_BALANCE || '500'),
-    // Part of the wallet that stays locked as the damage deposit. The rest can be spent on bookings.
-    deposit: parseFloat(process.env.WALLET_DEPOSIT || '250'),
+    // Part of the wallet that stays locked as the damage deposit. Everything above it can be spent on bookings.
+    deposit: parseFloat(process.env.WALLET_DEPOSIT || '50'),
+    // Balance a user needs in the wallet before booking or listing. It defaults to the deposit itself;
+    // each booking is then paid from the money above it (the hold fails if there is not enough).
+    minBalance: parseFloat(process.env.WALLET_MIN_BALANCE || process.env.WALLET_DEPOSIT || '50'),
     // PayPal mock mode only: one-time demo credit for a wallet that has never been used (0 turns it off)
     mockCredit: parseFloat(process.env.WALLET_MOCK_CREDIT || '1000'),
   },

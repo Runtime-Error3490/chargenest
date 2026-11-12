@@ -103,10 +103,18 @@ async function paypalRequest(method, endpoint, data = null) {
       data: error.response?.data,
     });
     throw new PaymentError(
-      error.response?.data?.message || 'PayPal API request failed',
+      paypalErrorMessage(error.response?.data) || 'PayPal API request failed',
       error.response?.data
     );
   }
+}
+
+// PayPal's top-level message is often vague ("Request is not well-formed"); the reason is in details[]
+function paypalErrorMessage(data) {
+  if (!data?.message) return null;
+  const detail = Array.isArray(data.details) ? data.details[0] : null;
+  const why = detail?.description || detail?.issue;
+  return why ? `${data.message} (${detail.field ? `${detail.field}: ` : ''}${why})` : data.message;
 }
 
 export const paypalService = {

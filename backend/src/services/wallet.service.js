@@ -55,7 +55,7 @@ function formatWallet(user) {
     balance,
     held: num(user.walletHeld),
     spendable: spendableAmount(balance),
-    // Needed to start: minBalance in total, of which `deposit` stays locked and the rest is spendable
+    // Needed to start: minBalance in total (the deposit, by default). `deposit` stays locked; the rest pays for bookings
     minBalance: config.wallet.minBalance,
     deposit: config.wallet.deposit,
     shortfall: Math.max(0, round2(config.wallet.minBalance - balance - num(user.walletHeld))),
@@ -130,7 +130,7 @@ export const walletService = {
       const { minBalance, deposit } = config.wallet;
       const currency = config.platform.defaultCurrency;
       throw new ForbiddenError(
-        `Your wallet needs ${minBalance} ${currency} before you ${what}. ${deposit} ${currency} of it stays as a damage deposit and the other ${round2(minBalance - deposit)} ${currency} is yours to spend on bookings.`,
+        `Your wallet needs at least ${minBalance} ${currency} before you ${what}. ${deposit} ${currency} of it stays as a damage deposit${minBalance > deposit ? ` and the other ${round2(minBalance - deposit)} ${currency} is yours to spend` : ''}. Money above the deposit pays for bookings, so add enough to cover them.`,
         { code: 'DEPOSIT_REQUIRED', minBalance, deposit }
       );
     }
@@ -322,9 +322,11 @@ export const walletService = {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { paypalEmail: true },
+      select: { paypalEmail: true, email: true },
     });
-    if (!user?.paypalEmail) {
+    // The saved PayPal email, else the account email
+    const payoutEmail = user?.paypalEmail || user?.email;
+    if (!payoutEmail) {
       throw new ValidationError('Add your PayPal email in your profile before withdrawing');
     }
 
@@ -342,7 +344,7 @@ export const walletService = {
     let payout;
     try {
       payout = await paypalService.createPayout({
-        recipientEmail: user.paypalEmail,
+        recipientEmail: payoutEmail,
         amount: value,
         currency: config.platform.defaultCurrency,
         note: 'ChargeNest wallet withdrawal',
@@ -380,7 +382,7 @@ export const walletService = {
       prisma.invoice.count({
         where: { recipientId: userId, status: { in: ['draft', 'sent'] } },
       }),
-      prisma.user.findUnique({ where: { id: userId }, select: { walletBalance: true, walletHeld: true, paypalEmail: true } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { walletBalance: true, walletHeld: true, paypalEmail: true, email: true } }),
     ]);
 
     if (openBookings > 0 || openDisputes > 0 || unpaidInvoices > 0 || num(user?.walletHeld) > 0) {
@@ -391,7 +393,8 @@ export const walletService = {
     }
     const amount = round2(num(user?.walletBalance));
     if (!(amount > 0)) throw new ValidationError('Your wallet is already empty');
-    if (!user.paypalEmail) {
+    const payoutEmail = user.paypalEmail || user.email;
+    if (!payoutEmail) {
       throw new ValidationError('Add your PayPal email in your profile before closing your wallet');
     }
 
@@ -405,7 +408,7 @@ export const walletService = {
     let payout;
     try {
       payout = await paypalService.createPayout({
-        recipientEmail: user.paypalEmail,
+        recipientEmail: payoutEmail,
         amount,
         currency: config.platform.defaultCurrency,
         note: 'ChargeNest wallet closed',

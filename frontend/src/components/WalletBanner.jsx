@@ -23,7 +23,7 @@ export default function WalletBanner() {
           Add {money(wallet.shortfall)} to start booking
         </p>
         <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
-          Your wallet needs {money(wallet.minBalance)} minimum. {money(wallet.deposit)} stays as damage deposit, the rest is yours to spend.
+          Your wallet needs {money(wallet.minBalance)} minimum, which stays locked as the damage deposit. Money above it pays for bookings, so add enough to cover them.
         </p>
       </div>
       <Link 
