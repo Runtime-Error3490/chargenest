@@ -1135,7 +1135,7 @@ export const agentService = {
     let finalMessage = stripInternalNotes(response.message);
     if (first) {
       // Typing "yes" in the chat does not approve anything; point to the real button
-      finalMessage += '\n\n**To confirm, press Approve in the yellow "Actions waiting for your approval" box at the top of this page.** Typing "yes" here does not confirm it.';
+      finalMessage += '\n\n**To confirm, press Approve in the approval box at the bottom of this page.** Typing "yes" here does not confirm it.';
     }
     return {
       message: finalMessage,
